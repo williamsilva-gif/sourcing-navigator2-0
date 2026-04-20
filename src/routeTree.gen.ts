@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as RfpRouteImport } from './routes/rfp'
 import { Route as EstrategiaRouteImport } from './routes/estrategia'
 import { Route as DiagnosticoRouteImport } from './routes/diagnostico'
+import { Route as AnaliseRouteImport } from './routes/analise'
 import { Route as IndexRouteImport } from './routes/index'
 
 const RfpRoute = RfpRouteImport.update({
@@ -29,6 +30,11 @@ const DiagnosticoRoute = DiagnosticoRouteImport.update({
   path: '/diagnostico',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AnaliseRoute = AnaliseRouteImport.update({
+  id: '/analise',
+  path: '/analise',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -37,12 +43,14 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/analise': typeof AnaliseRoute
   '/diagnostico': typeof DiagnosticoRoute
   '/estrategia': typeof EstrategiaRoute
   '/rfp': typeof RfpRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/analise': typeof AnaliseRoute
   '/diagnostico': typeof DiagnosticoRoute
   '/estrategia': typeof EstrategiaRoute
   '/rfp': typeof RfpRoute
@@ -50,20 +58,22 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/analise': typeof AnaliseRoute
   '/diagnostico': typeof DiagnosticoRoute
   '/estrategia': typeof EstrategiaRoute
   '/rfp': typeof RfpRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/diagnostico' | '/estrategia' | '/rfp'
+  fullPaths: '/' | '/analise' | '/diagnostico' | '/estrategia' | '/rfp'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/diagnostico' | '/estrategia' | '/rfp'
-  id: '__root__' | '/' | '/diagnostico' | '/estrategia' | '/rfp'
+  to: '/' | '/analise' | '/diagnostico' | '/estrategia' | '/rfp'
+  id: '__root__' | '/' | '/analise' | '/diagnostico' | '/estrategia' | '/rfp'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AnaliseRoute: typeof AnaliseRoute
   DiagnosticoRoute: typeof DiagnosticoRoute
   EstrategiaRoute: typeof EstrategiaRoute
   RfpRoute: typeof RfpRoute
@@ -92,6 +102,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DiagnosticoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/analise': {
+      id: '/analise'
+      path: '/analise'
+      fullPath: '/analise'
+      preLoaderRoute: typeof AnaliseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -104,6 +121,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AnaliseRoute: AnaliseRoute,
   DiagnosticoRoute: DiagnosticoRoute,
   EstrategiaRoute: EstrategiaRoute,
   RfpRoute: RfpRoute,
