@@ -177,8 +177,11 @@ function LotCard({ lot }: { lot: AuctionLot }) {
 }
 
 export function ReverseAuction() {
-  const liveCount = AUCTIONS.filter((a) => a.status !== "ended").length;
-  const totalSavings = AUCTIONS.reduce(
+  const [extraLots, setExtraLots] = useState<AuctionLot[]>([]);
+  const [createOpen, setCreateOpen] = useState(false);
+  const lots = useMemo(() => [...extraLots, ...AUCTIONS], [extraLots]);
+  const liveCount = lots.filter((a) => a.status !== "ended").length;
+  const totalSavings = lots.reduce(
     (s, a) => s + (a.startingAdr - a.currentBest) * a.roomNights,
     0,
   );
@@ -202,17 +205,23 @@ export function ReverseAuction() {
             </p>
           </div>
         </div>
-        <Button size="sm">
+        <Button size="sm" onClick={() => setCreateOpen(true)}>
           <Gavel className="h-3.5 w-3.5" />
           Criar novo lote
         </Button>
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {AUCTIONS.map((lot) => (
+        {lots.map((lot) => (
           <LotCard key={lot.id} lot={lot} />
         ))}
       </div>
+
+      <CreateLotModal
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        onPublish={(lot) => setExtraLots((prev) => [lot, ...prev])}
+      />
     </section>
   );
 }
