@@ -34,7 +34,7 @@ function SelecaoPage() {
             Seleção
           </h1>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            Programa anual consolidado: hotéis adjudicados, cobertura geográfica
+            Programa anual consolidado: hotéis selecionados, cobertura geográfica
             por cidade e exportação para PDF e Excel.
           </p>
         </div>
@@ -51,7 +51,7 @@ function SelecaoPage() {
       </div>
 
       <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Kpi icon={Building2} label="Hotéis adjudicados" value={String(stats.total)} hint={`${stats.primaries} primários`} />
+        <Kpi icon={Building2} label="Hotéis selecionados" value={String(stats.total)} hint={`${stats.primaries} primários`} />
         <Kpi icon={MapPin} label="Cidades cobertas" value={String(stats.cities)} hint="programa nacional" tone="primary" />
         <Kpi icon={Calendar} label="Room nights/ano" value={stats.nights.toLocaleString("pt-BR")} hint={`ADR ${fmt$(stats.weightedAdr)}`} />
         <Kpi icon={TrendingDown} label="Economia anual" value={fmt$(stats.savings)} hint={`${stats.savingsPct.toFixed(1)}% vs baseline`} tone="success" />
@@ -83,7 +83,7 @@ export const Route = createFileRoute("/selecao")({
   head: () => ({
     meta: [
       { title: "Seleção — SourcingHub" },
-      { name: "description", content: "Programa anual consolidado com matriz de hotéis adjudicados, cobertura geográfica e exportação para PDF/Excel." },
+      { name: "description", content: "Programa anual consolidado com matriz de hotéis selecionados, cobertura geográfica e exportação para PDF/Excel." },
     ],
   }),
   component: SelecaoPage,

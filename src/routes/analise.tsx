@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { BarChart3, Download } from "lucide-react";
+import { toast } from "sonner";
+import { AppShell } from "@/components/layout/AppShell";
 import { RfpComparisonTable } from "@/components/analise/RfpComparisonTable";
 
 export const Route = createFileRoute("/analise")({
@@ -18,7 +20,8 @@ export const Route = createFileRoute("/analise")({
 
 function AnalisePage() {
   return (
-    <div className="space-y-6">
+    <AppShell>
+      <div className="space-y-6">
       <header className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:flex-wrap">
         <div className="flex items-start gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary-soft text-primary">
@@ -34,7 +37,10 @@ function AnalisePage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-secondary">
+          <button
+            onClick={() => toast.success("Análise exportada em PDF")}
+            className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-secondary"
+          >
             <Download className="h-3.5 w-3.5" />
             Exportar análise
           </button>
@@ -42,6 +48,7 @@ function AnalisePage() {
       </header>
 
       <RfpComparisonTable />
-    </div>
+      </div>
+    </AppShell>
   );
 }

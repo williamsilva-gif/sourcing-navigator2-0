@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { DollarSign, TrendingUp, FileText, AlertTriangle, Calendar } from "lucide-react";
+import { toast } from "sonner";
 import { AppShell } from "@/components/layout/AppShell";
 import { KpiCard } from "@/components/dashboard/KpiCard";
 import { SavingsChart } from "@/components/dashboard/SavingsChart";
@@ -35,11 +36,15 @@ function DashboardPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button className="flex h-10 items-center gap-2 rounded-md border border-input bg-card px-3 text-sm font-medium text-foreground transition-colors hover:border-primary/40">
+          <button
+            onClick={() => toast.info("Período YTD 2025 selecionado")}
+            className="flex h-10 items-center gap-2 rounded-md border border-input bg-card px-3 text-sm font-medium text-foreground transition-colors hover:border-primary/40"
+          >
             <Calendar className="h-4 w-4 text-muted-foreground" />
             YTD 2025
           </button>
           <button
+            onClick={() => toast.success("Relatório executivo gerado em PDF")}
             className="h-10 rounded-md px-4 text-sm font-semibold text-primary-foreground shadow-sm transition-opacity hover:opacity-90"
             style={{ background: "var(--gradient-primary)" }}
           >

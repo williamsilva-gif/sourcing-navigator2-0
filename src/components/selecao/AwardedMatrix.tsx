@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Search, ArrowUpDown, Trophy, Shield, Building2, Wifi, Coffee, Car, Dumbbell, Lock } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { AWARDED, AMENITY_LABELS, type AwardedHotel } from "./selectionData";
+import { HotelHistoryModal } from "./HotelHistoryModal";
 
 const AMENITY_ICON: Record<string, typeof Wifi> = {
   breakfast: Coffee, wifi: Wifi, lra: Lock, parking: Car, gym: Dumbbell,
@@ -16,6 +17,7 @@ export function AwardedMatrix() {
   const [sortKey, setSortKey] = useState<SortKey>("city");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [tierFilter, setTierFilter] = useState<string>("all");
+  const [detail, setDetail] = useState<AwardedHotel | null>(null);
 
   const filtered = useMemo(() => {
     const ql = q.toLowerCase();
@@ -44,7 +46,7 @@ export function AwardedMatrix() {
             <Trophy className="h-5 w-5" />
           </div>
           <div>
-            <h2 className="text-base font-semibold tracking-tight text-foreground">Matriz final de hotéis adjudicados</h2>
+            <h2 className="text-base font-semibold tracking-tight text-foreground">Matriz final de hotéis</h2>
             <p className="text-xs text-muted-foreground">{filtered.length} de {AWARDED.length} hotéis · primários e backups</p>
           </div>
         </div>
@@ -82,13 +84,14 @@ export function AwardedMatrix() {
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {filtered.map((h) => <Row key={h.id} h={h} />)}
+            {filtered.map((h) => <Row key={h.id} h={h} onClick={() => setDetail(h)} />)}
             {filtered.length === 0 && (
               <tr><td colSpan={11} className="px-4 py-8 text-center text-muted-foreground">Nenhum hotel encontrado.</td></tr>
             )}
           </tbody>
         </table>
       </div>
+      <HotelHistoryModal hotel={detail} onOpenChange={(o) => !o && setDetail(null)} />
     </section>
   );
 }
@@ -106,11 +109,11 @@ function Th({ children, sortable, onClick, active, dir, className = "" }: { chil
   );
 }
 
-function Row({ h }: { h: AwardedHotel }) {
+function Row({ h, onClick }: { h: AwardedHotel; onClick: () => void }) {
   const spend = h.finalAdr * h.roomNights;
   const overCap = h.finalAdr > h.cap;
   return (
-    <tr className="text-foreground hover:bg-muted/30">
+    <tr onClick={onClick} className="cursor-pointer text-foreground transition-colors hover:bg-muted/40">
       <td className="px-3 py-2.5">
         <div className="flex items-center gap-2">
           <Building2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />

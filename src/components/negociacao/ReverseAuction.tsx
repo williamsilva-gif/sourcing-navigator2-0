@@ -72,7 +72,7 @@ function LotCard({ lot }: { lot: AuctionLot }) {
           </div>
         ) : (
           <div className="rounded bg-muted px-2 py-1 text-[11px] font-medium text-muted-foreground">
-            Adjudicado
+            Fechado
           </div>
         )}
       </header>
@@ -158,7 +158,7 @@ function LotCard({ lot }: { lot: AuctionLot }) {
       <footer className="flex items-center justify-between gap-2 border-t border-border p-3">
         {lot.status === "ended" ? (
           <Button variant="outline" size="sm" className="w-full">
-            Ver contrato adjudicado
+            Ver contrato fechado
           </Button>
         ) : (
           <>
