@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { toast } from "sonner";
 import { FileText, Plus, Send, CheckCircle2, AlertCircle, Calendar } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
@@ -89,9 +88,6 @@ function RfpPage() {
 
       <CreateRfpWizard open={wizardOpen} onClose={() => setWizardOpen(false)} />
       <RfpDetailModal rfp={selected} onClose={() => setSelected(null)} />
-
-      {/* hidden helper to ensure toast is registered if needed elsewhere */}
-      <span className="hidden" aria-hidden onClick={() => toast.info("")} />
     </AppShell>
   );
 }
