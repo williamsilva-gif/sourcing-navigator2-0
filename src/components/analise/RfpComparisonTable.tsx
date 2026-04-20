@@ -18,8 +18,10 @@ import {
   Star,
   Mail,
   Calendar,
+  GitCompare,
 } from "lucide-react";
 import { RFP_ROWS, type RfpRow, type RfpStatus } from "./rfpData";
+import { RfpCompareModal } from "./RfpCompareModal";
 import { cn } from "@/lib/utils";
 
 type SortKey =
@@ -83,6 +85,7 @@ export function RfpComparisonTable() {
   const [pageSize, setPageSize] = useState<25 | 50 | 100>(25);
   const [page, setPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
+  const [compareOpen, setCompareOpen] = useState(false);
 
   const cities = useMemo(() => [...new Set(RFP_ROWS.map((r) => r.city))].sort(), []);
 
@@ -187,6 +190,12 @@ export function RfpComparisonTable() {
     tierFilter.size +
     statusFilter.size +
     (cityFilter ? 1 : 0);
+
+  const selectedRows = useMemo(
+    () => RFP_ROWS.filter((r) => selected.has(r.id)),
+    [selected],
+  );
+  const canCompare = selectedRows.length >= 2 && selectedRows.length <= 4;
 
   return (
     <div className="space-y-3">
@@ -300,8 +309,26 @@ export function RfpComparisonTable() {
         <div className="flex flex-col gap-2 rounded-lg border border-primary/30 bg-primary-soft px-4 py-2.5 text-xs sm:flex-row sm:items-center sm:justify-between">
           <span className="font-medium text-primary">
             {selected.size} hotéis selecionados para ação em lote
+            {selected.size > 4 && (
+              <span className="ml-2 text-[11px] font-normal text-warning-foreground">
+                (selecione 2 a 4 para comparar)
+              </span>
+            )}
           </span>
           <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => canCompare && setCompareOpen(true)}
+              disabled={!canCompare}
+              className={cn(
+                "inline-flex h-7 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition-colors",
+                canCompare
+                  ? "border-primary bg-primary text-primary-foreground hover:bg-primary-hover"
+                  : "cursor-not-allowed border-border bg-card text-muted-foreground opacity-60",
+              )}
+            >
+              <GitCompare className="h-3 w-3" />
+              Comparar selecionados
+            </button>
             <BulkAction icon={Check}>Aprovar</BulkAction>
             <BulkAction icon={Mail}>Solicitar revisão</BulkAction>
             <BulkAction icon={Download}>Exportar CSV</BulkAction>
@@ -540,6 +567,10 @@ export function RfpComparisonTable() {
           </div>
         </div>
       </div>
+
+      {compareOpen && canCompare && (
+        <RfpCompareModal rows={selectedRows} onClose={() => setCompareOpen(false)} />
+      )}
     </div>
   );
 }
