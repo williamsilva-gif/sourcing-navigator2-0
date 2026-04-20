@@ -72,7 +72,7 @@ function LotCard({ lot }: { lot: AuctionLot }) {
           </div>
         ) : (
           <div className="rounded bg-muted px-2 py-1 text-[11px] font-medium text-muted-foreground">
-            Adjudicado
+            Fechado
           </div>
         )}
       </header>
