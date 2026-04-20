@@ -567,6 +567,10 @@ export function RfpComparisonTable() {
           </div>
         </div>
       </div>
+
+      {compareOpen && canCompare && (
+        <RfpCompareModal rows={selectedRows} onClose={() => setCompareOpen(false)} />
+      )}
     </div>
   );
 }
