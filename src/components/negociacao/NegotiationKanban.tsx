@@ -94,6 +94,7 @@ export function NegotiationKanban() {
   }
 
   return (
+    <>
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
       {STAGES.map((stage) => {
         const items = grouped[stage.key];
@@ -236,5 +237,11 @@ export function NegotiationKanban() {
         );
       })}
     </div>
+    <NegotiationDetailModal
+      card={detailCard}
+      onClose={() => setDetailId(null)}
+      onSubmitCounter={handleCounter}
+    />
+    </>
   );
 }
