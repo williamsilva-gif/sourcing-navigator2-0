@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Filter, Download } from "lucide-react";
+import { toast } from "sonner";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import { NegotiationKanban } from "@/components/negociacao/NegotiationKanban";
@@ -28,11 +29,11 @@ function NegociacaoPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={() => toast.info("Filtros: aplicado priority=Alta")}>
             <Filter className="h-3.5 w-3.5" />
             Filtros
           </Button>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={() => toast.success("Pipeline exportado em CSV")}>
             <Download className="h-3.5 w-3.5" />
             Exportar
           </Button>
