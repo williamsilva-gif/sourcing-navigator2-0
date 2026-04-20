@@ -36,7 +36,7 @@ export function exportPdf() {
   doc.text("Resumo executivo", 40, 90);
 
   const summary = [
-    ["Hotéis adjudicados", String(agg.total)],
+    ["Hotéis selecionados", String(agg.total)],
     ["Hotéis primários", String(agg.primaries)],
     ["Cidades cobertas", String(agg.cities)],
     ["Room nights/ano", agg.totalNights.toLocaleString("pt-BR")],
@@ -85,7 +85,7 @@ export function exportPdf() {
 
   doc.addPage();
   doc.setFontSize(14);
-  doc.text("Matriz final de hotéis adjudicados", 40, 40);
+  doc.text("Matriz final de hotéis", 40, 40);
   autoTable(doc, {
     startY: 56,
     head: [["Hotel", "Cidade", "Tier", "Status", "ADR final", "Cap", "Δ%", "Room nights", "Spend", "Quality", "Compliance"]],
@@ -124,7 +124,7 @@ export function exportXlsx() {
     ["Gerado em", new Date().toLocaleDateString("pt-BR")],
     [],
     ["Métrica", "Valor"],
-    ["Hotéis adjudicados", agg.total],
+    ["Hotéis selecionados", agg.total],
     ["Hotéis primários", agg.primaries],
     ["Cidades cobertas", agg.cities],
     ["Room nights/ano", agg.totalNights],
@@ -151,7 +151,7 @@ export function exportXlsx() {
   });
   const matrixSheet = XLSX.utils.aoa_to_sheet([matrixHeader, ...matrixBody]);
   matrixSheet["!cols"] = matrixHeader.map((h) => ({ wch: Math.max(12, h.length + 2) }));
-  XLSX.utils.book_append_sheet(wb, matrixSheet, "Matriz Adjudicados");
+  XLSX.utils.book_append_sheet(wb, matrixSheet, "Matriz Final");
 
   const cityRows = Object.entries(
     AWARDED.reduce<Record<string, { hotels: number; nights: number; spend: number }>>((acc, h) => {

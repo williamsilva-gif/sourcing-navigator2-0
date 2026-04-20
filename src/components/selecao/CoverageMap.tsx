@@ -48,7 +48,7 @@ export function CoverageMap() {
         </div>
         <div>
           <h2 className="text-base font-semibold tracking-tight text-foreground">Cobertura geográfica por cidade</h2>
-          <p className="text-xs text-muted-foreground">{rows.length} mercados ativos · meta de room nights vs adjudicado</p>
+          <p className="text-xs text-muted-foreground">{rows.length} mercados ativos · meta de room nights vs selecionado</p>
         </div>
       </header>
 

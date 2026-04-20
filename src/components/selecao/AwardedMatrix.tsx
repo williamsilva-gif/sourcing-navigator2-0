@@ -44,7 +44,7 @@ export function AwardedMatrix() {
             <Trophy className="h-5 w-5" />
           </div>
           <div>
-            <h2 className="text-base font-semibold tracking-tight text-foreground">Matriz final de hotéis adjudicados</h2>
+            <h2 className="text-base font-semibold tracking-tight text-foreground">Matriz final de hotéis</h2>
             <p className="text-xs text-muted-foreground">{filtered.length} de {AWARDED.length} hotéis · primários e backups</p>
           </div>
         </div>
