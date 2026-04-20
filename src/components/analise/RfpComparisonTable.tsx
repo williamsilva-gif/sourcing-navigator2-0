@@ -20,6 +20,7 @@ import {
   Calendar,
 } from "lucide-react";
 import { RFP_ROWS, type RfpRow, type RfpStatus } from "./rfpData";
+import { RfpCompareModal } from "./RfpCompareModal";
 import { cn } from "@/lib/utils";
 
 type SortKey =
