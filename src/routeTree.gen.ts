@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SelecaoRouteImport } from './routes/selecao'
 import { Route as RfpRouteImport } from './routes/rfp'
 import { Route as NegociacaoRouteImport } from './routes/negociacao'
+import { Route as MonitoramentoRouteImport } from './routes/monitoramento'
 import { Route as ImplementacaoRouteImport } from './routes/implementacao'
 import { Route as EstrategiaRouteImport } from './routes/estrategia'
 import { Route as DiagnosticoRouteImport } from './routes/diagnostico'
@@ -31,6 +32,11 @@ const RfpRoute = RfpRouteImport.update({
 const NegociacaoRoute = NegociacaoRouteImport.update({
   id: '/negociacao',
   path: '/negociacao',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MonitoramentoRoute = MonitoramentoRouteImport.update({
+  id: '/monitoramento',
+  path: '/monitoramento',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ImplementacaoRoute = ImplementacaoRouteImport.update({
@@ -65,6 +71,7 @@ export interface FileRoutesByFullPath {
   '/diagnostico': typeof DiagnosticoRoute
   '/estrategia': typeof EstrategiaRoute
   '/implementacao': typeof ImplementacaoRoute
+  '/monitoramento': typeof MonitoramentoRoute
   '/negociacao': typeof NegociacaoRoute
   '/rfp': typeof RfpRoute
   '/selecao': typeof SelecaoRoute
@@ -75,6 +82,7 @@ export interface FileRoutesByTo {
   '/diagnostico': typeof DiagnosticoRoute
   '/estrategia': typeof EstrategiaRoute
   '/implementacao': typeof ImplementacaoRoute
+  '/monitoramento': typeof MonitoramentoRoute
   '/negociacao': typeof NegociacaoRoute
   '/rfp': typeof RfpRoute
   '/selecao': typeof SelecaoRoute
@@ -86,6 +94,7 @@ export interface FileRoutesById {
   '/diagnostico': typeof DiagnosticoRoute
   '/estrategia': typeof EstrategiaRoute
   '/implementacao': typeof ImplementacaoRoute
+  '/monitoramento': typeof MonitoramentoRoute
   '/negociacao': typeof NegociacaoRoute
   '/rfp': typeof RfpRoute
   '/selecao': typeof SelecaoRoute
@@ -98,6 +107,7 @@ export interface FileRouteTypes {
     | '/diagnostico'
     | '/estrategia'
     | '/implementacao'
+    | '/monitoramento'
     | '/negociacao'
     | '/rfp'
     | '/selecao'
@@ -108,6 +118,7 @@ export interface FileRouteTypes {
     | '/diagnostico'
     | '/estrategia'
     | '/implementacao'
+    | '/monitoramento'
     | '/negociacao'
     | '/rfp'
     | '/selecao'
@@ -118,6 +129,7 @@ export interface FileRouteTypes {
     | '/diagnostico'
     | '/estrategia'
     | '/implementacao'
+    | '/monitoramento'
     | '/negociacao'
     | '/rfp'
     | '/selecao'
@@ -129,6 +141,7 @@ export interface RootRouteChildren {
   DiagnosticoRoute: typeof DiagnosticoRoute
   EstrategiaRoute: typeof EstrategiaRoute
   ImplementacaoRoute: typeof ImplementacaoRoute
+  MonitoramentoRoute: typeof MonitoramentoRoute
   NegociacaoRoute: typeof NegociacaoRoute
   RfpRoute: typeof RfpRoute
   SelecaoRoute: typeof SelecaoRoute
@@ -155,6 +168,13 @@ declare module '@tanstack/react-router' {
       path: '/negociacao'
       fullPath: '/negociacao'
       preLoaderRoute: typeof NegociacaoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/monitoramento': {
+      id: '/monitoramento'
+      path: '/monitoramento'
+      fullPath: '/monitoramento'
+      preLoaderRoute: typeof MonitoramentoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/implementacao': {
@@ -201,6 +221,7 @@ const rootRouteChildren: RootRouteChildren = {
   DiagnosticoRoute: DiagnosticoRoute,
   EstrategiaRoute: EstrategiaRoute,
   ImplementacaoRoute: ImplementacaoRoute,
+  MonitoramentoRoute: MonitoramentoRoute,
   NegociacaoRoute: NegociacaoRoute,
   RfpRoute: RfpRoute,
   SelecaoRoute: SelecaoRoute,
