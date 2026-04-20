@@ -45,6 +45,12 @@ export const Route = createRootRoute({
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "SourcingHub — Hotel Sourcing Corporativo" },
+      { name: "description", content: "Hotel Scout Pro is a corporate hotel sourcing SaaS platform for data-driven travel management." },
+      { property: "og:description", content: "Hotel Scout Pro is a corporate hotel sourcing SaaS platform for data-driven travel management." },
+      { name: "twitter:description", content: "Hotel Scout Pro is a corporate hotel sourcing SaaS platform for data-driven travel management." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/00554103-01bc-4ab6-93f3-a2cfeb1702c1/id-preview-ae5813f4--71c5bafd-e4cf-4ee3-8f7f-25747f6b987e.lovable.app-1776721532274.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/00554103-01bc-4ab6-93f3-a2cfeb1702c1/id-preview-ae5813f4--71c5bafd-e4cf-4ee3-8f7f-25747f6b987e.lovable.app-1776721532274.png" },
     ],
     links: [
       {
