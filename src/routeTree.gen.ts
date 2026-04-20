@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SelecaoRouteImport } from './routes/selecao'
 import { Route as RfpRouteImport } from './routes/rfp'
 import { Route as NegociacaoRouteImport } from './routes/negociacao'
 import { Route as EstrategiaRouteImport } from './routes/estrategia'
@@ -16,6 +17,11 @@ import { Route as DiagnosticoRouteImport } from './routes/diagnostico'
 import { Route as AnaliseRouteImport } from './routes/analise'
 import { Route as IndexRouteImport } from './routes/index'
 
+const SelecaoRoute = SelecaoRouteImport.update({
+  id: '/selecao',
+  path: '/selecao',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RfpRoute = RfpRouteImport.update({
   id: '/rfp',
   path: '/rfp',
@@ -54,6 +60,7 @@ export interface FileRoutesByFullPath {
   '/estrategia': typeof EstrategiaRoute
   '/negociacao': typeof NegociacaoRoute
   '/rfp': typeof RfpRoute
+  '/selecao': typeof SelecaoRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -62,6 +69,7 @@ export interface FileRoutesByTo {
   '/estrategia': typeof EstrategiaRoute
   '/negociacao': typeof NegociacaoRoute
   '/rfp': typeof RfpRoute
+  '/selecao': typeof SelecaoRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -71,6 +79,7 @@ export interface FileRoutesById {
   '/estrategia': typeof EstrategiaRoute
   '/negociacao': typeof NegociacaoRoute
   '/rfp': typeof RfpRoute
+  '/selecao': typeof SelecaoRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -81,8 +90,16 @@ export interface FileRouteTypes {
     | '/estrategia'
     | '/negociacao'
     | '/rfp'
+    | '/selecao'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/analise' | '/diagnostico' | '/estrategia' | '/negociacao' | '/rfp'
+  to:
+    | '/'
+    | '/analise'
+    | '/diagnostico'
+    | '/estrategia'
+    | '/negociacao'
+    | '/rfp'
+    | '/selecao'
   id:
     | '__root__'
     | '/'
@@ -91,6 +108,7 @@ export interface FileRouteTypes {
     | '/estrategia'
     | '/negociacao'
     | '/rfp'
+    | '/selecao'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -100,10 +118,18 @@ export interface RootRouteChildren {
   EstrategiaRoute: typeof EstrategiaRoute
   NegociacaoRoute: typeof NegociacaoRoute
   RfpRoute: typeof RfpRoute
+  SelecaoRoute: typeof SelecaoRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/selecao': {
+      id: '/selecao'
+      path: '/selecao'
+      fullPath: '/selecao'
+      preLoaderRoute: typeof SelecaoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/rfp': {
       id: '/rfp'
       path: '/rfp'
@@ -156,6 +182,7 @@ const rootRouteChildren: RootRouteChildren = {
   EstrategiaRoute: EstrategiaRoute,
   NegociacaoRoute: NegociacaoRoute,
   RfpRoute: RfpRoute,
+  SelecaoRoute: SelecaoRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
