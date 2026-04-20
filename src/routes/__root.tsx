@@ -29,11 +29,19 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "SourcingHub — Hotel Sourcing Corporativo" },
+      {
+        name: "description",
+        content:
+          "Plataforma SaaS para hotel sourcing corporativo: diagnóstico, RFP, negociação, monitoramento e monetização de savings.",
+      },
+      { name: "author", content: "SourcingHub" },
+      { property: "og:title", content: "SourcingHub — Hotel Sourcing Corporativo" },
+      {
+        property: "og:description",
+        content:
+          "Plataforma SaaS para hotel sourcing corporativo, do diagnóstico à monetização.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },

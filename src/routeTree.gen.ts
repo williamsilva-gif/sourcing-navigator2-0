@@ -9,8 +9,62 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SelecaoRouteImport } from './routes/selecao'
+import { Route as RfpRouteImport } from './routes/rfp'
+import { Route as NegociacaoRouteImport } from './routes/negociacao'
+import { Route as MonitoramentoRouteImport } from './routes/monitoramento'
+import { Route as MonetizacaoRouteImport } from './routes/monetizacao'
+import { Route as ImplementacaoRouteImport } from './routes/implementacao'
+import { Route as EstrategiaRouteImport } from './routes/estrategia'
+import { Route as DiagnosticoRouteImport } from './routes/diagnostico'
+import { Route as AnaliseRouteImport } from './routes/analise'
 import { Route as IndexRouteImport } from './routes/index'
 
+const SelecaoRoute = SelecaoRouteImport.update({
+  id: '/selecao',
+  path: '/selecao',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RfpRoute = RfpRouteImport.update({
+  id: '/rfp',
+  path: '/rfp',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NegociacaoRoute = NegociacaoRouteImport.update({
+  id: '/negociacao',
+  path: '/negociacao',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MonitoramentoRoute = MonitoramentoRouteImport.update({
+  id: '/monitoramento',
+  path: '/monitoramento',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MonetizacaoRoute = MonetizacaoRouteImport.update({
+  id: '/monetizacao',
+  path: '/monetizacao',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ImplementacaoRoute = ImplementacaoRouteImport.update({
+  id: '/implementacao',
+  path: '/implementacao',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EstrategiaRoute = EstrategiaRouteImport.update({
+  id: '/estrategia',
+  path: '/estrategia',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DiagnosticoRoute = DiagnosticoRouteImport.update({
+  id: '/diagnostico',
+  path: '/diagnostico',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AnaliseRoute = AnaliseRouteImport.update({
+  id: '/analise',
+  path: '/analise',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -19,28 +73,158 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/analise': typeof AnaliseRoute
+  '/diagnostico': typeof DiagnosticoRoute
+  '/estrategia': typeof EstrategiaRoute
+  '/implementacao': typeof ImplementacaoRoute
+  '/monetizacao': typeof MonetizacaoRoute
+  '/monitoramento': typeof MonitoramentoRoute
+  '/negociacao': typeof NegociacaoRoute
+  '/rfp': typeof RfpRoute
+  '/selecao': typeof SelecaoRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/analise': typeof AnaliseRoute
+  '/diagnostico': typeof DiagnosticoRoute
+  '/estrategia': typeof EstrategiaRoute
+  '/implementacao': typeof ImplementacaoRoute
+  '/monetizacao': typeof MonetizacaoRoute
+  '/monitoramento': typeof MonitoramentoRoute
+  '/negociacao': typeof NegociacaoRoute
+  '/rfp': typeof RfpRoute
+  '/selecao': typeof SelecaoRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/analise': typeof AnaliseRoute
+  '/diagnostico': typeof DiagnosticoRoute
+  '/estrategia': typeof EstrategiaRoute
+  '/implementacao': typeof ImplementacaoRoute
+  '/monetizacao': typeof MonetizacaoRoute
+  '/monitoramento': typeof MonitoramentoRoute
+  '/negociacao': typeof NegociacaoRoute
+  '/rfp': typeof RfpRoute
+  '/selecao': typeof SelecaoRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/analise'
+    | '/diagnostico'
+    | '/estrategia'
+    | '/implementacao'
+    | '/monetizacao'
+    | '/monitoramento'
+    | '/negociacao'
+    | '/rfp'
+    | '/selecao'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/analise'
+    | '/diagnostico'
+    | '/estrategia'
+    | '/implementacao'
+    | '/monetizacao'
+    | '/monitoramento'
+    | '/negociacao'
+    | '/rfp'
+    | '/selecao'
+  id:
+    | '__root__'
+    | '/'
+    | '/analise'
+    | '/diagnostico'
+    | '/estrategia'
+    | '/implementacao'
+    | '/monetizacao'
+    | '/monitoramento'
+    | '/negociacao'
+    | '/rfp'
+    | '/selecao'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AnaliseRoute: typeof AnaliseRoute
+  DiagnosticoRoute: typeof DiagnosticoRoute
+  EstrategiaRoute: typeof EstrategiaRoute
+  ImplementacaoRoute: typeof ImplementacaoRoute
+  MonetizacaoRoute: typeof MonetizacaoRoute
+  MonitoramentoRoute: typeof MonitoramentoRoute
+  NegociacaoRoute: typeof NegociacaoRoute
+  RfpRoute: typeof RfpRoute
+  SelecaoRoute: typeof SelecaoRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/selecao': {
+      id: '/selecao'
+      path: '/selecao'
+      fullPath: '/selecao'
+      preLoaderRoute: typeof SelecaoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/rfp': {
+      id: '/rfp'
+      path: '/rfp'
+      fullPath: '/rfp'
+      preLoaderRoute: typeof RfpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/negociacao': {
+      id: '/negociacao'
+      path: '/negociacao'
+      fullPath: '/negociacao'
+      preLoaderRoute: typeof NegociacaoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/monitoramento': {
+      id: '/monitoramento'
+      path: '/monitoramento'
+      fullPath: '/monitoramento'
+      preLoaderRoute: typeof MonitoramentoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/monetizacao': {
+      id: '/monetizacao'
+      path: '/monetizacao'
+      fullPath: '/monetizacao'
+      preLoaderRoute: typeof MonetizacaoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/implementacao': {
+      id: '/implementacao'
+      path: '/implementacao'
+      fullPath: '/implementacao'
+      preLoaderRoute: typeof ImplementacaoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/estrategia': {
+      id: '/estrategia'
+      path: '/estrategia'
+      fullPath: '/estrategia'
+      preLoaderRoute: typeof EstrategiaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/diagnostico': {
+      id: '/diagnostico'
+      path: '/diagnostico'
+      fullPath: '/diagnostico'
+      preLoaderRoute: typeof DiagnosticoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/analise': {
+      id: '/analise'
+      path: '/analise'
+      fullPath: '/analise'
+      preLoaderRoute: typeof AnaliseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -53,16 +237,16 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AnaliseRoute: AnaliseRoute,
+  DiagnosticoRoute: DiagnosticoRoute,
+  EstrategiaRoute: EstrategiaRoute,
+  ImplementacaoRoute: ImplementacaoRoute,
+  MonetizacaoRoute: MonetizacaoRoute,
+  MonitoramentoRoute: MonitoramentoRoute,
+  NegociacaoRoute: NegociacaoRoute,
+  RfpRoute: RfpRoute,
+  SelecaoRoute: SelecaoRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
