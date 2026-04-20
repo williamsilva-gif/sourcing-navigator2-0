@@ -20,6 +20,48 @@ export interface NegotiationCard {
   notes: string;
 }
 
+export interface NegotiationRound {
+  round: number;
+  date: string;
+  author: string;
+  side: "hotel" | "buyer";
+  adr: number;
+  message: string;
+}
+
+export function buildTimeline(card: {
+  adrInitial: number;
+  adrCurrent: number;
+  rounds: number;
+  lastUpdate: string;
+  owner: string;
+  hotel: string;
+}): NegotiationRound[] {
+  const total = Math.max(1, card.rounds);
+  const step = (card.adrInitial - card.adrCurrent) / total;
+  const baseDate = new Date(card.lastUpdate).getTime();
+  const dayMs = 1000 * 60 * 60 * 24;
+  const rounds: NegotiationRound[] = [];
+  for (let i = 0; i <= total; i++) {
+    const isHotel = i % 2 === 0;
+    const adr = i === 0 ? card.adrInitial : i === total ? card.adrCurrent : Math.round(card.adrInitial - step * i);
+    const date = new Date(baseDate - (total - i) * dayMs * 2).toISOString().slice(0, 10);
+    rounds.push({
+      round: i,
+      date,
+      author: isHotel ? card.hotel.split(" ")[0] : card.owner,
+      side: isHotel ? "hotel" : "buyer",
+      adr,
+      message: i === 0
+        ? `Proposta inicial enviada com ADR de $${adr}.`
+        : isHotel
+          ? `Hotel revisou ADR para $${adr} mantendo café da manhã.`
+          : `Contraproposta enviada: $${adr} com LRA garantido e cancelamento 24h.`,
+    });
+  }
+  return rounds;
+}
+
 export const STAGES: Array<{
   key: NegotiationStage;
   label: string;
