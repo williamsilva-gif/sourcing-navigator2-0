@@ -13,6 +13,7 @@ import { Route as SelecaoRouteImport } from './routes/selecao'
 import { Route as RfpRouteImport } from './routes/rfp'
 import { Route as NegociacaoRouteImport } from './routes/negociacao'
 import { Route as MonitoramentoRouteImport } from './routes/monitoramento'
+import { Route as MonetizacaoRouteImport } from './routes/monetizacao'
 import { Route as ImplementacaoRouteImport } from './routes/implementacao'
 import { Route as EstrategiaRouteImport } from './routes/estrategia'
 import { Route as DiagnosticoRouteImport } from './routes/diagnostico'
@@ -37,6 +38,11 @@ const NegociacaoRoute = NegociacaoRouteImport.update({
 const MonitoramentoRoute = MonitoramentoRouteImport.update({
   id: '/monitoramento',
   path: '/monitoramento',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MonetizacaoRoute = MonetizacaoRouteImport.update({
+  id: '/monetizacao',
+  path: '/monetizacao',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ImplementacaoRoute = ImplementacaoRouteImport.update({
@@ -71,6 +77,7 @@ export interface FileRoutesByFullPath {
   '/diagnostico': typeof DiagnosticoRoute
   '/estrategia': typeof EstrategiaRoute
   '/implementacao': typeof ImplementacaoRoute
+  '/monetizacao': typeof MonetizacaoRoute
   '/monitoramento': typeof MonitoramentoRoute
   '/negociacao': typeof NegociacaoRoute
   '/rfp': typeof RfpRoute
@@ -82,6 +89,7 @@ export interface FileRoutesByTo {
   '/diagnostico': typeof DiagnosticoRoute
   '/estrategia': typeof EstrategiaRoute
   '/implementacao': typeof ImplementacaoRoute
+  '/monetizacao': typeof MonetizacaoRoute
   '/monitoramento': typeof MonitoramentoRoute
   '/negociacao': typeof NegociacaoRoute
   '/rfp': typeof RfpRoute
@@ -94,6 +102,7 @@ export interface FileRoutesById {
   '/diagnostico': typeof DiagnosticoRoute
   '/estrategia': typeof EstrategiaRoute
   '/implementacao': typeof ImplementacaoRoute
+  '/monetizacao': typeof MonetizacaoRoute
   '/monitoramento': typeof MonitoramentoRoute
   '/negociacao': typeof NegociacaoRoute
   '/rfp': typeof RfpRoute
@@ -107,6 +116,7 @@ export interface FileRouteTypes {
     | '/diagnostico'
     | '/estrategia'
     | '/implementacao'
+    | '/monetizacao'
     | '/monitoramento'
     | '/negociacao'
     | '/rfp'
@@ -118,6 +128,7 @@ export interface FileRouteTypes {
     | '/diagnostico'
     | '/estrategia'
     | '/implementacao'
+    | '/monetizacao'
     | '/monitoramento'
     | '/negociacao'
     | '/rfp'
@@ -129,6 +140,7 @@ export interface FileRouteTypes {
     | '/diagnostico'
     | '/estrategia'
     | '/implementacao'
+    | '/monetizacao'
     | '/monitoramento'
     | '/negociacao'
     | '/rfp'
@@ -141,6 +153,7 @@ export interface RootRouteChildren {
   DiagnosticoRoute: typeof DiagnosticoRoute
   EstrategiaRoute: typeof EstrategiaRoute
   ImplementacaoRoute: typeof ImplementacaoRoute
+  MonetizacaoRoute: typeof MonetizacaoRoute
   MonitoramentoRoute: typeof MonitoramentoRoute
   NegociacaoRoute: typeof NegociacaoRoute
   RfpRoute: typeof RfpRoute
@@ -175,6 +188,13 @@ declare module '@tanstack/react-router' {
       path: '/monitoramento'
       fullPath: '/monitoramento'
       preLoaderRoute: typeof MonitoramentoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/monetizacao': {
+      id: '/monetizacao'
+      path: '/monetizacao'
+      fullPath: '/monetizacao'
+      preLoaderRoute: typeof MonetizacaoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/implementacao': {
@@ -221,6 +241,7 @@ const rootRouteChildren: RootRouteChildren = {
   DiagnosticoRoute: DiagnosticoRoute,
   EstrategiaRoute: EstrategiaRoute,
   ImplementacaoRoute: ImplementacaoRoute,
+  MonetizacaoRoute: MonetizacaoRoute,
   MonitoramentoRoute: MonitoramentoRoute,
   NegociacaoRoute: NegociacaoRoute,
   RfpRoute: RfpRoute,
