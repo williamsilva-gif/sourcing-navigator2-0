@@ -1,14 +1,51 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { BarChart3 } from "lucide-react";
-import { ModulePlaceholder } from "@/components/layout/ModulePlaceholder";
+import { BarChart3, Download, Plus } from "lucide-react";
+import { RfpComparisonTable } from "@/components/analise/RfpComparisonTable";
 
 export const Route = createFileRoute("/analise")({
-  head: () => ({ meta: [{ title: "Análise — SourcingHub" }] }),
-  component: () => (
-    <ModulePlaceholder
-      module="Análise"
-      description="Tabelas avançadas comparativas, scoring de hotéis e drill-down em respostas de RFP."
-      icon={BarChart3}
-    />
-  ),
+  head: () => ({
+    meta: [
+      { title: "Análise — SourcingHub" },
+      {
+        name: "description",
+        content:
+          "Análise comparativa de respostas de RFP por hotel: scoring, ADR, compliance e drill-down.",
+      },
+    ],
+  }),
+  component: AnalisePage,
 });
+
+function AnalisePage() {
+  return (
+    <div className="space-y-6">
+      <header className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:flex-wrap">
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary-soft text-primary">
+            <BarChart3 className="h-5 w-5" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+              Análise comparativa de RFP
+            </h1>
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              Scoring ponderado · 30 respostas recebidas · ciclo Q1 2025
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <button className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-secondary">
+            <Download className="h-3.5 w-3.5" />
+            Exportar análise
+          </button>
+          <button className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary-hover">
+            <Plus className="h-3.5 w-3.5" />
+            Comparar selecionados
+          </button>
+        </div>
+      </header>
+
+      <RfpComparisonTable />
+    </div>
+  );
+}
