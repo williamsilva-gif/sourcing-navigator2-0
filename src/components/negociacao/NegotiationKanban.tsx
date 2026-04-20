@@ -16,6 +16,7 @@ import {
   type NegotiationCard,
   type NegotiationStage,
 } from "./negotiationData";
+import { NegotiationDetailModal } from "./NegotiationDetailModal";
 
 const PRIORITY_STYLES: Record<NegotiationCard["priority"], { label: string; cls: string }> = {
   high: { label: "Alta", cls: "bg-destructive-soft text-destructive" },
@@ -37,6 +38,7 @@ export function NegotiationKanban() {
   const [cards, setCards] = useState<NegotiationCard[]>(NEGOTIATIONS);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOverStage, setDragOverStage] = useState<NegotiationStage | null>(null);
+  const [detailId, setDetailId] = useState<string | null>(null);
 
   const grouped = useMemo(() => {
     const map: Record<NegotiationStage, NegotiationCard[]> = {
@@ -72,7 +74,27 @@ export function NegotiationKanban() {
     setDragOverStage(null);
   }
 
+  const detailCard = detailId ? cards.find((c) => c.id === detailId) ?? null : null;
+
+  function handleCounter(cardId: string, adr: number) {
+    setCards((prev) =>
+      prev.map((c) =>
+        c.id === cardId
+          ? {
+              ...c,
+              adrCurrent: adr,
+              discount: Number((((c.adrInitial - adr) / c.adrInitial) * 100).toFixed(1)),
+              rounds: c.rounds + 1,
+              lastUpdate: new Date().toISOString().slice(0, 10),
+              stage: c.stage === "received" || c.stage === "review" ? "counter" : c.stage,
+            }
+          : c,
+      ),
+    );
+  }
+
   return (
+    <>
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
       {STAGES.map((stage) => {
         const items = grouped[stage.key];
@@ -118,6 +140,7 @@ export function NegotiationKanban() {
                     draggable
                     onDragStart={(e) => onDragStart(e, c.id)}
                     onDragEnd={onDragEnd}
+                    onClick={() => setDetailId(c.id)}
                     className={`group cursor-grab rounded-md border border-border bg-card p-3 shadow-[var(--shadow-card)] transition-all hover:border-primary/40 hover:shadow-[var(--shadow-elevated)] active:cursor-grabbing ${
                       isDragging ? "opacity-40" : ""
                     }`}
@@ -214,5 +237,11 @@ export function NegotiationKanban() {
         );
       })}
     </div>
+    <NegotiationDetailModal
+      card={detailCard}
+      onClose={() => setDetailId(null)}
+      onSubmitCounter={handleCounter}
+    />
+    </>
   );
 }
