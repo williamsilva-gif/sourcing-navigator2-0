@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import { toast } from "sonner";
 import {
   BedDouble,
   DollarSign,
@@ -8,6 +10,7 @@ import {
   Stethoscope,
   Download,
 } from "lucide-react";
+import { AppShell } from "@/components/layout/AppShell";
 import { KpiCard } from "@/components/dashboard/KpiCard";
 import { CityHeatmap } from "@/components/diagnostico/CityHeatmap";
 import { AdrHistogram } from "@/components/diagnostico/AdrHistogram";
@@ -23,8 +26,10 @@ export const Route = createFileRoute("/diagnostico")({
 });
 
 function DiagnosticoPage() {
+  const [period, setPeriod] = useState<"30D" | "Trim" | "12M" | "YTD">("12M");
   return (
-    <div className="space-y-6">
+    <AppShell>
+      <div className="space-y-6">
       <header className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:flex-wrap">
         <div className="flex items-start gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary-soft text-primary">
@@ -35,17 +40,18 @@ function DiagnosticoPage() {
               Diagnóstico do programa
             </h1>
             <p className="mt-0.5 text-sm text-muted-foreground">
-              Baseline consolidado · janela móvel de 12 meses · Acme Travel Corp
+              Baseline consolidado · período {period} · Acme Travel Corp
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <div className="flex gap-1 rounded-md border border-border bg-secondary p-0.5 text-xs font-medium">
-            {["30D", "Trim", "12M", "YTD"].map((p) => (
+            {(["30D", "Trim", "12M", "YTD"] as const).map((p) => (
               <button
                 key={p}
+                onClick={() => setPeriod(p)}
                 className={`rounded px-2.5 py-1 transition-colors ${
-                  p === "12M"
+                  p === period
                     ? "bg-card text-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
@@ -54,7 +60,10 @@ function DiagnosticoPage() {
               </button>
             ))}
           </div>
-          <button className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-secondary">
+          <button
+            onClick={() => toast.success(`Baseline ${period} exportado em PDF`)}
+            className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-secondary"
+          >
             <Download className="h-3.5 w-3.5" />
             Exportar baseline
           </button>
@@ -125,7 +134,8 @@ function DiagnosticoPage() {
           body="42 hotéis representam menos de 0.5% do volume cada. Oportunidade de consolidação para ganhar volume em parceiros estratégicos."
         />
       </section>
-    </div>
+      </div>
+    </AppShell>
   );
 }
 
