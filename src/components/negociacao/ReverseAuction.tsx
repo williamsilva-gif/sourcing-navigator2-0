@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Gavel, Timer, Users, Activity, TrendingDown, Zap, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AUCTIONS, type AuctionLot } from "./negotiationData";
+import { CreateLotModal } from "./CreateLotModal";
 
 const STATUS_STYLES: Record<AuctionLot["status"], { label: string; cls: string; pulse: boolean }> = {
   live: { label: "Ao vivo", cls: "bg-success-soft text-success", pulse: true },
