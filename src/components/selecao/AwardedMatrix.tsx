@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import { Search, ArrowUpDown, Trophy, Shield, Building2, Wifi, Coffee, Car, Dumbbell, Lock } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { AWARDED, AMENITY_LABELS, type AwardedHotel } from "./selectionData";
 
 const AMENITY_ICON: Record<string, typeof Wifi> = {
@@ -168,4 +167,3 @@ function ScorePill({ value }: { value: number }) {
   return <span className={`inline-flex min-w-[2.25rem] justify-center rounded px-1.5 py-0.5 font-mono text-[11px] font-semibold tabular-nums ${tone}`}>{value}</span>;
 }
 
-export { Button as _Button };
