@@ -85,6 +85,7 @@ export function RfpComparisonTable() {
   const [pageSize, setPageSize] = useState<25 | 50 | 100>(25);
   const [page, setPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
+  const [compareOpen, setCompareOpen] = useState(false);
 
   const cities = useMemo(() => [...new Set(RFP_ROWS.map((r) => r.city))].sort(), []);
 
@@ -189,6 +190,12 @@ export function RfpComparisonTable() {
     tierFilter.size +
     statusFilter.size +
     (cityFilter ? 1 : 0);
+
+  const selectedRows = useMemo(
+    () => RFP_ROWS.filter((r) => selected.has(r.id)),
+    [selected],
+  );
+  const canCompare = selectedRows.length >= 2 && selectedRows.length <= 4;
 
   return (
     <div className="space-y-3">
