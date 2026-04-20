@@ -32,7 +32,7 @@ const overCapPct = ((overCap / total) * 100).toFixed(1);
 export function AdrHistogram() {
   return (
     <div className="rounded-lg border border-border bg-card p-6 shadow-[var(--shadow-card)]">
-      <div className="mb-5 flex items-start justify-between">
+      <div className="mb-5 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-start">
         <div>
           <h3 className="text-base font-semibold text-foreground">
             Distribuição de ADR vs city cap
@@ -41,7 +41,7 @@ export function AdrHistogram() {
             Reservas por faixa de ADR (USD) — cap médio do programa: ${cap}
           </p>
         </div>
-        <div className="rounded-md bg-destructive-soft px-3 py-1.5 text-right">
+        <div className="shrink-0 self-start rounded-md bg-destructive-soft px-3 py-1.5 text-right">
           <p className="text-[10px] font-medium uppercase tracking-wider text-destructive">
             Acima do cap
           </p>
@@ -53,7 +53,7 @@ export function AdrHistogram() {
 
       <div className="h-[280px]">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
+          <BarChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.91 0.01 247)" vertical={false} />
             <XAxis
               dataKey="bucket"
@@ -106,7 +106,7 @@ export function AdrHistogram() {
         </ResponsiveContainer>
       </div>
 
-      <div className="mt-4 flex items-center gap-5 border-t border-border pt-4 text-xs text-muted-foreground">
+      <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-border pt-4 text-xs text-muted-foreground">
         <div className="flex items-center gap-1.5">
           <span className="h-2.5 w-2.5 rounded-sm bg-primary" />
           Dentro do cap
