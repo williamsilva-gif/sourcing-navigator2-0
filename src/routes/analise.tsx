@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { BarChart3, Download, Plus } from "lucide-react";
+import { BarChart3, Download } from "lucide-react";
 import { RfpComparisonTable } from "@/components/analise/RfpComparisonTable";
 
 export const Route = createFileRoute("/analise")({
@@ -37,10 +37,6 @@ function AnalisePage() {
           <button className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-secondary">
             <Download className="h-3.5 w-3.5" />
             Exportar análise
-          </button>
-          <button className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary-hover">
-            <Plus className="h-3.5 w-3.5" />
-            Comparar selecionados
           </button>
         </div>
       </header>
