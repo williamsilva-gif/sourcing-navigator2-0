@@ -109,11 +109,11 @@ function Th({ children, sortable, onClick, active, dir, className = "" }: { chil
   );
 }
 
-function Row({ h }: { h: AwardedHotel }) {
+function Row({ h, onClick }: { h: AwardedHotel; onClick: () => void }) {
   const spend = h.finalAdr * h.roomNights;
   const overCap = h.finalAdr > h.cap;
   return (
-    <tr className="text-foreground hover:bg-muted/30">
+    <tr onClick={onClick} className="cursor-pointer text-foreground transition-colors hover:bg-muted/40">
       <td className="px-3 py-2.5">
         <div className="flex items-center gap-2">
           <Building2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
