@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Search, ArrowUpDown, Trophy, Shield, Building2, Wifi, Coffee, Car, Dumbbell, Lock } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { AWARDED, AMENITY_LABELS, type AwardedHotel } from "./selectionData";
+import { HotelHistoryModal } from "./HotelHistoryModal";
 
 const AMENITY_ICON: Record<string, typeof Wifi> = {
   breakfast: Coffee, wifi: Wifi, lra: Lock, parking: Car, gym: Dumbbell,
@@ -16,6 +17,7 @@ export function AwardedMatrix() {
   const [sortKey, setSortKey] = useState<SortKey>("city");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [tierFilter, setTierFilter] = useState<string>("all");
+  const [detail, setDetail] = useState<AwardedHotel | null>(null);
 
   const filtered = useMemo(() => {
     const ql = q.toLowerCase();
@@ -82,13 +84,14 @@ export function AwardedMatrix() {
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {filtered.map((h) => <Row key={h.id} h={h} />)}
+            {filtered.map((h) => <Row key={h.id} h={h} onClick={() => setDetail(h)} />)}
             {filtered.length === 0 && (
               <tr><td colSpan={11} className="px-4 py-8 text-center text-muted-foreground">Nenhum hotel encontrado.</td></tr>
             )}
           </tbody>
         </table>
       </div>
+      <HotelHistoryModal hotel={detail} onOpenChange={(o) => !o && setDetail(null)} />
     </section>
   );
 }
