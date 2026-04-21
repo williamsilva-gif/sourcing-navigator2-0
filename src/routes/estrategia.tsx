@@ -1,22 +1,30 @@
 import { useMemo } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Target, MapPin, Layers, ShieldCheck, AlertTriangle } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { Target, MapPin, Layers, ShieldCheck, AlertTriangle, Sparkles, Database } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { TieringMatrix } from "@/components/estrategia/TieringMatrix";
 import { CityCapsTable } from "@/components/estrategia/CityCapsTable";
 import { ClusterSegmentation } from "@/components/estrategia/ClusterSegmentation";
 import { BusinessRulesPanel } from "@/components/estrategia/BusinessRulesPanel";
 import { CITY_STRATEGY, CLUSTERS, BUSINESS_RULES } from "@/components/estrategia/strategyData";
+import { useBaselineStore, selectDerivedCityStrategy } from "@/lib/baselineStore";
 
 function StrategiaPage() {
+  const bookings = useBaselineStore((s) => s.bookings);
+  const uploads = useBaselineStore((s) => s.uploads);
+  const isLive = bookings.length > 0;
+  const lastUpload = uploads[0];
+
   const stats = useMemo(() => {
-    const cities = CITY_STRATEGY.length;
-    const overCap = CITY_STRATEGY.filter((c) => c.currentAdr > c.capAdr).length;
+    const source = isLive ? selectDerivedCityStrategy(bookings) : CITY_STRATEGY;
+    const cities = source.length;
+    const overCap = source.filter((c) => c.currentAdr > c.capAdr).length;
     const strategicHotels = CLUSTERS.find((c) => c.type === "Strategic")?.hotels ?? 0;
     const totalHotels = CLUSTERS.reduce((s, c) => s + c.hotels, 0);
     const activeRules = BUSINESS_RULES.filter((r) => r.active).length;
     return { cities, overCap, strategicHotels, totalHotels, activeRules };
-  }, []);
+  }, [bookings, isLive]);
 
   return (
     <AppShell>
@@ -32,6 +40,42 @@ function StrategiaPage() {
             segmentação de clusters de hotéis com regras de sourcing automatizadas.
           </p>
         </div>
+      </div>
+
+      <div
+        className={`mb-6 flex items-start gap-3 rounded-lg border p-4 ${
+          isLive
+            ? "border-primary/30 bg-primary-soft/40"
+            : "border-warning/40 bg-warning-soft/40"
+        }`}
+      >
+        {isLive ? (
+          <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+        ) : (
+          <Database className="mt-0.5 h-4 w-4 shrink-0 text-warning-foreground" />
+        )}
+        <div className="flex-1">
+          <p className="text-sm font-semibold text-foreground">
+            {isLive
+              ? `Sugestões geradas a partir do baseline real (${bookings.length.toLocaleString("pt-BR")} bookings${
+                  lastUpload ? ` · atualizado em ${new Date(lastUpload.uploadedAt).toLocaleString("pt-BR")}` : ""
+                })`
+              : "Sem baseline carregado — exibindo dados de demonstração"}
+          </p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {isLive
+              ? "Tiers, caps e prioridades são propostos automaticamente. Ajuste manualmente abaixo — suas alterações sobrescrevem as sugestões."
+              : "Carregue um arquivo de bookings no Diagnóstico para gerar tiers e caps reais."}
+          </p>
+        </div>
+        {!isLive && (
+          <Link
+            to="/diagnostico"
+            className="shrink-0 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90"
+          >
+            Ir ao Diagnóstico
+          </Link>
+        )}
       </div>
 
       <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">

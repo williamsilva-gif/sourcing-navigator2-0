@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { ArrowUpDown, Building2 } from "lucide-react";
 import { CITY_STRATEGY, TIER_META, PRIORITY_META, type Tier, type CityStrategy } from "./strategyData";
+import { useBaselineStore, selectDerivedCityStrategy } from "@/lib/baselineStore";
 
 const TIERS: Tier[] = ["Luxury", "Upscale", "Midscale", "Economy"];
 
@@ -8,23 +9,44 @@ function fmt$(n: number) { return `$${Math.round(n).toLocaleString("en-US")}`; }
 function fmtN(n: number) { return n.toLocaleString("pt-BR"); }
 
 export function TieringMatrix() {
+  const bookings = useBaselineStore((s) => s.bookings);
+  const useDemo = useBaselineStore((s) => s.useDemo);
+  const baseRows: CityStrategy[] = useMemo(() => {
+    if (bookings.length > 0) {
+      return selectDerivedCityStrategy(bookings).map((c) => ({
+        ...c,
+        tier: c.tier as Tier,
+        priority: c.priority as CityStrategy["priority"],
+      }));
+    }
+    return useDemo ? CITY_STRATEGY : [];
+  }, [bookings, useDemo]);
+
   const [overrides, setOverrides] = useState<Record<string, Tier>>({});
   const [sortBy, setSortBy] = useState<keyof CityStrategy>("roomNights");
   const [dir, setDir] = useState<"asc" | "desc">("desc");
 
   const rows = useMemo(() => {
-    const merged = CITY_STRATEGY.map((c) => ({ ...c, tier: overrides[c.city] ?? c.tier }));
+    const merged = baseRows.map((c) => ({ ...c, tier: overrides[c.city] ?? c.tier }));
     return [...merged].sort((a, b) => {
       const av = a[sortBy] as number | string;
       const bv = b[sortBy] as number | string;
       const cmp = typeof av === "number" ? (av as number) - (bv as number) : String(av).localeCompare(String(bv));
       return dir === "asc" ? cmp : -cmp;
     });
-  }, [overrides, sortBy, dir]);
+  }, [baseRows, overrides, sortBy, dir]);
 
   function toggleSort(col: keyof CityStrategy) {
     if (sortBy === col) setDir((d) => (d === "asc" ? "desc" : "asc"));
     else { setSortBy(col); setDir("desc"); }
+  }
+
+  if (rows.length === 0) {
+    return (
+      <section className="rounded-lg border border-dashed border-border bg-card p-8 text-center text-sm text-muted-foreground">
+        Carregue dados de bookings no Diagnóstico para gerar o tiering automaticamente.
+      </section>
+    );
   }
 
   return (

@@ -1,4 +1,5 @@
 import { MapPin } from "lucide-react";
+import { useBaselineStore, selectCityAggregates } from "@/lib/baselineStore";
 
 interface CityRow {
   city: string;
@@ -10,7 +11,7 @@ interface CityRow {
   cap: number;
 }
 
-const cities: CityRow[] = [
+const DEMO_CITIES: CityRow[] = [
   { city: "São Paulo", state: "SP", roomNights: 18420, spend: 5840000, hotels: 42, adr: 317, cap: 320 },
   { city: "Rio de Janeiro", state: "RJ", roomNights: 9870, spend: 3210000, hotels: 28, adr: 325, cap: 310 },
   { city: "Brasília", state: "DF", roomNights: 6240, spend: 1980000, hotels: 19, adr: 317, cap: 330 },
@@ -23,9 +24,7 @@ const cities: CityRow[] = [
   { city: "Manaus", state: "AM", roomNights: 1420, spend: 380000, hotels: 6, adr: 267, cap: 250 },
 ];
 
-const max = Math.max(...cities.map((c) => c.roomNights));
-
-function intensity(n: number) {
+function intensity(n: number, max: number) {
   const ratio = n / max;
   // map 0-1 to soft → strong primary
   const lightness = 0.95 - ratio * 0.5; // 0.45 strongest, 0.95 lightest
@@ -47,6 +46,32 @@ function fmtCurrency(n: number) {
 }
 
 export function CityHeatmap() {
+  const bookings = useBaselineStore((s) => s.bookings);
+  const useDemo = useBaselineStore((s) => s.useDemo);
+  const isLive = bookings.length > 0;
+  const cities: CityRow[] = isLive
+    ? selectCityAggregates(bookings).slice(0, 10).map((c) => ({
+        city: c.city,
+        state: c.state,
+        roomNights: c.roomNights,
+        spend: c.spend,
+        hotels: c.hotels,
+        adr: Math.round(c.adr),
+        cap: Math.round((c.adr * 1.02) / 5) * 5,
+      }))
+    : useDemo
+      ? DEMO_CITIES
+      : [];
+  const max = Math.max(1, ...cities.map((c) => c.roomNights));
+
+  if (cities.length === 0) {
+    return (
+      <div className="rounded-lg border border-dashed border-border bg-card p-8 text-center text-sm text-muted-foreground">
+        Sem dados de bookings — carregue um arquivo no painel de ingestão.
+      </div>
+    );
+  }
+
   return (
     <div className="rounded-lg border border-border bg-card p-6 shadow-[var(--shadow-card)]">
       <div className="mb-5 flex items-start justify-between">
@@ -55,7 +80,7 @@ export function CityHeatmap() {
             Distribuição geográfica de room nights
           </h3>
           <p className="mt-0.5 text-sm text-muted-foreground">
-            Top 10 cidades por volume — últimos 12 meses
+            Top 10 cidades por volume {isLive ? "· baseline carregado" : "· dados demo"}
           </p>
         </div>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -65,7 +90,7 @@ export function CityHeatmap() {
               <div
                 key={r}
                 className="flex-1"
-                style={{ backgroundColor: intensity(r * max) }}
+                style={{ backgroundColor: intensity(r * max, max) }}
               />
             ))}
           </div>
@@ -80,7 +105,7 @@ export function CityHeatmap() {
             <div
               key={c.city}
               className="group relative overflow-hidden rounded-md border border-border/60 p-3 transition-shadow hover:shadow-[var(--shadow-elevated)]"
-              style={{ backgroundColor: intensity(c.roomNights) }}
+              style={{ backgroundColor: intensity(c.roomNights, max) }}
             >
               <div className="flex items-start justify-between">
                 <MapPin

@@ -1,23 +1,56 @@
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { toast } from "sonner";
 import { Sliders, RotateCcw, Save, AlertTriangle, CheckCircle2 } from "lucide-react";
-import { CITY_STRATEGY } from "./strategyData";
+import { CITY_STRATEGY, type CityStrategy } from "./strategyData";
+import { useBaselineStore, selectDerivedCityStrategy } from "@/lib/baselineStore";
 
 function fmt$(n: number) { return `$${Math.round(n).toLocaleString("en-US")}`; }
 
 export function CityCapsTable() {
-  const [caps, setCaps] = useState<Record<string, number>>(
-    () => Object.fromEntries(CITY_STRATEGY.map((c) => [c.city, c.capAdr]))
+  const bookings = useBaselineStore((s) => s.bookings);
+  const useDemo = useBaselineStore((s) => s.useDemo);
+  const baseRows: CityStrategy[] = useMemo(() => {
+    if (bookings.length > 0) {
+      return selectDerivedCityStrategy(bookings).map((c) => ({
+        ...c,
+        tier: c.tier as CityStrategy["tier"],
+        priority: c.priority as CityStrategy["priority"],
+      }));
+    }
+    return useDemo ? CITY_STRATEGY : [];
+  }, [bookings, useDemo]);
+
+  const [caps, setCaps] = useState<Record<string, number>>(() =>
+    Object.fromEntries(baseRows.map((c) => [c.city, c.capAdr]))
   );
 
+  // Re-sync when baseline changes
+  useEffect(() => {
+    setCaps((prev) => {
+      const next = { ...prev };
+      baseRows.forEach((c) => {
+        if (next[c.city] === undefined) next[c.city] = c.capAdr;
+      });
+      return next;
+    });
+  }, [baseRows]);
+
   function reset() {
-    setCaps(Object.fromEntries(CITY_STRATEGY.map((c) => [c.city, c.capAdr])));
+    setCaps(Object.fromEntries(baseRows.map((c) => [c.city, c.capAdr])));
     toast.info("Caps restaurados aos valores baseline");
   }
 
   function save() {
-    const changed = CITY_STRATEGY.filter((c) => caps[c.city] !== c.capAdr).length;
+    const changed = baseRows.filter((c) => caps[c.city] !== c.capAdr).length;
     toast.success(`${changed} caps atualizados e enviados ao próximo ciclo de RFP`);
+  }
+
+  if (baseRows.length === 0) {
+    return (
+      <section className="rounded-lg border border-dashed border-border bg-card p-8 text-center text-sm text-muted-foreground">
+        Carregue dados de bookings no Diagnóstico para configurar os city caps.
+      </section>
+    );
   }
 
   return (
@@ -42,8 +75,8 @@ export function CityCapsTable() {
         </div>
       </header>
       <div className="divide-y divide-border">
-        {CITY_STRATEGY.map((c) => {
-          const cap = caps[c.city];
+        {baseRows.map((c) => {
+          const cap = caps[c.city] ?? c.capAdr;
           const within = c.currentAdr <= cap;
           const delta = ((c.currentAdr - cap) / cap) * 100;
           // visual range for slider — anchor between 70%-130% of baseline cap

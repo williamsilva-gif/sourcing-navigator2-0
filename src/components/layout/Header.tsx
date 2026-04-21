@@ -1,6 +1,12 @@
-import { Search, Bell, ChevronDown, Building2 } from "lucide-react";
+import { Search, Bell, ChevronDown, Building2, Database } from "lucide-react";
+import { useBaselineStore } from "@/lib/baselineStore";
 
 export function Header() {
+  const bookings = useBaselineStore((s) => s.bookings);
+  const uploads = useBaselineStore((s) => s.uploads);
+  const isLive = bookings.length > 0;
+  const last = uploads[0];
+
   return (
     <header className="sticky top-0 z-20 flex h-[70px] items-center gap-4 border-b border-border bg-card/80 px-6 backdrop-blur-sm">
       <div className="relative max-w-md flex-1">
@@ -10,6 +16,20 @@ export function Header() {
           placeholder="Buscar cliente, hotel, cidade..."
           className="h-10 w-full rounded-md border border-input bg-background pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
         />
+      </div>
+
+      <div
+        className={`hidden items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-[11px] font-medium md:inline-flex ${
+          isLive
+            ? "border-success/30 bg-success-soft text-success"
+            : "border-border bg-muted text-muted-foreground"
+        }`}
+        title={last ? `Último upload: ${new Date(last.uploadedAt).toLocaleString("pt-BR")}` : "Sem dados carregados"}
+      >
+        <Database className="h-3.5 w-3.5" />
+        {isLive
+          ? `Baseline · ${bookings.length.toLocaleString("pt-BR")} bookings`
+          : "Sem dados — modo demo"}
       </div>
 
       <button className="flex h-10 items-center gap-2.5 rounded-md border border-input bg-background px-3 text-sm font-medium text-foreground transition-colors hover:border-primary/40 hover:bg-primary-soft">
