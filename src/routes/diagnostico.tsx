@@ -14,6 +14,8 @@ import { AppShell } from "@/components/layout/AppShell";
 import { KpiCard } from "@/components/dashboard/KpiCard";
 import { CityHeatmap } from "@/components/diagnostico/CityHeatmap";
 import { AdrHistogram } from "@/components/diagnostico/AdrHistogram";
+import { DataIngestionPanel } from "@/components/diagnostico/DataIngestionPanel";
+import { useBaselineStore, selectKpis } from "@/lib/baselineStore";
 
 export const Route = createFileRoute("/diagnostico")({
   head: () => ({
@@ -27,6 +29,16 @@ export const Route = createFileRoute("/diagnostico")({
 
 function DiagnosticoPage() {
   const [period, setPeriod] = useState<"30D" | "Trim" | "12M" | "YTD">("12M");
+  const bookings = useBaselineStore((s) => s.bookings);
+  const useDemo = useBaselineStore((s) => s.useDemo);
+  const isLive = bookings.length > 0;
+  const live = selectKpis(bookings);
+
+  const fmt$ = (n: number) =>
+    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", notation: "compact", maximumFractionDigits: 1 }).format(n);
+  const fmtN = (n: number) =>
+    new Intl.NumberFormat("pt-BR", { notation: "compact", maximumFractionDigits: 1 }).format(n);
+
   return (
     <AppShell>
       <div className="space-y-6">
@@ -40,7 +52,11 @@ function DiagnosticoPage() {
               Diagnóstico do programa
             </h1>
             <p className="mt-0.5 text-sm text-muted-foreground">
-              Baseline consolidado · período {period} · Acme Travel Corp
+              {isLive
+                ? `Baseline real · ${bookings.length.toLocaleString("pt-BR")} bookings carregados · período ${period}`
+                : useDemo
+                  ? `Dados de demonstração · período ${period} · Acme Travel Corp`
+                  : `Sem baseline · carregue um arquivo abaixo`}
             </p>
           </div>
         </div>
@@ -70,10 +86,12 @@ function DiagnosticoPage() {
         </div>
       </header>
 
+      <DataIngestionPanel />
+
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <KpiCard
           label="Room nights"
-          value="53.6k"
+          value={isLive ? fmtN(live.totalRn) : "53.6k"}
           delta={4.2}
           deltaLabel="vs ano anterior"
           icon={BedDouble}
@@ -81,7 +99,7 @@ function DiagnosticoPage() {
         />
         <KpiCard
           label="Spend total"
-          value="$15.7M"
+          value={isLive ? fmt$(live.totalSpend) : "$15.7M"}
           delta={6.8}
           deltaLabel="vs ano anterior"
           icon={DollarSign}
@@ -89,7 +107,7 @@ function DiagnosticoPage() {
         />
         <KpiCard
           label="ADR médio"
-          value="$293"
+          value={isLive ? `$${Math.round(live.adr)}` : "$293"}
           delta={2.1}
           deltaLabel="vs ano anterior"
           icon={TrendingDown}
@@ -97,7 +115,7 @@ function DiagnosticoPage() {
         />
         <KpiCard
           label="Hotéis ativos"
-          value="156"
+          value={isLive ? String(live.hotels) : "156"}
           delta={-3.4}
           deltaLabel="consolidação de cauda"
           icon={Building2}
@@ -105,7 +123,7 @@ function DiagnosticoPage() {
         />
         <KpiCard
           label="Leakage estimado"
-          value="18.4%"
+          value={isLive ? `${live.leakagePct.toFixed(1)}%` : "18.4%"}
           delta={-1.6}
           deltaLabel="vs trimestre anterior"
           icon={AlertTriangle}
