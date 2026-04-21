@@ -9,10 +9,11 @@ import {
   ReferenceLine,
   Cell,
 } from "recharts";
+import { useBaselineStore, selectAdrDistribution } from "@/lib/baselineStore";
 
 // Distribution of bookings by ADR bucket (USD), with city cap reference at $280
 const cap = 280;
-const data = [
+const DEMO_DATA = [
   { bucket: "120-150", count: 412, mid: 135 },
   { bucket: "150-180", count: 689, mid: 165 },
   { bucket: "180-210", count: 1240, mid: 195 },
@@ -25,11 +26,23 @@ const data = [
   { bucket: "390+", count: 110, mid: 405 },
 ];
 
-const total = data.reduce((s, d) => s + d.count, 0);
-const overCap = data.filter((d) => d.mid > cap).reduce((s, d) => s + d.count, 0);
-const overCapPct = ((overCap / total) * 100).toFixed(1);
-
 export function AdrHistogram() {
+  const bookings = useBaselineStore((s) => s.bookings);
+  const useDemo = useBaselineStore((s) => s.useDemo);
+  const isLive = bookings.length > 0;
+  const data = isLive ? selectAdrDistribution(bookings) : useDemo ? DEMO_DATA : [];
+  const total = data.reduce((s, d) => s + d.count, 0);
+  const overCap = data.filter((d) => d.mid > cap).reduce((s, d) => s + d.count, 0);
+  const overCapPct = total > 0 ? ((overCap / total) * 100).toFixed(1) : "0.0";
+
+  if (total === 0) {
+    return (
+      <div className="rounded-lg border border-dashed border-border bg-card p-8 text-center text-sm text-muted-foreground">
+        Sem dados de bookings — carregue um arquivo no painel de ingestão.
+      </div>
+    );
+  }
+
   return (
     <div className="rounded-lg border border-border bg-card p-6 shadow-[var(--shadow-card)]">
       <div className="mb-5 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-start">
@@ -38,7 +51,7 @@ export function AdrHistogram() {
             Distribuição de ADR vs city cap
           </h3>
           <p className="mt-0.5 text-sm text-muted-foreground">
-            Reservas por faixa de ADR (USD) — cap médio do programa: ${cap}
+            Reservas por faixa de ADR (USD) — cap médio: ${cap} {isLive ? "· baseline carregado" : "· dados demo"}
           </p>
         </div>
         <div className="shrink-0 self-start rounded-md bg-destructive-soft px-3 py-1.5 text-right">
