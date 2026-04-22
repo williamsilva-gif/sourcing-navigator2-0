@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { AlertTriangle, AlertCircle, Info, ArrowRight, Sparkles } from "lucide-react";
 import { useDecisionData, type Severity, type CriticalAlert } from "./decisionData";
 import { useSnapshotStore, deltaForAlert } from "@/lib/snapshotStore";
@@ -35,10 +36,12 @@ export function CriticalAlerts({ onViewRecommendation }: Props) {
   const current = useSnapshotStore((s) => s.current);
   const previous = useSnapshotStore((s) => s.previous);
 
-  const sorted = [...alerts].sort((a: CriticalAlert, b: CriticalAlert) => {
+  const sorted = useMemo(() => {
     const order = { high: 0, medium: 1, low: 2 } as const;
-    return order[a.severity] - order[b.severity];
-  });
+    return [...alerts].sort(
+      (a: CriticalAlert, b: CriticalAlert) => order[a.severity] - order[b.severity],
+    );
+  }, [alerts]);
 
   return (
     <section className="rounded-lg border border-border bg-card p-6 shadow-[var(--shadow-card)]">

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { DollarSign, TrendingUp, Activity, AlertTriangle, Calendar, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
@@ -35,10 +35,13 @@ function DashboardPage() {
   const current = useSnapshotStore((s) => s.current);
 
   // Initial evaluation on mount so deltas have a baseline to compare against.
+  const didInit = useRef(false);
   useEffect(() => {
-    if (!current) evaluate();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (!didInit.current && !current) {
+      didInit.current = true;
+      evaluate();
+    }
+  }, [current, evaluate]);
 
   const openOpportunity = (opp: Opportunity) => {
     setSelectedOpp(opp);
