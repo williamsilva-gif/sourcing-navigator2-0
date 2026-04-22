@@ -179,10 +179,13 @@ function KpiCell({
 }
 
 export function ActiveActions() {
-  const actions = useActionStore((s) => s.actions);
-  const inProgress = actions.filter((a) => a.status !== "completed").length;
-  const totalRealized = actions.reduce((s, a) => s + a.kpis.savingsRealized, 0);
-  const totalExpected = actions.reduce((s, a) => s + a.kpis.savingsExpected, 0);
+  const storeActions = useActionStore((s) => s.actions);
+  // Defensive fallback: store may be undefined during SSR / first hydration
+  const actions: ExecutedAction[] = Array.isArray(storeActions) ? storeActions : [];
+  const hasActions = actions.length > 0;
+  const inProgress = hasActions ? actions.filter((a) => a.status !== "completed").length : 0;
+  const totalRealized = hasActions ? actions.reduce((s, a) => s + a.kpis.savingsRealized, 0) : 0;
+  const totalExpected = hasActions ? actions.reduce((s, a) => s + a.kpis.savingsExpected, 0) : 0;
 
   return (
     <section className="rounded-lg border border-border bg-card p-6 shadow-[var(--shadow-card)]">
