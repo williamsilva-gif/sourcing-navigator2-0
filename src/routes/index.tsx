@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { DollarSign, TrendingUp, Activity, AlertTriangle, Calendar } from "lucide-react";
+import { DollarSign, TrendingUp, Activity, AlertTriangle, Calendar, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/AppShell";
 import { KpiCard } from "@/components/dashboard/KpiCard";
@@ -9,7 +9,8 @@ import { OpportunitiesList } from "@/components/dashboard/OpportunitiesList";
 import { RecommendedActionsModal } from "@/components/dashboard/RecommendedActionsModal";
 import { ActiveActions } from "@/components/dashboard/ActiveActions";
 import { ImpactTracking } from "@/components/dashboard/ImpactTracking";
-import { OPPORTUNITIES, type Opportunity } from "@/components/dashboard/decisionData";
+import { useDecisionData, type Opportunity } from "@/components/dashboard/decisionData";
+import { useSnapshotStore, timeAgo, daysUntilNextEval } from "@/lib/snapshotStore";
 
 export const Route = createFileRoute("/")({
   head: () => ({

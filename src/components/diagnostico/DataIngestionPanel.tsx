@@ -14,6 +14,7 @@ import {
 import { useBaselineStore } from "@/lib/baselineStore";
 import { SCHEMA_LABELS, SCHEMA_HEADERS, type DatasetType } from "@/lib/baselineSchemas";
 import { downloadTemplate, readSpreadsheet } from "@/lib/xlsxTemplates";
+import { useSnapshotStore } from "@/lib/snapshotStore";
 
 const TYPES: DatasetType[] = ["bookings", "hotels", "contracts"];
 
