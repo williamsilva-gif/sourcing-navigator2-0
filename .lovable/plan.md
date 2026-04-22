@@ -1,92 +1,94 @@
 
 
-## Resposta às suas dúvidas
+## Análise de viabilidade dos 3 prompts
 
-### 1. Onde colocar o relatório do diagnóstico?
+### Prompt 1 — "Execute Action dispara fluxo correto" → **JÁ IMPLEMENTADO ✅**
+Olhando o código atual, isto já está pronto e funcional:
+- `actionStore.ts` já mapeia cada `kind` ao módulo correto (`renegotiation` → `negociacao`, `cap_adjustment` → `estrategia`, `cluster_change` → `estrategia`, `mini_rfp` → `rfp`).
+- Já cria registro em "Active Actions" (`actions: [action, ...s.actions]`).
+- Já vincula KPIs medidos (`adrBefore/After`, `complianceBefore/After`, `savingsExpected/Realized`).
+- Já trackeia status (`initiated → in_progress → completed`) com auto-advance.
+- `ActionInboxBanner` já notifica nos módulos `/negociacao`, `/estrategia`, `/rfp`.
 
-Hoje o módulo `/diagnostico` mostra KPIs e gráficos com dados **mockados** (hard-coded em `CityHeatmap.tsx` e `AdrHistogram.tsx`). Não existe ponto de upload. Precisamos criar um **painel de ingestão de dados** dentro do próprio Diagnóstico, onde você sobe os arquivos brutos do programa atual (Excel/CSV de bookings, extrato do TMC, relatório do GDS).
+**Não precisa refazer.** Re-enviar este prompt arrisca duplicar código e quebrar.
 
-### 2. De onde a Estratégia extrai os dados?
+### Prompt 2 — Sistema de recomendação baseado em regras → **FALTA IMPLEMENTAR**
+Hoje `decisionData.ts` é uma lista hard-coded. Quando o usuário sobe um baseline novo no Diagnóstico, alertas e oportunidades **continuam estáticos** — não refletem os dados reais. É exatamente o gap.
 
-Hoje `/estrategia` também usa dados estáticos em `strategyData.ts`. O fluxo correto, que vou implementar, é:
+### Prompt 3 — Avaliação contínua + delta → **FALTA IMPLEMENTAR**
+Não existe nenhum mecanismo de "snapshot anterior vs atual". Precisa ser criado.
 
-```text
-[Upload de bookings]  →  /diagnostico
-        │  (consolida ADR, RN, spend, leakage por cidade/hotel)
-        ▼
-[Baseline calculado]  →  fonte única de verdade
-        │
-        ├──►  /diagnostico  (KPIs, heatmap, histograma)
-        ├──►  /estrategia   (tiering, city caps, clusters — sugeridos pelo baseline)
-        ├──►  /rfp          (cidades e hotéis pré-selecionados a partir do baseline)
-        └──►  /monitoramento (ADR real vs negociado)
+---
+
+## Plano de implementação (sem quebrar nada)
+
+### 1. Motor de regras `src/lib/recommendationEngine.ts` (novo)
+
+Função pura que consome o baseline (`bookings`, `hotels`, `contracts`) e devolve `{ alerts, opportunities }` derivados. Quatro regras:
+
+| Regra | Threshold | Ação sugerida |
+|---|---|---|
+| ADR > Cap por +8% | por cidade | renegociação + redução de cap |
+| Compliance < 75% | por cidade | revisão de portfólio + remover hotéis fracos |
+| Leakage > 15% | global / por cidade | expandir preferred + ajustar pricing |
+| Top 2 hotéis > 50% volume | por cidade | adicionar fornecedores (mini-RFP) |
+
+Cada regra produz um `CriticalAlert` (com severidade derivada do gap) **e** uma `Opportunity` com 2-3 `RecommendedAction` já tipadas (reutilizando `ActionPayload` existente).
+
+Compliance e cap por cidade vêm do baseline + `capOverrides` do `actionStore` (caps efetivos = base 280 + overrides aplicados). Se não houver baseline, **mantém o mock atual** (fallback gracioso).
+
+### 2. `decisionData.ts` vira fallback
+
+Mantém os mocks atuais como `FALLBACK_ALERTS` e `FALLBACK_OPPORTUNITIES`. Adiciona seletor:
+```ts
+selectAlerts(bookings, capOverrides) → CriticalAlert[]
+selectOpportunities(bookings, capOverrides) → Opportunity[]
 ```
+Que retornam derivados se houver bookings, fallback caso contrário.
 
-A Estratégia não inventa números — ela **lê o baseline do Diagnóstico** e propõe tiering/caps/clusters automaticamente, que você ajusta manualmente.
+### 3. Snapshot store `src/lib/snapshotStore.ts` (novo)
 
----
+Loop de avaliação contínua simulado:
+- Guarda último snapshot (`{ timestamp, kpis, alerts, opportunities }`).
+- Função `evaluate()` recalcula via engine, compara com anterior, gera **deltas** (% change) por cidade/métrica.
+- Auto-trigger: a cada upload de baseline (subscribe do `baselineStore`) + botão manual "Re-avaliar agora" no header do dashboard.
+- Simulação semanal: badge "Próxima reavaliação automática em X dias" (puramente visual, sem cron real — é um app browser-side).
 
-## Plano de implementação
+### 4. UI do dashboard (`src/routes/index.tsx` + componentes)
 
-### Etapa 1 — Painel de ingestão no Diagnóstico
-Novo componente `DataIngestionPanel.tsx` no topo de `/diagnostico` com:
-- **Upload zone** (drag-and-drop) aceitando `.xlsx`, `.csv`, `.xls`
-- 3 tipos de arquivo esperados:
-  1. **Bookings** (booking_id, hotel, cidade, check-in, RN, ADR, canal)
-  2. **Hotéis cadastrados** (id, nome, cidade, categoria, tier sugerido)
-  3. **Contratos vigentes** (hotel, ADR negociado, cap, validade) — opcional
-- Lista de arquivos carregados com status (Processado / Erro / Pendente), data e linhas importadas
-- Botão "Recalcular baseline" que dispara o processamento
-- Template de download para cada tipo de arquivo (.xlsx vazio com colunas corretas)
+- **Header do dashboard**: novo chip "Última avaliação: há 2 min" + botão "Reavaliar" (chama `evaluate()`).
+- **CriticalAlerts**: passa a consumir `selectAlerts()`. Cada alert ganha um sub-rótulo de delta: "↑ +12% vs semana anterior" quando há snapshot anterior.
+- **OpportunitiesList**: consome `selectOpportunities()`. Itens ganham badge "NOVA" se apareceram no último delta.
+- Indicador visual quando uma oportunidade foi resolvida (já existe ação executada para ela) — opacidade reduzida + tag "Em execução".
 
-### Etapa 2 — Store de baseline compartilhado
-Criar `src/lib/baselineStore.ts` (Zustand ou contexto simples) com:
-- `bookings[]`, `hotels[]`, `contracts[]` carregados
-- Seletores derivados: `kpisByPeriod()`, `cityAggregates()`, `adrDistribution()`, `hotelRanking()`
-- Por enquanto **em memória** (state local) — sem persistência ainda, para validar o fluxo. Mensagem visível: "Dados carregados nesta sessão. Persistência em breve."
+### 5. Diagnóstico → trigger automático
 
-### Etapa 3 — Conectar Diagnóstico ao store
-- `KpiCard`s, `CityHeatmap` e `AdrHistogram` passam a ler do store
-- Quando vazio: estado "Carregue um arquivo de bookings para gerar o diagnóstico" com CTA para o upload
-- Quando carregado: KPIs e gráficos calculados em tempo real
-
-### Etapa 4 — Conectar Estratégia ao store
-- `CITY_STRATEGY` deixa de ser constante: vira `useDerivedCityStrategy()` que pega cidades do baseline, calcula `currentAdr`, `roomNights`, `marketShare` e **sugere** `tier` por faixa de ADR e `capAdr` (ex.: `capAdr = currentAdr * 1.02`)
-- Banner no topo: "Sugestões baseadas no baseline de [data]. Ajuste manualmente abaixo."
-- Tabela de tiering e city caps continuam editáveis — usuário sobrescreve as sugestões
-- Quando store vazio: "Carregue dados no Diagnóstico para gerar a estratégia"
-
-### Etapa 5 — Indicador global de origem dos dados
-Pequeno chip na sidebar/header: "Baseline: 12.483 bookings · atualizado há 2 min" ou "Sem dados — usando demo".
-Toggle "Usar dados de demonstração" para manter os mocks atuais como fallback enquanto o usuário não sobe nada.
+Quando `baselineStore.ingest()` roda, chama `snapshotStore.evaluate()` automaticamente. Toast: "Recomendações atualizadas: 3 novos alertas, 2 oportunidades."
 
 ---
 
-## Detalhes técnicos
+## Arquivos
 
-- **Parsing**: usar `xlsx` (SheetJS) no client para ler `.xlsx`/`.csv` direto no browser — sem backend nesta fase
-- **Validação de schema**: cada tipo de arquivo tem um `zodSchema` que valida headers e tipos; erros listados linha a linha no painel
-- **Templates**: gerados on-the-fly com `xlsx` e disponibilizados via `<a download>`
-- **Performance**: até ~50k linhas em memória sem problema; agregações com `useMemo`
-- **Próxima fase (não nesta entrega)**: persistir no Lovable Cloud (tabelas `bookings`, `hotels`, `contracts` com RLS por cliente) e mover o parsing para uma server function — fica como evolução depois que o fluxo manual estiver validado
+**Novos:**
+- `src/lib/recommendationEngine.ts` — funções puras de regras
+- `src/lib/snapshotStore.ts` — Zustand para snapshots + delta
 
-### Arquivos a criar
-- `src/lib/baselineStore.ts`
-- `src/lib/baselineSchemas.ts` (schemas Zod)
-- `src/lib/xlsxTemplates.ts` (gerador de templates)
-- `src/components/diagnostico/DataIngestionPanel.tsx`
-- `src/components/diagnostico/EmptyBaselineState.tsx`
+**Editados (mudanças cirúrgicas, sem refactor):**
+- `src/components/dashboard/decisionData.ts` — adiciona seletores; mantém constantes como fallback
+- `src/components/dashboard/CriticalAlerts.tsx` — consome seletor + mostra delta
+- `src/components/dashboard/OpportunitiesList.tsx` — consome seletor + badge "nova"/"em execução"
+- `src/routes/index.tsx` — chip de status + botão reavaliar
+- `src/components/diagnostico/DataIngestionPanel.tsx` — trigger pós-upload
 
-### Arquivos a editar
-- `src/routes/diagnostico.tsx` — adicionar painel + ligar KPIs ao store
-- `src/components/diagnostico/CityHeatmap.tsx` — consumir store
-- `src/components/diagnostico/AdrHistogram.tsx` — consumir store
-- `src/routes/estrategia.tsx` — banner de sugestão automática
-- `src/components/estrategia/strategyData.ts` — exportar funções derivadas (não constantes fixas)
-- `src/components/estrategia/TieringMatrix.tsx` e `CityCapsTable.tsx` — consumir derivadas
-- `src/components/layout/Header.tsx` — chip de status do baseline
+**Não tocar:**
+- `actionStore.ts`, `RecommendedActionsModal.tsx`, `ActiveActions.tsx`, `ActionInboxBanner.tsx`, rotas dos módulos. Já estão estáveis.
 
-### Dependência nova
-- `xlsx` (SheetJS) — leitura/escrita de Excel no browser
-- `zustand` (opcional, ~3KB) ou usar Context API — confirmo na implementação
+---
+
+## Por que não quebra
+
+1. **Fallback em camadas**: sem baseline → mocks atuais; com baseline → derivados. Ambos retornam o mesmo tipo `Opportunity[]`.
+2. **Tipos preservados**: `ActionPayload` e `RecommendedAction` continuam idênticos — modal e store funcionam sem alteração.
+3. **Nenhuma rota nova**: tudo dentro do dashboard existente.
+4. **Sem dependências novas**: usa Zustand (já instalado).
 
