@@ -1,94 +1,94 @@
 
 
-## Análise de viabilidade dos 3 prompts
+## Diagnóstico
 
-### Prompt 1 — "Execute Action dispara fluxo correto" → **JÁ IMPLEMENTADO ✅**
-Olhando o código atual, isto já está pronto e funcional:
-- `actionStore.ts` já mapeia cada `kind` ao módulo correto (`renegotiation` → `negociacao`, `cap_adjustment` → `estrategia`, `cluster_change` → `estrategia`, `mini_rfp` → `rfp`).
-- Já cria registro em "Active Actions" (`actions: [action, ...s.actions]`).
-- Já vincula KPIs medidos (`adrBefore/After`, `complianceBefore/After`, `savingsExpected/Realized`).
-- Já trackeia status (`initiated → in_progress → completed`) com auto-advance.
-- `ActionInboxBanner` já notifica nos módulos `/negociacao`, `/estrategia`, `/rfp`.
+O erro **"Maximum update depth exceeded"** vem de **selectors do Zustand que retornam objetos novos a cada chamada** — não de `useEffect` quebrado. Seu prompt original mira no alvo errado. Eis o que realmente está acontecendo:
 
-**Não precisa refazer.** Re-enviar este prompt arrisca duplicar código e quebrar.
+### Causa raiz
 
-### Prompt 2 — Sistema de recomendação baseado em regras → **FALTA IMPLEMENTAR**
-Hoje `decisionData.ts` é uma lista hard-coded. Quando o usuário sobe um baseline novo no Diagnóstico, alertas e oportunidades **continuam estáticos** — não refletem os dados reais. É exatamente o gap.
-
-### Prompt 3 — Avaliação contínua + delta → **FALTA IMPLEMENTAR**
-Não existe nenhum mecanismo de "snapshot anterior vs atual". Precisa ser criado.
-
----
-
-## Plano de implementação (sem quebrar nada)
-
-### 1. Motor de regras `src/lib/recommendationEngine.ts` (novo)
-
-Função pura que consome o baseline (`bookings`, `hotels`, `contracts`) e devolve `{ alerts, opportunities }` derivados. Quatro regras:
-
-| Regra | Threshold | Ação sugerida |
-|---|---|---|
-| ADR > Cap por +8% | por cidade | renegociação + redução de cap |
-| Compliance < 75% | por cidade | revisão de portfólio + remover hotéis fracos |
-| Leakage > 15% | global / por cidade | expandir preferred + ajustar pricing |
-| Top 2 hotéis > 50% volume | por cidade | adicionar fornecedores (mini-RFP) |
-
-Cada regra produz um `CriticalAlert` (com severidade derivada do gap) **e** uma `Opportunity` com 2-3 `RecommendedAction` já tipadas (reutilizando `ActionPayload` existente).
-
-Compliance e cap por cidade vêm do baseline + `capOverrides` do `actionStore` (caps efetivos = base 280 + overrides aplicados). Se não houver baseline, **mantém o mock atual** (fallback gracioso).
-
-### 2. `decisionData.ts` vira fallback
-
-Mantém os mocks atuais como `FALLBACK_ALERTS` e `FALLBACK_OPPORTUNITIES`. Adiciona seletor:
+`RecommendedActionsModal.tsx` linha 52:
 ```ts
-selectAlerts(bookings, capOverrides) → CriticalAlert[]
-selectOpportunities(bookings, capOverrides) → Opportunity[]
+const executedActionIds = useActionStore((s) =>
+  new Set(s.actions.map((a) => `${a.opportunityId}::${a.label}`))
+);
 ```
-Que retornam derivados se houver bookings, fallback caso contrário.
 
-### 3. Snapshot store `src/lib/snapshotStore.ts` (novo)
+Zustand compara o resultado do selector por referência (`Object.is`). `new Set(...)` cria um Set diferente a cada execução → Zustand acha que mudou → força re-render → selector roda de novo → novo Set → loop infinito. O erro literal *"The result of getServerSnapshot should be cached to avoid an infinite loop"* confirma exatamente isso.
 
-Loop de avaliação contínua simulado:
-- Guarda último snapshot (`{ timestamp, kpis, alerts, opportunities }`).
-- Função `evaluate()` recalcula via engine, compara com anterior, gera **deltas** (% change) por cidade/métrica.
-- Auto-trigger: a cada upload de baseline (subscribe do `baselineStore`) + botão manual "Re-avaliar agora" no header do dashboard.
-- Simulação semanal: badge "Próxima reavaliação automática em X dias" (puramente visual, sem cron real — é um app browser-side).
+`OpportunitiesList.tsx` linha 22 tem o mesmo padrão (`new Set(executedActions.filter(...))`) mas dentro do corpo do componente após o selector — não dispara o loop, mas é trabalho desperdiçado.
 
-### 4. UI do dashboard (`src/routes/index.tsx` + componentes)
+## Correções
 
-- **Header do dashboard**: novo chip "Última avaliação: há 2 min" + botão "Reavaliar" (chama `evaluate()`).
-- **CriticalAlerts**: passa a consumir `selectAlerts()`. Cada alert ganha um sub-rótulo de delta: "↑ +12% vs semana anterior" quando há snapshot anterior.
-- **OpportunitiesList**: consome `selectOpportunities()`. Itens ganham badge "NOVA" se apareceram no último delta.
-- Indicador visual quando uma oportunidade foi resolvida (já existe ação executada para ela) — opacidade reduzida + tag "Em execução".
+### 1. `RecommendedActionsModal.tsx` — fix do loop
 
-### 5. Diagnóstico → trigger automático
+Selecionar **apenas o array primitivo** do store, derivar o Set com `useMemo`:
 
-Quando `baselineStore.ingest()` roda, chama `snapshotStore.evaluate()` automaticamente. Toast: "Recomendações atualizadas: 3 novos alertas, 2 oportunidades."
+```ts
+const executeAction = useActionStore((s) => s.executeAction);
+const actions = useActionStore((s) => s.actions);
 
----
+const executedActionIds = useMemo(
+  () => new Set(actions.map((a) => `${a.opportunityId}::${a.label}`)),
+  [actions]
+);
+```
 
-## Arquivos
+### 2. `OpportunitiesList.tsx` — mesma higiene
 
-**Novos:**
-- `src/lib/recommendationEngine.ts` — funções puras de regras
-- `src/lib/snapshotStore.ts` — Zustand para snapshots + delta
+Trocar a derivação inline por `useMemo`:
 
-**Editados (mudanças cirúrgicas, sem refactor):**
-- `src/components/dashboard/decisionData.ts` — adiciona seletores; mantém constantes como fallback
-- `src/components/dashboard/CriticalAlerts.tsx` — consome seletor + mostra delta
-- `src/components/dashboard/OpportunitiesList.tsx` — consome seletor + badge "nova"/"em execução"
-- `src/routes/index.tsx` — chip de status + botão reavaliar
-- `src/components/diagnostico/DataIngestionPanel.tsx` — trigger pós-upload
+```ts
+const inExecutionByOpp = useMemo(
+  () => new Set(
+    executedActions.filter((a) => a.status !== "completed").map((a) => a.opportunityId)
+  ),
+  [executedActions]
+);
+```
 
-**Não tocar:**
-- `actionStore.ts`, `RecommendedActionsModal.tsx`, `ActiveActions.tsx`, `ActionInboxBanner.tsx`, rotas dos módulos. Já estão estáveis.
+### 3. `CriticalAlerts.tsx` — memoizar sort
 
----
+`[...alerts].sort(...)` roda a cada render. Trocar por:
 
-## Por que não quebra
+```ts
+const sorted = useMemo(() => {
+  const order = { high: 0, medium: 1, low: 2 } as const;
+  return [...alerts].sort((a, b) => order[a.severity] - order[b.severity]);
+}, [alerts]);
+```
 
-1. **Fallback em camadas**: sem baseline → mocks atuais; com baseline → derivados. Ambos retornam o mesmo tipo `Opportunity[]`.
-2. **Tipos preservados**: `ActionPayload` e `RecommendedAction` continuam idênticos — modal e store funcionam sem alteração.
-3. **Nenhuma rota nova**: tudo dentro do dashboard existente.
-4. **Sem dependências novas**: usa Zustand (já instalado).
+### 4. `routes/index.tsx` — eliminar warning de exhaustive-deps
+
+O `useEffect([])` que chama `evaluate()` está correto na intenção, mas posso melhorar usando ref para garantir execução única sem suprimir lint:
+
+```ts
+const didInit = useRef(false);
+useEffect(() => {
+  if (!didInit.current && !current) {
+    didInit.current = true;
+    evaluate();
+  }
+}, [current, evaluate]);
+```
+
+## O que NÃO vou aplicar do seu prompt
+
+- ❌ "Comparar previous vs new antes de setState" — não há `setState` problemático.
+- ❌ "Avoid dynamic objects in dependency arrays" — os arrays nas dependências (`[bookings, capOverrides, useDemo]` em `useDecisionData`) já são referências estáveis vindas do Zustand. Não é a causa.
+- ❌ "Limit recalculation triggers / batch updates" — não há recálculo em loop; o problema é estrutural no selector.
+
+Aplicar essas mitigações em código que não tem o problema só polui a base. O fix real são as 3 trocas de selector inline → `useMemo` listadas acima.
+
+## Arquivos editados
+
+- `src/components/dashboard/RecommendedActionsModal.tsx` — selector + useMemo
+- `src/components/dashboard/OpportunitiesList.tsx` — useMemo no Set derivado
+- `src/components/dashboard/CriticalAlerts.tsx` — useMemo no sort
+- `src/routes/index.tsx` — useRef para init de evaluate
+
+## Por que não quebra nada
+
+- Tipos e API pública dos componentes inalterados.
+- Comportamento idêntico — apenas estabiliza referências.
+- Sem mudanças em store, engine, ou rotas.
 
