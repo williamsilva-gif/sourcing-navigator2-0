@@ -236,3 +236,37 @@ export function fmtUsd(value: number): string {
   if (value >= 1_000) return `US$ ${Math.round(value / 1000)}k`;
   return `US$ ${value}`;
 }
+
+// ============================================================================
+// Hook: returns derived alerts/opportunities when baseline exists,
+// otherwise falls back to the curated mocks above.
+// ============================================================================
+
+import { useMemo } from "react";
+import { useBaselineStore } from "@/lib/baselineStore";
+import { useActionStore } from "@/lib/actionStore";
+import { evaluateRules } from "@/lib/recommendationEngine";
+
+export function useDecisionData(): { alerts: CriticalAlert[]; opportunities: Opportunity[]; source: "baseline" | "demo" } {
+  const bookings = useBaselineStore((s) => s.bookings);
+  const useDemo = useBaselineStore((s) => s.useDemo);
+  const capOverrides = useActionStore((s) => s.capOverrides);
+
+  return useMemo(() => {
+    if (bookings.length > 0) {
+      const { alerts, opportunities } = evaluateRules(bookings, capOverrides);
+      if (alerts.length > 0 || opportunities.length > 0) {
+        return { alerts, opportunities, source: "baseline" };
+      }
+    }
+    if (useDemo) {
+      return { alerts: FALLBACK_ALERTS, opportunities: FALLBACK_OPPORTUNITIES, source: "demo" };
+    }
+    return { alerts: [], opportunities: [], source: "demo" };
+  }, [bookings, capOverrides, useDemo]);
+}
+
+// Backward-compat exports — kept so any non-migrated import keeps building.
+export const CRITICAL_ALERTS = FALLBACK_ALERTS;
+export const OPPORTUNITIES = FALLBACK_OPPORTUNITIES;
+
