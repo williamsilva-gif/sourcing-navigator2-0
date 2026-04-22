@@ -1,21 +1,24 @@
+import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { DollarSign, TrendingUp, FileText, AlertTriangle, Calendar } from "lucide-react";
+import { DollarSign, TrendingUp, Activity, AlertTriangle, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/AppShell";
 import { KpiCard } from "@/components/dashboard/KpiCard";
-import { SavingsChart } from "@/components/dashboard/SavingsChart";
-import { ComplianceGauge } from "@/components/dashboard/ComplianceGauge";
-import { ActiveRfps } from "@/components/dashboard/ActiveRfps";
-import { TopOpportunities } from "@/components/dashboard/TopOpportunities";
+import { CriticalAlerts } from "@/components/dashboard/CriticalAlerts";
+import { OpportunitiesList } from "@/components/dashboard/OpportunitiesList";
+import { RecommendedActionsModal } from "@/components/dashboard/RecommendedActionsModal";
+import { ActiveActions } from "@/components/dashboard/ActiveActions";
+import { ImpactTracking } from "@/components/dashboard/ImpactTracking";
+import { OPPORTUNITIES, type Opportunity } from "@/components/dashboard/decisionData";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Dashboard — SourcingHub" },
+      { title: "Decision Center — SourcingHub" },
       {
         name: "description",
         content:
-          "Visão consolidada de savings, compliance e RFPs ativos do programa de hotel sourcing corporativo.",
+          "Centro de decisão contínua: alertas, oportunidades priorizadas e acompanhamento de impacto do programa de hotel sourcing.",
       },
     ],
   }),
@@ -23,16 +26,29 @@ export const Route = createFileRoute("/")({
 });
 
 function DashboardPage() {
+  const [selectedOpp, setSelectedOpp] = useState<Opportunity | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+
+  const openOpportunity = (opp: Opportunity) => {
+    setSelectedOpp(opp);
+    setModalOpen(true);
+  };
+
+  const openByOpportunityId = (id?: string) => {
+    const opp = OPPORTUNITIES.find((o) => o.id === id) ?? OPPORTUNITIES[0];
+    if (opp) openOpportunity(opp);
+  };
+
   return (
     <AppShell>
       <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-sm font-medium text-primary">Dashboard Overview</p>
+          <p className="text-sm font-medium text-primary">Decision Center</p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-foreground">
             Bom dia, Marina
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Aqui está o resumo do programa Acme Travel Corp · Ano fiscal 2025
+            5 oportunidades pendentes · 3 ações em execução · US$ 412k em jogo
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -69,11 +85,11 @@ function DashboardPage() {
           tone="primary"
         />
         <KpiCard
-          label="RFPs ativos"
-          value="14"
-          delta={-2.5}
-          deltaLabel="vs trimestre anterior"
-          icon={FileText}
+          label="Ações em execução"
+          value="3"
+          delta={50}
+          deltaLabel="vs semana anterior"
+          icon={Activity}
           tone="info"
         />
         <KpiCard
@@ -85,17 +101,26 @@ function DashboardPage() {
         />
       </div>
 
-      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <SavingsChart />
+      <div className="mt-6 space-y-6">
+        <CriticalAlerts onViewRecommendation={openByOpportunityId} />
+
+        <OpportunitiesList onTakeAction={openOpportunity} />
+
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+          <div className="lg:col-span-2">
+            <ActiveActions />
+          </div>
+          <div className="lg:col-span-3">
+            <ImpactTracking />
+          </div>
         </div>
-        <ComplianceGauge />
       </div>
 
-      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <ActiveRfps />
-        <TopOpportunities />
-      </div>
+      <RecommendedActionsModal
+        opportunity={selectedOpp}
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+      />
     </AppShell>
   );
 }
