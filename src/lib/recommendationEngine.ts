@@ -124,7 +124,7 @@ export function evaluateRules(
     const cityActions: RecommendedAction[] = [];
     const reasons: string[] = [];
     let oppSavings = 0;
-    let oppPriority: Opportunity["priority"] = "low";
+    let oppPriority = "low" as Opportunity["priority"];
 
     // Rule 1: ADR > Cap by 8%+
     const adrGapPct = c.cap > 0 ? ((c.adr - c.cap) / c.cap) * 100 : 0;
