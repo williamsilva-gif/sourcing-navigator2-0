@@ -8,6 +8,7 @@ import { HotelResponseTracker } from "@/components/rfp/HotelResponseTracker";
 import { CreateRfpWizard } from "@/components/rfp/CreateRfpWizard";
 import { RfpDetailModal } from "@/components/rfp/RfpDetailModal";
 import { RFP_PROGRAMS, RFP_INVITED_HOTELS, type RfpProgram } from "@/components/rfp/rfpProgramData";
+import { ActionInboxBanner } from "@/components/layout/ActionInboxBanner";
 
 function RfpPage() {
   const [wizardOpen, setWizardOpen] = useState(false);
