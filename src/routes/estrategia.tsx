@@ -7,6 +7,7 @@ import { TieringMatrix } from "@/components/estrategia/TieringMatrix";
 import { CityCapsTable } from "@/components/estrategia/CityCapsTable";
 import { ClusterSegmentation } from "@/components/estrategia/ClusterSegmentation";
 import { BusinessRulesPanel } from "@/components/estrategia/BusinessRulesPanel";
+import { ActionInboxBanner } from "@/components/layout/ActionInboxBanner";
 import { CITY_STRATEGY, CLUSTERS, BUSINESS_RULES } from "@/components/estrategia/strategyData";
 import { useBaselineStore, selectDerivedCityStrategy } from "@/lib/baselineStore";
 
@@ -84,6 +85,11 @@ function StrategiaPage() {
         <Kpi icon={ShieldCheck} label="Regras ativas" value={String(stats.activeRules)} hint={`de ${BUSINESS_RULES.length} regras`} tone="success" />
         <Kpi icon={AlertTriangle} label="Caps em revisão" value={String(stats.overCap)} hint="cidades com ADR > cap" tone={stats.overCap > 0 ? "destructive" : "default"} />
       </div>
+
+      <ActionInboxBanner
+        kinds={["cap_adjustment", "cluster_change", "communication"]}
+        title="Ajustes de estratégia enviados pelo Decision Center"
+      />
 
       <div className="space-y-6">
         <TieringMatrix />

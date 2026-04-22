@@ -5,6 +5,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import { NegotiationKanban } from "@/components/negociacao/NegotiationKanban";
 import { ReverseAuction } from "@/components/negociacao/ReverseAuction";
+import { ActionInboxBanner } from "@/components/layout/ActionInboxBanner";
 import { NEGOTIATIONS } from "@/components/negociacao/negotiationData";
 
 function NegociacaoPage() {
@@ -46,6 +47,11 @@ function NegociacaoPage() {
         <KpiTile label="Desconto médio" value={`${avgDiscount}%`} hint="vs proposta inicial" tone="success" />
         <KpiTile label="Lotes em leilão" value="3" hint="2 ao vivo" tone="primary" />
       </div>
+
+      <ActionInboxBanner
+        kinds={["renegotiation"]}
+        title="Renegociações iniciadas pelo Decision Center"
+      />
 
       <NegotiationKanban />
       <ReverseAuction />

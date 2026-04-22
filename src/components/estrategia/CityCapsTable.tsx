@@ -1,14 +1,16 @@
 import { useState, useMemo, useEffect } from "react";
 import { toast } from "sonner";
-import { Sliders, RotateCcw, Save, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Sliders, RotateCcw, Save, AlertTriangle, CheckCircle2, Zap } from "lucide-react";
 import { CITY_STRATEGY, type CityStrategy } from "./strategyData";
 import { useBaselineStore, selectDerivedCityStrategy } from "@/lib/baselineStore";
+import { useActionStore } from "@/lib/actionStore";
 
 function fmt$(n: number) { return `$${Math.round(n).toLocaleString("en-US")}`; }
 
 export function CityCapsTable() {
   const bookings = useBaselineStore((s) => s.bookings);
   const useDemo = useBaselineStore((s) => s.useDemo);
+  const capOverrides = useActionStore((s) => s.capOverrides);
   const baseRows: CityStrategy[] = useMemo(() => {
     if (bookings.length > 0) {
       return selectDerivedCityStrategy(bookings).map((c) => ({
@@ -21,19 +23,24 @@ export function CityCapsTable() {
   }, [bookings, useDemo]);
 
   const [caps, setCaps] = useState<Record<string, number>>(() =>
-    Object.fromEntries(baseRows.map((c) => [c.city, c.capAdr]))
+    Object.fromEntries(baseRows.map((c) => [c.city, capOverrides[c.city] ?? c.capAdr]))
   );
 
-  // Re-sync when baseline changes
+  // Re-sync when baseline or dashboard overrides change
   useEffect(() => {
     setCaps((prev) => {
       const next = { ...prev };
       baseRows.forEach((c) => {
-        if (next[c.city] === undefined) next[c.city] = c.capAdr;
+        // Dashboard override always wins over previous local edits
+        if (capOverrides[c.city] !== undefined) {
+          next[c.city] = capOverrides[c.city];
+        } else if (next[c.city] === undefined) {
+          next[c.city] = c.capAdr;
+        }
       });
       return next;
     });
-  }, [baseRows]);
+  }, [baseRows, capOverrides]);
 
   function reset() {
     setCaps(Object.fromEntries(baseRows.map((c) => [c.city, c.capAdr])));
@@ -53,8 +60,21 @@ export function CityCapsTable() {
     );
   }
 
+  const overrideCount = Object.keys(capOverrides).filter((city) =>
+    baseRows.some((r) => r.city === city)
+  ).length;
+
   return (
     <section className="rounded-lg border border-border bg-card shadow-[var(--shadow-card)]">
+      {overrideCount > 0 && (
+        <div className="flex items-center gap-2 border-b border-border bg-primary-soft/60 px-5 py-2.5 text-xs text-primary">
+          <Zap className="h-3.5 w-3.5" />
+          <span>
+            <strong>{overrideCount} {overrideCount === 1 ? "cap atualizado" : "caps atualizados"}</strong> via Decision Center.
+            Os valores foram pré-aplicados abaixo — confirme com "Aplicar caps".
+          </span>
+        </div>
+      )}
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
         <div className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary-soft text-primary">
