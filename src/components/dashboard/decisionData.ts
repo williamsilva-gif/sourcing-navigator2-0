@@ -44,7 +44,11 @@ export interface ImpactPoint {
   actual: number;
 }
 
-export const CRITICAL_ALERTS: CriticalAlert[] = [
+// ============================================================================
+// Fallback mocks (used when no baseline is loaded)
+// ============================================================================
+
+export const FALLBACK_ALERTS: CriticalAlert[] = [
   {
     id: "alert-1",
     title: "Compliance abaixo de 75%",
@@ -78,7 +82,7 @@ export const CRITICAL_ALERTS: CriticalAlert[] = [
   },
 ];
 
-export const OPPORTUNITIES: Opportunity[] = [
+export const FALLBACK_OPPORTUNITIES: Opportunity[] = [
   {
     id: "opp-1",
     scope: "São Paulo",
