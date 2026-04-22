@@ -1,10 +1,12 @@
 // Centralized mock data for the Continuous Decision Center.
-// Designed to be replaced by selectors from baselineStore in the next iteration.
+// Each RecommendedAction now carries a typed payload — the dashboard dispatches
+// it to the correct module via useActionStore.executeAction().
+
+import type { ActionPayload } from "@/lib/actionStore";
 
 export type Severity = "high" | "medium" | "low";
 export type Priority = "high" | "medium" | "low";
 export type Effort = "low" | "medium" | "high";
-export type ActionStatus = "in_progress" | "completed";
 
 export interface CriticalAlert {
   id: string;
@@ -20,7 +22,7 @@ export interface RecommendedAction {
   label: string;
   impact: number; // USD
   effort: Effort;
-  module: "negociacao" | "estrategia" | "rfp" | "selecao";
+  payload: ActionPayload;
 }
 
 export interface Opportunity {
@@ -30,17 +32,10 @@ export interface Opportunity {
   savings: number; // USD
   reason: string;
   priority: Priority;
+  // Baseline KPI snapshot — used to seed action.kpis on execution
+  adrBefore: number;
+  complianceBefore: number;
   actions: RecommendedAction[];
-}
-
-export interface ActiveAction {
-  id: string;
-  type: "Renegociação" | "Mini-RFP" | "Ajuste de cap";
-  city: string;
-  status: ActionStatus;
-  expectedSavings: number;
-  startedAt: string;
-  module: "negociacao" | "rfp" | "estrategia";
 }
 
 export interface ImpactPoint {
@@ -86,178 +81,140 @@ export const CRITICAL_ALERTS: CriticalAlert[] = [
 export const OPPORTUNITIES: Opportunity[] = [
   {
     id: "opp-1",
-    scope: "São Paulo, BR",
+    scope: "São Paulo",
     region: "LATAM",
     savings: 142000,
     reason: "ADR efetivo 12% acima do cap em 38% das reservas",
     priority: "high",
+    adrBefore: 248,
+    complianceBefore: 68,
     actions: [
       {
         id: "act-1-1",
         label: "Lançar renegociação com 5 hotéis Tier 2",
         impact: 86000,
         effort: "medium",
-        module: "negociacao",
+        payload: { kind: "renegotiation", data: { city: "São Paulo", hotels: 5, targetAdrReduction: 10 } },
       },
       {
         id: "act-1-2",
         label: "Reduzir city cap de US$ 248 para US$ 220",
         impact: 42000,
         effort: "low",
-        module: "estrategia",
+        payload: { kind: "cap_adjustment", data: { city: "São Paulo", fromCap: 248, toCap: 220 } },
       },
       {
         id: "act-1-3",
         label: "Adicionar 3 hotéis ao RFP para aumentar competição",
         impact: 28000,
         effort: "high",
-        module: "rfp",
+        payload: { kind: "mini_rfp", data: { city: "São Paulo", hotels: 3 } },
       },
     ],
   },
   {
     id: "opp-2",
-    scope: "Mexico City, MX",
+    scope: "Mexico City",
     region: "LATAM",
     savings: 96000,
     reason: "Cap desatualizado vs mercado — 3 hotéis Tier 1 fora do programa",
     priority: "high",
+    adrBefore: 189,
+    complianceBefore: 74,
     actions: [
       {
         id: "act-2-1",
         label: "Atualizar cap de US$ 175 para US$ 195",
         impact: 38000,
         effort: "low",
-        module: "estrategia",
+        payload: { kind: "cap_adjustment", data: { city: "Mexico City", fromCap: 175, toCap: 195 } },
       },
       {
         id: "act-2-2",
         label: "Mini-RFP para 4 hotéis Tier 1 ainda não contratados",
         impact: 58000,
         effort: "medium",
-        module: "rfp",
+        payload: { kind: "mini_rfp", data: { city: "Mexico City", hotels: 4 } },
       },
     ],
   },
   {
     id: "opp-3",
-    scope: "Bogotá, CO",
+    scope: "Bogotá",
     region: "LATAM",
     savings: 78000,
     reason: "Concentração de 71% em 2 hotéis sem alternativa de tarifa",
     priority: "medium",
+    adrBefore: 165,
+    complianceBefore: 81,
     actions: [
       {
         id: "act-3-1",
-        label: "Adicionar 4 hotéis Midscale ao programa",
+        label: "Adicionar 4 hotéis Midscale como Preferred",
         impact: 52000,
         effort: "high",
-        module: "rfp",
+        payload: { kind: "cluster_change", data: { city: "Bogotá", hotelsToAdd: 4, toCluster: "Preferred" } },
       },
       {
         id: "act-3-2",
         label: "Renegociar volume com hotel principal (40% do spend)",
         impact: 26000,
         effort: "medium",
-        module: "negociacao",
+        payload: { kind: "renegotiation", data: { city: "Bogotá", hotels: 1, targetAdrReduction: 8 } },
       },
     ],
   },
   {
     id: "opp-4",
-    scope: "Buenos Aires, AR",
+    scope: "Buenos Aires",
     region: "LATAM",
     savings: 64000,
     reason: "Variação de ADR entre hotéis do mesmo tier acima de 18%",
     priority: "medium",
+    adrBefore: 218,
+    complianceBefore: 79,
     actions: [
       {
         id: "act-4-1",
         label: "Alinhar caps por tier — Upscale para US$ 178",
         impact: 38000,
         effort: "low",
-        module: "estrategia",
+        payload: { kind: "cap_adjustment", data: { city: "Buenos Aires", fromCap: 218, toCap: 178 } },
       },
       {
         id: "act-4-2",
         label: "Renegociar com 2 hotéis acima da média do tier",
         impact: 26000,
         effort: "medium",
-        module: "negociacao",
+        payload: { kind: "renegotiation", data: { city: "Buenos Aires", hotels: 2, targetAdrReduction: 7 } },
       },
     ],
   },
   {
     id: "opp-5",
-    scope: "Lima, PE",
+    scope: "Lima",
     region: "LATAM",
     savings: 32000,
     reason: "12% das reservas em hotéis fora do programa (leakage)",
     priority: "low",
+    adrBefore: 142,
+    complianceBefore: 72,
     actions: [
       {
         id: "act-5-1",
-        label: "Comunicação dirigida + lembrete de booking tool",
+        label: "Comunicação dirigida + lembrete no booking tool",
         impact: 18000,
         effort: "low",
-        module: "estrategia",
+        payload: { kind: "communication", data: { city: "Lima", channel: "Email + booking tool" } },
       },
       {
         id: "act-5-2",
         label: "Adicionar 2 hotéis preferred no centro",
         impact: 14000,
         effort: "medium",
-        module: "rfp",
+        payload: { kind: "cluster_change", data: { city: "Lima", hotelsToAdd: 2, toCluster: "Preferred" } },
       },
     ],
-  },
-];
-
-export const ACTIVE_ACTIONS: ActiveAction[] = [
-  {
-    id: "aa-1",
-    type: "Renegociação",
-    city: "São Paulo, BR",
-    status: "in_progress",
-    expectedSavings: 86000,
-    startedAt: "há 6 dias",
-    module: "negociacao",
-  },
-  {
-    id: "aa-2",
-    type: "Mini-RFP",
-    city: "Mexico City, MX",
-    status: "in_progress",
-    expectedSavings: 58000,
-    startedAt: "há 12 dias",
-    module: "rfp",
-  },
-  {
-    id: "aa-3",
-    type: "Ajuste de cap",
-    city: "Buenos Aires, AR",
-    status: "completed",
-    expectedSavings: 38000,
-    startedAt: "concluído há 8 dias",
-    module: "estrategia",
-  },
-  {
-    id: "aa-4",
-    type: "Renegociação",
-    city: "Bogotá, CO",
-    status: "completed",
-    expectedSavings: 26000,
-    startedAt: "concluído há 21 dias",
-    module: "negociacao",
-  },
-  {
-    id: "aa-5",
-    type: "Mini-RFP",
-    city: "Santiago, CL",
-    status: "in_progress",
-    expectedSavings: 44000,
-    startedAt: "há 3 dias",
-    module: "rfp",
   },
 ];
 
