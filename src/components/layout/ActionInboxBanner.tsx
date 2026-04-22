@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Zap, ArrowRight } from "lucide-react";
 import { useActionStore, type ActionKind } from "@/lib/actionStore";
@@ -10,8 +11,10 @@ interface Props {
 
 export function ActionInboxBanner({ kinds, title }: Props) {
   const navigate = useNavigate();
-  const actions = useActionStore((s) =>
-    s.actions.filter((a) => kinds.includes(a.kind) && a.status !== "completed")
+  const allActions = useActionStore((s) => s.actions);
+  const actions = useMemo(
+    () => allActions.filter((a) => kinds.includes(a.kind) && a.status !== "completed"),
+    [allActions, kinds]
   );
 
   if (actions.length === 0) return null;
