@@ -1,14 +1,16 @@
 import { useState, useMemo, useEffect } from "react";
 import { toast } from "sonner";
-import { Sliders, RotateCcw, Save, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Sliders, RotateCcw, Save, AlertTriangle, CheckCircle2, Zap } from "lucide-react";
 import { CITY_STRATEGY, type CityStrategy } from "./strategyData";
 import { useBaselineStore, selectDerivedCityStrategy } from "@/lib/baselineStore";
+import { useActionStore } from "@/lib/actionStore";
 
 function fmt$(n: number) { return `$${Math.round(n).toLocaleString("en-US")}`; }
 
 export function CityCapsTable() {
   const bookings = useBaselineStore((s) => s.bookings);
   const useDemo = useBaselineStore((s) => s.useDemo);
+  const capOverrides = useActionStore((s) => s.capOverrides);
   const baseRows: CityStrategy[] = useMemo(() => {
     if (bookings.length > 0) {
       return selectDerivedCityStrategy(bookings).map((c) => ({
@@ -21,19 +23,24 @@ export function CityCapsTable() {
   }, [bookings, useDemo]);
 
   const [caps, setCaps] = useState<Record<string, number>>(() =>
-    Object.fromEntries(baseRows.map((c) => [c.city, c.capAdr]))
+    Object.fromEntries(baseRows.map((c) => [c.city, capOverrides[c.city] ?? c.capAdr]))
   );
 
-  // Re-sync when baseline changes
+  // Re-sync when baseline or dashboard overrides change
   useEffect(() => {
     setCaps((prev) => {
       const next = { ...prev };
       baseRows.forEach((c) => {
-        if (next[c.city] === undefined) next[c.city] = c.capAdr;
+        // Dashboard override always wins over previous local edits
+        if (capOverrides[c.city] !== undefined) {
+          next[c.city] = capOverrides[c.city];
+        } else if (next[c.city] === undefined) {
+          next[c.city] = c.capAdr;
+        }
       });
       return next;
     });
-  }, [baseRows]);
+  }, [baseRows, capOverrides]);
 
   function reset() {
     setCaps(Object.fromEntries(baseRows.map((c) => [c.city, c.capAdr])));
