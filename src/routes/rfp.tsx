@@ -82,6 +82,11 @@ function RfpPage() {
         />
       </div>
 
+      <ActionInboxBanner
+        kinds={["mini_rfp"]}
+        title="Mini-RFPs solicitados pelo Decision Center"
+      />
+
       <div className="space-y-6">
         <RfpProgramList onView={(r) => setSelected(r)} />
         <HotelResponseTracker />
