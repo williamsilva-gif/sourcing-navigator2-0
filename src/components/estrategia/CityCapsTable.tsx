@@ -60,8 +60,21 @@ export function CityCapsTable() {
     );
   }
 
+  const overrideCount = Object.keys(capOverrides).filter((city) =>
+    baseRows.some((r) => r.city === city)
+  ).length;
+
   return (
     <section className="rounded-lg border border-border bg-card shadow-[var(--shadow-card)]">
+      {overrideCount > 0 && (
+        <div className="flex items-center gap-2 border-b border-border bg-primary-soft/60 px-5 py-2.5 text-xs text-primary">
+          <Zap className="h-3.5 w-3.5" />
+          <span>
+            <strong>{overrideCount} {overrideCount === 1 ? "cap atualizado" : "caps atualizados"}</strong> via Decision Center.
+            Os valores foram pré-aplicados abaixo — confirme com "Aplicar caps".
+          </span>
+        </div>
+      )}
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
         <div className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary-soft text-primary">
