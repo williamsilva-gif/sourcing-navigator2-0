@@ -15,6 +15,9 @@ import { useBaselineStore } from "@/lib/baselineStore";
 import { SCHEMA_LABELS, SCHEMA_HEADERS, type DatasetType } from "@/lib/baselineSchemas";
 import { downloadTemplate, readSpreadsheet } from "@/lib/xlsxTemplates";
 import { useSnapshotStore } from "@/lib/snapshotStore";
+import { generateDemoBookings } from "@/lib/demoData";
+
+const IS_DEV = import.meta.env.DEV;
 
 const TYPES: DatasetType[] = ["bookings", "hotels", "contracts"];
 
@@ -69,6 +72,18 @@ export function DataIngestionPanel() {
     );
   }
 
+  function loadDemoDataset() {
+    const synthetic = generateDemoBookings(500);
+    const rec = ingest("bookings", "demo-dataset-500.synthetic", synthetic);
+    useSnapshotStore.getState().evaluate();
+    const snap = useSnapshotStore.getState().current;
+    toast.success(`Demo dataset injetado · ${rec.rowCount} bookings sintéticos`, {
+      description: snap
+        ? `${snap.alerts.length} alertas · ${snap.opportunities.length} oportunidades geradas`
+        : undefined,
+    });
+  }
+
   return (
     <section className="rounded-lg border border-border bg-card shadow-[var(--shadow-card)]">
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
@@ -93,6 +108,16 @@ export function DataIngestionPanel() {
             />
             Usar dados demo se vazio
           </label>
+          {IS_DEV && (
+            <button
+              onClick={loadDemoDataset}
+              title="Visível apenas em desenvolvimento — injeta ~500 bookings sintéticos"
+              className="inline-flex items-center gap-1.5 rounded-md border border-dashed border-primary/40 bg-primary-soft/40 px-2.5 py-1.5 text-[11px] font-medium text-primary hover:bg-primary-soft"
+            >
+              <Database className="h-3.5 w-3.5" />
+              Carregar dados de demonstração
+            </button>
+          )}
           <button
             onClick={recalculate}
             className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90"
