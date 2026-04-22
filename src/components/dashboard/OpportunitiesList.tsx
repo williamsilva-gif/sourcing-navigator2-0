@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { MapPin, TrendingUp, Sparkles } from "lucide-react";
 import { useDecisionData, fmtUsd, type Opportunity, type Priority } from "./decisionData";
 import { useSnapshotStore, isOpportunityNew } from "@/lib/snapshotStore";
@@ -19,8 +20,14 @@ export function OpportunitiesList({ onTakeAction }: Props) {
   const previous = useSnapshotStore((s) => s.previous);
   const executedActions = useActionStore((s) => s.actions);
 
-  const inExecutionByOpp = new Set(
-    executedActions.filter((a) => a.status !== "completed").map((a) => a.opportunityId),
+  const inExecutionByOpp = useMemo(
+    () =>
+      new Set(
+        executedActions
+          .filter((a) => a.status !== "completed")
+          .map((a) => a.opportunityId),
+      ),
+    [executedActions],
   );
 
   const total = opportunities.reduce((s: number, o: Opportunity) => s + o.savings, 0);

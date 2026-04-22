@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { CheckCircle2, Zap, Sparkles } from "lucide-react";
@@ -49,8 +50,10 @@ const moduleForKind: Record<ActionKind, keyof typeof moduleRoutes> = {
 export function RecommendedActionsModal({ opportunity, open, onOpenChange }: Props) {
   const navigate = useNavigate();
   const executeAction = useActionStore((s) => s.executeAction);
-  const executedActionIds = useActionStore((s) =>
-    new Set(s.actions.map((a) => `${a.opportunityId}::${a.label}`))
+  const actions = useActionStore((s) => s.actions);
+  const executedActionIds = useMemo(
+    () => new Set(actions.map((a) => `${a.opportunityId}::${a.label}`)),
+    [actions]
   );
 
   if (!opportunity) return null;
