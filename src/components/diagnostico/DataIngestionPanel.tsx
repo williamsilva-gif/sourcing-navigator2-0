@@ -14,6 +14,7 @@ import {
 import { useBaselineStore } from "@/lib/baselineStore";
 import { SCHEMA_LABELS, SCHEMA_HEADERS, type DatasetType } from "@/lib/baselineSchemas";
 import { downloadTemplate, readSpreadsheet } from "@/lib/xlsxTemplates";
+import { useSnapshotStore } from "@/lib/snapshotStore";
 
 const TYPES: DatasetType[] = ["bookings", "hotels", "contracts"];
 
@@ -26,6 +27,7 @@ export function DataIngestionPanel() {
 
   async function handleFiles(files: FileList | File[]) {
     const arr = Array.from(files);
+    let ingestedAny = false;
     for (const file of arr) {
       try {
         const rows = await readSpreadsheet(file);
@@ -36,13 +38,23 @@ export function DataIngestionPanel() {
         const rec = ingest(activeType, file.name, rows);
         if (rec.status === "ok") {
           toast.success(`${file.name}: ${rec.rowCount} linhas importadas`);
+          ingestedAny = true;
         } else if (rec.status === "partial") {
           toast.warning(`${file.name}: ${rec.rowCount} ok · ${rec.errorCount} com erro`);
+          ingestedAny = true;
         } else {
           toast.error(`${file.name}: nenhuma linha válida (${rec.errorCount} erros)`);
         }
       } catch (e) {
         toast.error(`${file.name}: falha ao ler · ${(e as Error).message}`);
+      }
+    }
+    // Auto-trigger continuous evaluation after a successful ingest
+    if (ingestedAny && activeType === "bookings") {
+      useSnapshotStore.getState().evaluate();
+      const snap = useSnapshotStore.getState().current;
+      if (snap) {
+        toast.info(`Recomendações atualizadas · ${snap.alerts.length} alertas · ${snap.opportunities.length} oportunidades`);
       }
     }
   }

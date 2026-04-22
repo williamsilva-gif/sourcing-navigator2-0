@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { DollarSign, TrendingUp, Activity, AlertTriangle, Calendar } from "lucide-react";
+import { DollarSign, TrendingUp, Activity, AlertTriangle, Calendar, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/AppShell";
 import { KpiCard } from "@/components/dashboard/KpiCard";
@@ -9,7 +9,8 @@ import { OpportunitiesList } from "@/components/dashboard/OpportunitiesList";
 import { RecommendedActionsModal } from "@/components/dashboard/RecommendedActionsModal";
 import { ActiveActions } from "@/components/dashboard/ActiveActions";
 import { ImpactTracking } from "@/components/dashboard/ImpactTracking";
-import { OPPORTUNITIES, type Opportunity } from "@/components/dashboard/decisionData";
+import { useDecisionData, type Opportunity } from "@/components/dashboard/decisionData";
+import { useSnapshotStore, timeAgo, daysUntilNextEval } from "@/lib/snapshotStore";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -28,6 +29,16 @@ export const Route = createFileRoute("/")({
 function DashboardPage() {
   const [selectedOpp, setSelectedOpp] = useState<Opportunity | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const { opportunities, source } = useDecisionData();
+  const evaluate = useSnapshotStore((s) => s.evaluate);
+  const evaluatedAt = useSnapshotStore((s) => s.evaluatedAt);
+  const current = useSnapshotStore((s) => s.current);
+
+  // Initial evaluation on mount so deltas have a baseline to compare against.
+  useEffect(() => {
+    if (!current) evaluate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const openOpportunity = (opp: Opportunity) => {
     setSelectedOpp(opp);
@@ -35,9 +46,20 @@ function DashboardPage() {
   };
 
   const openByOpportunityId = (id?: string) => {
-    const opp = OPPORTUNITIES.find((o) => o.id === id) ?? OPPORTUNITIES[0];
+    const opp = opportunities.find((o: Opportunity) => o.id === id) ?? opportunities[0];
     if (opp) openOpportunity(opp);
   };
+
+  const handleReevaluate = () => {
+    evaluate();
+    const next = useSnapshotStore.getState().current;
+    const prev = useSnapshotStore.getState().previous;
+    const newAlerts = next && prev ? next.alerts.filter((a) => !prev.alerts.some((p) => p.id === a.id)).length : next?.alerts.length ?? 0;
+    const newOpps = next && prev ? next.opportunities.filter((o) => !prev.opportunities.some((p) => p.id === o.id)).length : next?.opportunities.length ?? 0;
+    toast.success(`Recomendações atualizadas · ${newAlerts} novos alertas · ${newOpps} oportunidades`);
+  };
+
+  const daysNext = daysUntilNextEval(evaluatedAt);
 
   return (
     <AppShell>
@@ -48,10 +70,18 @@ function DashboardPage() {
             Bom dia, Marina
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            5 oportunidades pendentes · 3 ações em execução · US$ 412k em jogo
+            {opportunities.length} oportunidades · fonte: {source === "baseline" ? "baseline carregado" : "demo"} · última avaliação {timeAgo(evaluatedAt)}
+            {evaluatedAt && ` · próxima em ${daysNext}d`}
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={handleReevaluate}
+            className="flex h-10 items-center gap-2 rounded-md border border-input bg-card px-3 text-sm font-medium text-foreground transition-colors hover:border-primary/40"
+          >
+            <RefreshCw className="h-4 w-4 text-muted-foreground" />
+            Reavaliar
+          </button>
           <button
             onClick={() => toast.info("Período YTD 2025 selecionado")}
             className="flex h-10 items-center gap-2 rounded-md border border-input bg-card px-3 text-sm font-medium text-foreground transition-colors hover:border-primary/40"
