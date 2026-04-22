@@ -8,6 +8,7 @@ import { HotelResponseTracker } from "@/components/rfp/HotelResponseTracker";
 import { CreateRfpWizard } from "@/components/rfp/CreateRfpWizard";
 import { RfpDetailModal } from "@/components/rfp/RfpDetailModal";
 import { RFP_PROGRAMS, RFP_INVITED_HOTELS, type RfpProgram } from "@/components/rfp/rfpProgramData";
+import { ActionInboxBanner } from "@/components/layout/ActionInboxBanner";
 
 function RfpPage() {
   const [wizardOpen, setWizardOpen] = useState(false);
@@ -80,6 +81,11 @@ function RfpPage() {
           tone={stats.upcoming > 0 ? "warning" : "default"}
         />
       </div>
+
+      <ActionInboxBanner
+        kinds={["mini_rfp"]}
+        title="Mini-RFPs solicitados pelo Decision Center"
+      />
 
       <div className="space-y-6">
         <RfpProgramList onView={(r) => setSelected(r)} />
