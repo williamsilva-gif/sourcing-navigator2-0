@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useClientsStore, type ClientType } from "@/lib/clientsStore";
+import { useAppConfigStore } from "@/lib/appConfigStore";
 import { Trash2, Plus, Check } from "lucide-react";
 
 export function ClientsPanel() {
