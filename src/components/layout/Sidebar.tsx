@@ -13,7 +13,7 @@ import {
   Hotel,
   Settings,
 } from "lucide-react";
-import { useAppConfigStore, type ModuleKey } from "@/lib/appConfigStore";
+import { useAppConfigStore, useEnabledModules, type ModuleKey } from "@/lib/appConfigStore";
 
 const modules: { to: string; label: string; icon: typeof LayoutDashboard; key: ModuleKey }[] = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, key: "dashboard" },
@@ -31,7 +31,7 @@ const modules: { to: string; label: string; icon: typeof LayoutDashboard; key: M
 
 export function Sidebar() {
   const { pathname } = useLocation();
-  const enabledModules = useAppConfigStore((s) => s.enabledModules);
+  const enabledModules = useEnabledModules();
   const role = useAppConfigStore((s) => s.user.role);
   const visible = modules.filter((m) => {
     if (m.key === "admin") return enabledModules.admin && role === "admin";

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useClientsStore, type ClientType } from "@/lib/clientsStore";
+import { useAppConfigStore } from "@/lib/appConfigStore";
 import { Trash2, Plus, Check } from "lucide-react";
 
 export function ClientsPanel() {
@@ -7,6 +8,7 @@ export function ClientsPanel() {
   const selectedId = useClientsStore((s) => s.selectedClientId);
   const selectClient = useClientsStore((s) => s.selectClient);
   const addClient = useClientsStore((s) => s.addClient);
+  const ensureConfig = useAppConfigStore((s) => s.ensureClientConfig);
   const removeClient = useClientsStore((s) => s.removeClient);
   const updateClient = useClientsStore((s) => s.updateClient);
 
@@ -82,6 +84,9 @@ export function ClientsPanel() {
           e.preventDefault();
           if (!name.trim()) return;
           addClient({ name: name.trim(), type });
+          // Garante config inicial baseada no tipo (TMC/Corporate/Supplier)
+          const newId = useClientsStore.getState().clients.slice(-1)[0]?.id;
+          if (newId) ensureConfig(newId, type);
           setName("");
         }}
         className="mt-4 flex flex-wrap items-end gap-3"

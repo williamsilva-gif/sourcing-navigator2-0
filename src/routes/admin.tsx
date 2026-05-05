@@ -5,7 +5,7 @@ import { ClientsPanel } from "@/components/admin/ClientsPanel";
 import { ModulesPanel } from "@/components/admin/ModulesPanel";
 import { RolesPanel } from "@/components/admin/RolesPanel";
 import { BusinessRulesPanel } from "@/components/admin/BusinessRulesPanel";
-import { useAppConfigStore } from "@/lib/appConfigStore";
+import { useAppConfigStore, useModuleEnabled } from "@/lib/appConfigStore";
 import { Lock } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
@@ -20,7 +20,7 @@ export const Route = createFileRoute("/admin")({
 
 function AdminPage() {
   const role = useAppConfigStore((s) => s.user.role);
-  const enabled = useAppConfigStore((s) => s.enabledModules.admin);
+  const enabled = useModuleEnabled("admin");
 
   if (role !== "admin" || !enabled) {
     return (

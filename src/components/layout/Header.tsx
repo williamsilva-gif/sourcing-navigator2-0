@@ -1,7 +1,7 @@
 import { Search, Bell, ChevronDown, Building2, Database } from "lucide-react";
 import { useBaselineStore } from "@/lib/baselineStore";
 import { useClientsStore } from "@/lib/clientsStore";
-import { useAppConfigStore } from "@/lib/appConfigStore";
+import { useAppConfigStore, useEnvironment } from "@/lib/appConfigStore";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,6 +18,7 @@ export function Header() {
   const selectedId = useClientsStore((s) => s.selectedClientId);
   const selectClient = useClientsStore((s) => s.selectClient);
   const user = useAppConfigStore((s) => s.user);
+  const env = useEnvironment();
   const isLive = bookings.length > 0;
   const last = uploads[0];
   const selected = clients.find((c) => c.id === selectedId) ?? clients[0];
@@ -52,11 +53,9 @@ export function Header() {
         <DropdownMenuTrigger className="flex h-10 items-center gap-2.5 rounded-md border border-input bg-background px-3 text-sm font-medium text-foreground transition-colors hover:border-primary/40 hover:bg-primary-soft">
           <Building2 className="h-4 w-4 text-muted-foreground" />
           <span>{selected?.name ?? "—"}</span>
-          {selected && (
-            <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase text-muted-foreground">
-              {selected.type}
-            </span>
-          )}
+          <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase text-muted-foreground">
+            {env}
+          </span>
           <ChevronDown className="h-4 w-4 text-muted-foreground" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-64">
