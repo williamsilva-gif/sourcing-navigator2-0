@@ -245,25 +245,43 @@ export function fmtUsd(value: number): string {
 import { useMemo } from "react";
 import { useBaselineStore } from "@/lib/baselineStore";
 import { useActionStore } from "@/lib/actionStore";
+import { useAppConfigStore } from "@/lib/appConfigStore";
 import { evaluateRules } from "@/lib/recommendationEngine";
 
-export function useDecisionData(): { alerts: CriticalAlert[]; opportunities: Opportunity[]; source: "baseline" | "demo" } {
+export function useDecisionData(): { alerts: CriticalAlert[]; opportunities: Opportunity[]; source: "baseline" | "demo" | "empty" } {
   const bookings = useBaselineStore((s) => s.bookings);
   const useDemo = useBaselineStore((s) => s.useDemo);
   const capOverrides = useActionStore((s) => s.capOverrides);
+  const adrAdjustments = useActionStore((s) => s.adrAdjustments);
+  const portfolioOverrides = useActionStore((s) => s.portfolioOverrides);
+  const marketExpansion = useActionStore((s) => s.marketExpansion);
+  const executedOpportunityIds = useActionStore((s) => s.executedOpportunityIds);
+  const thresholds = useAppConfigStore((s) => s.thresholds);
+  const defaultCap = useAppConfigStore((s) => s.defaultCap);
 
   return useMemo(() => {
     if (bookings.length > 0) {
-      const { alerts, opportunities } = evaluateRules(bookings, capOverrides);
-      if (alerts.length > 0 || opportunities.length > 0) {
-        return { alerts, opportunities, source: "baseline" };
-      }
+      const { alerts, opportunities } = evaluateRules(bookings, {
+        capOverrides,
+        adrAdjustments,
+        portfolioOverrides,
+        marketExpansion,
+        executedOpportunityIds,
+        thresholds,
+        defaultCap,
+      });
+      return { alerts, opportunities, source: "baseline" };
     }
     if (useDemo) {
-      return { alerts: FALLBACK_ALERTS, opportunities: FALLBACK_OPPORTUNITIES, source: "demo" };
+      const executed = new Set(executedOpportunityIds);
+      return {
+        alerts: FALLBACK_ALERTS.filter((a) => !a.opportunityId || !executed.has(a.opportunityId)),
+        opportunities: FALLBACK_OPPORTUNITIES.filter((o) => !executed.has(o.id)),
+        source: "demo",
+      };
     }
-    return { alerts: [], opportunities: [], source: "demo" };
-  }, [bookings, capOverrides, useDemo]);
+    return { alerts: [], opportunities: [], source: "empty" };
+  }, [bookings, capOverrides, adrAdjustments, portfolioOverrides, marketExpansion, executedOpportunityIds, thresholds, defaultCap, useDemo]);
 }
 
 // Backward-compat exports — kept so any non-migrated import keeps building.
