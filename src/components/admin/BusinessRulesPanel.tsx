@@ -237,7 +237,7 @@ export function BusinessRulesPanel() {
         deltaAlerts={deltaAlerts}
         deltaOpps={deltaOpps}
         sampleAlerts={preview.alerts.slice(0, 3).map((a) => a.title)}
-        sampleOpps={preview.opportunities.slice(0, 3).map((o) => o.title)}
+        sampleOpps={preview.opportunities.slice(0, 3).map((o) => o.scope)}
         source={preview.source}
       />
 
