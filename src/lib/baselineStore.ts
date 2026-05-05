@@ -56,7 +56,7 @@ export const useBaselineStore = create<BaselineState>((set, get) => ({
   hotels: [],
   contracts: [],
   uploads: [],
-  useDemo: true,
+  useDemo: false,
   ingest: (type, filename, rows) => {
     const schema = type === "bookings" ? bookingSchema : type === "hotels" ? hotelSchema : contractSchema;
     const { ok, errors } = parseRows(rows, schema as never);
@@ -91,7 +91,7 @@ export const useBaselineStore = create<BaselineState>((set, get) => ({
       ...(upload.type === "contracts" ? { contracts: [] } : {}),
     }));
   },
-  reset: () => set({ bookings: [], hotels: [], contracts: [], uploads: [], useDemo: true }),
+  reset: () => set({ bookings: [], hotels: [], contracts: [], uploads: [], useDemo: false }),
   setUseDemo: (v) => set({ useDemo: v }),
 }));
 
