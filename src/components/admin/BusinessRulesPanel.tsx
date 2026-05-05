@@ -262,3 +262,104 @@ export function BusinessRulesPanel() {
     </section>
   );
 }
+
+interface ImpactPreviewProps {
+  dirty: boolean;
+  currentAlerts: number;
+  currentOpps: number;
+  previewAlerts: number;
+  previewOpps: number;
+  deltaAlerts: number;
+  deltaOpps: number;
+  sampleAlerts: string[];
+  sampleOpps: string[];
+  source: "baseline" | "demo" | "empty";
+}
+
+function ImpactPreview({
+  dirty,
+  currentAlerts,
+  currentOpps,
+  previewAlerts,
+  previewOpps,
+  deltaAlerts,
+  deltaOpps,
+  sampleAlerts,
+  sampleOpps,
+  source,
+}: ImpactPreviewProps) {
+  const fmtDelta = (n: number) =>
+    n === 0 ? "sem mudança" : n > 0 ? `+${n}` : `${n}`;
+  const deltaTone = (n: number) =>
+    n === 0
+      ? "text-muted-foreground"
+      : n > 0
+        ? "text-destructive"
+        : "text-emerald-600 dark:text-emerald-400";
+
+  return (
+    <div className="mt-6 rounded-md border border-dashed border-border bg-muted/40 p-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-sm font-semibold text-foreground">
+            Pré-visualização de impacto
+          </h3>
+          <p className="text-[11px] text-muted-foreground">
+            {dirty
+              ? "Como ficaria com as regras em edição (ainda não salvas)."
+              : "Sem alterações pendentes — números refletem o estado atual."}
+            {source === "empty" && " Carregue dados ou ative demo para ver."}
+          </p>
+        </div>
+        {dirty && (
+          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">
+            Não salvo
+          </span>
+        )}
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-3">
+        <div className="rounded-md border border-border bg-background p-3">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Alertas críticos
+          </div>
+          <div className="mt-1 flex items-baseline gap-2">
+            <span className="text-2xl font-bold text-foreground">{previewAlerts}</span>
+            <span className="text-xs text-muted-foreground">de {currentAlerts} hoje</span>
+          </div>
+          <div className={`mt-1 text-xs font-semibold ${deltaTone(deltaAlerts)}`}>
+            {fmtDelta(deltaAlerts)}
+          </div>
+          {sampleAlerts.length > 0 && (
+            <ul className="mt-2 space-y-0.5 text-[11px] text-muted-foreground">
+              {sampleAlerts.map((t, i) => (
+                <li key={i} className="truncate">• {t}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="rounded-md border border-border bg-background p-3">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Oportunidades
+          </div>
+          <div className="mt-1 flex items-baseline gap-2">
+            <span className="text-2xl font-bold text-foreground">{previewOpps}</span>
+            <span className="text-xs text-muted-foreground">de {currentOpps} hoje</span>
+          </div>
+          <div className={`mt-1 text-xs font-semibold ${deltaTone(deltaOpps)}`}>
+            {fmtDelta(deltaOpps)}
+          </div>
+          {sampleOpps.length > 0 && (
+            <ul className="mt-2 space-y-0.5 text-[11px] text-muted-foreground">
+              {sampleOpps.map((t, i) => (
+                <li key={i} className="truncate">• {t}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
