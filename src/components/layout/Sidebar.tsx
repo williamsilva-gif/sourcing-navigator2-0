@@ -11,23 +11,32 @@ import {
   Activity,
   DollarSign,
   Hotel,
+  Settings,
 } from "lucide-react";
+import { useAppConfigStore, type ModuleKey } from "@/lib/appConfigStore";
 
-const modules = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/diagnostico", label: "Diagnóstico", icon: Stethoscope },
-  { to: "/estrategia", label: "Estratégia", icon: Target },
-  { to: "/rfp", label: "RFP", icon: FileText },
-  { to: "/analise", label: "Análise", icon: BarChart3 },
-  { to: "/negociacao", label: "Negociação", icon: Handshake },
-  { to: "/selecao", label: "Seleção", icon: CheckSquare },
-  { to: "/implementacao", label: "Implementação", icon: Rocket },
-  { to: "/monitoramento", label: "Monitoramento", icon: Activity },
-  { to: "/monetizacao", label: "Monetização", icon: DollarSign },
-] as const;
+const modules: { to: string; label: string; icon: typeof LayoutDashboard; key: ModuleKey }[] = [
+  { to: "/", label: "Dashboard", icon: LayoutDashboard, key: "dashboard" },
+  { to: "/diagnostico", label: "Diagnóstico", icon: Stethoscope, key: "diagnostico" },
+  { to: "/estrategia", label: "Estratégia", icon: Target, key: "estrategia" },
+  { to: "/rfp", label: "RFP", icon: FileText, key: "rfp" },
+  { to: "/analise", label: "Análise", icon: BarChart3, key: "analise" },
+  { to: "/negociacao", label: "Negociação", icon: Handshake, key: "negociacao" },
+  { to: "/selecao", label: "Seleção", icon: CheckSquare, key: "selecao" },
+  { to: "/implementacao", label: "Implementação", icon: Rocket, key: "implementacao" },
+  { to: "/monitoramento", label: "Monitoramento", icon: Activity, key: "monitoramento" },
+  { to: "/monetizacao", label: "Monetização", icon: DollarSign, key: "monetizacao" },
+  { to: "/admin", label: "Admin", icon: Settings, key: "admin" },
+];
 
 export function Sidebar() {
   const { pathname } = useLocation();
+  const enabledModules = useAppConfigStore((s) => s.enabledModules);
+  const role = useAppConfigStore((s) => s.user.role);
+  const visible = modules.filter((m) => {
+    if (m.key === "admin") return enabledModules.admin && role === "admin";
+    return enabledModules[m.key];
+  });
 
   return (
     <aside className="fixed inset-y-0 left-0 z-30 hidden w-[260px] flex-col border-r border-sidebar-border bg-sidebar lg:flex">
@@ -46,7 +55,7 @@ export function Sidebar() {
           Módulos
         </p>
         <ul className="space-y-0.5">
-          {modules.map((m) => {
+          {visible.map((m) => {
             const active = pathname === m.to;
             const Icon = m.icon;
             return (

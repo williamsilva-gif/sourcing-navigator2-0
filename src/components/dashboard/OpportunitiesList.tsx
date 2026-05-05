@@ -3,6 +3,7 @@ import { MapPin, TrendingUp, Sparkles } from "lucide-react";
 import { useDecisionData, fmtUsd, type Opportunity, type Priority } from "./decisionData";
 import { useSnapshotStore, isOpportunityNew } from "@/lib/snapshotStore";
 import { useActionStore } from "@/lib/actionStore";
+import { useCanExecute } from "@/lib/appConfigStore";
 
 interface Props {
   onTakeAction: (opp: Opportunity) => void;
@@ -19,6 +20,7 @@ export function OpportunitiesList({ onTakeAction }: Props) {
   const current = useSnapshotStore((s) => s.current);
   const previous = useSnapshotStore((s) => s.previous);
   const executedActions = useActionStore((s) => s.actions);
+  const canExecute = useCanExecute();
 
   const inExecutionByOpp = useMemo(
     () =>
@@ -105,7 +107,8 @@ export function OpportunitiesList({ onTakeAction }: Props) {
                 </div>
                 <button
                   onClick={() => onTakeAction(opp)}
-                  disabled={inExecution}
+                  disabled={inExecution || !canExecute}
+                  title={!canExecute ? "Viewer não pode executar ações" : undefined}
                   className="shrink-0 rounded-md bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {inExecution ? "Em execução" : "Take action"}
