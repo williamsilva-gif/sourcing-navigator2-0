@@ -284,6 +284,47 @@ export function useDecisionData(): { alerts: CriticalAlert[]; opportunities: Opp
   }, [bookings, capOverrides, adrAdjustments, portfolioOverrides, marketExpansion, executedOpportunityIds, thresholds, defaultCap, useDemo]);
 }
 
+// Preview hook — same engine, but accepts ad-hoc thresholds/cap so the UI
+// can show "what would change" before persisting new business rules.
+import type { Thresholds } from "@/lib/appConfigStore";
+
+export function useDecisionPreview(
+  thresholdsOverride: Thresholds,
+  defaultCapOverride: number,
+): { alerts: CriticalAlert[]; opportunities: Opportunity[]; source: "baseline" | "demo" | "empty" } {
+  const bookings = useBaselineStore((s) => s.bookings);
+  const useDemo = useBaselineStore((s) => s.useDemo);
+  const capOverrides = useActionStore((s) => s.capOverrides);
+  const adrAdjustments = useActionStore((s) => s.adrAdjustments);
+  const portfolioOverrides = useActionStore((s) => s.portfolioOverrides);
+  const marketExpansion = useActionStore((s) => s.marketExpansion);
+  const executedOpportunityIds = useActionStore((s) => s.executedOpportunityIds);
+
+  return useMemo(() => {
+    if (bookings.length > 0) {
+      const { alerts, opportunities } = evaluateRules(bookings, {
+        capOverrides,
+        adrAdjustments,
+        portfolioOverrides,
+        marketExpansion,
+        executedOpportunityIds,
+        thresholds: thresholdsOverride,
+        defaultCap: defaultCapOverride,
+      });
+      return { alerts, opportunities, source: "baseline" };
+    }
+    if (useDemo) {
+      const executed = new Set(executedOpportunityIds);
+      return {
+        alerts: FALLBACK_ALERTS.filter((a) => !a.opportunityId || !executed.has(a.opportunityId)),
+        opportunities: FALLBACK_OPPORTUNITIES.filter((o) => !executed.has(o.id)),
+        source: "demo",
+      };
+    }
+    return { alerts: [], opportunities: [], source: "empty" };
+  }, [bookings, capOverrides, adrAdjustments, portfolioOverrides, marketExpansion, executedOpportunityIds, thresholdsOverride, defaultCapOverride, useDemo]);
+}
+
 // Backward-compat exports — kept so any non-migrated import keeps building.
 export const CRITICAL_ALERTS = FALLBACK_ALERTS;
 export const OPPORTUNITIES = FALLBACK_OPPORTUNITIES;

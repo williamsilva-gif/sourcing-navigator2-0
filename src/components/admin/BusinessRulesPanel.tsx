@@ -9,6 +9,7 @@ import {
   useCanConfigure,
   type Thresholds,
 } from "@/lib/appConfigStore";
+import { useDecisionData, useDecisionPreview } from "@/components/dashboard/decisionData";
 
 const FIELDS: { key: keyof Thresholds; label: string; help: string; suffix: string; min: number; max: number }[] = [
   { key: "adrGapPct", label: "ADR gap mínimo", help: "Quando ADR fica X% acima do cap, dispara alerta.", suffix: "%", min: 0, max: 100 },
@@ -80,6 +81,35 @@ export function BusinessRulesPanel() {
     draft.leakagePct !== String(initial.leakagePct) ||
     draft.concentrationPct !== String(initial.concentrationPct) ||
     draft.defaultCap !== String(initial.defaultCap);
+
+  // Build a sanitized preview snapshot from the draft. We clamp values so a
+  // mid-typing state (e.g. "") doesn't break the engine; the formal validation
+  // still runs on Save.
+  const previewThresholds = useMemo<Thresholds>(() => {
+    const clamp = (raw: string, fallback: number) => {
+      const n = Number(raw);
+      if (!Number.isFinite(n)) return fallback;
+      return Math.min(100, Math.max(0, n));
+    };
+    return {
+      adrGapPct: clamp(draft.adrGapPct, initial.adrGapPct),
+      compliancePct: clamp(draft.compliancePct, initial.compliancePct),
+      leakagePct: clamp(draft.leakagePct, initial.leakagePct),
+      concentrationPct: clamp(draft.concentrationPct, initial.concentrationPct),
+    };
+  }, [draft, initial]);
+
+  const previewCap = useMemo(() => {
+    const n = Number(draft.defaultCap);
+    if (!Number.isFinite(n) || n < 1) return initial.defaultCap;
+    return Math.min(10000, n);
+  }, [draft.defaultCap, initial.defaultCap]);
+
+  const current = useDecisionData();
+  const preview = useDecisionPreview(previewThresholds, previewCap);
+
+  const deltaAlerts = preview.alerts.length - current.alerts.length;
+  const deltaOpps = preview.opportunities.length - current.opportunities.length;
 
   const update = (key: keyof FormState, raw: string) => {
     setDraft((d) => ({ ...d, [key]: raw }));
@@ -198,6 +228,19 @@ export function BusinessRulesPanel() {
         </label>
       </div>
 
+      <ImpactPreview
+        dirty={dirty}
+        currentAlerts={current.alerts.length}
+        currentOpps={current.opportunities.length}
+        previewAlerts={preview.alerts.length}
+        previewOpps={preview.opportunities.length}
+        deltaAlerts={deltaAlerts}
+        deltaOpps={deltaOpps}
+        sampleAlerts={preview.alerts.slice(0, 3).map((a) => a.title)}
+        sampleOpps={preview.opportunities.slice(0, 3).map((o) => o.scope)}
+        source={preview.source}
+      />
+
       <div className="mt-6 flex items-center justify-end gap-2">
         <button
           type="button"
@@ -219,3 +262,104 @@ export function BusinessRulesPanel() {
     </section>
   );
 }
+
+interface ImpactPreviewProps {
+  dirty: boolean;
+  currentAlerts: number;
+  currentOpps: number;
+  previewAlerts: number;
+  previewOpps: number;
+  deltaAlerts: number;
+  deltaOpps: number;
+  sampleAlerts: string[];
+  sampleOpps: string[];
+  source: "baseline" | "demo" | "empty";
+}
+
+function ImpactPreview({
+  dirty,
+  currentAlerts,
+  currentOpps,
+  previewAlerts,
+  previewOpps,
+  deltaAlerts,
+  deltaOpps,
+  sampleAlerts,
+  sampleOpps,
+  source,
+}: ImpactPreviewProps) {
+  const fmtDelta = (n: number) =>
+    n === 0 ? "sem mudança" : n > 0 ? `+${n}` : `${n}`;
+  const deltaTone = (n: number) =>
+    n === 0
+      ? "text-muted-foreground"
+      : n > 0
+        ? "text-destructive"
+        : "text-emerald-600 dark:text-emerald-400";
+
+  return (
+    <div className="mt-6 rounded-md border border-dashed border-border bg-muted/40 p-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-sm font-semibold text-foreground">
+            Pré-visualização de impacto
+          </h3>
+          <p className="text-[11px] text-muted-foreground">
+            {dirty
+              ? "Como ficaria com as regras em edição (ainda não salvas)."
+              : "Sem alterações pendentes — números refletem o estado atual."}
+            {source === "empty" && " Carregue dados ou ative demo para ver."}
+          </p>
+        </div>
+        {dirty && (
+          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">
+            Não salvo
+          </span>
+        )}
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-3">
+        <div className="rounded-md border border-border bg-background p-3">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Alertas críticos
+          </div>
+          <div className="mt-1 flex items-baseline gap-2">
+            <span className="text-2xl font-bold text-foreground">{previewAlerts}</span>
+            <span className="text-xs text-muted-foreground">de {currentAlerts} hoje</span>
+          </div>
+          <div className={`mt-1 text-xs font-semibold ${deltaTone(deltaAlerts)}`}>
+            {fmtDelta(deltaAlerts)}
+          </div>
+          {sampleAlerts.length > 0 && (
+            <ul className="mt-2 space-y-0.5 text-[11px] text-muted-foreground">
+              {sampleAlerts.map((t, i) => (
+                <li key={i} className="truncate">• {t}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="rounded-md border border-border bg-background p-3">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Oportunidades
+          </div>
+          <div className="mt-1 flex items-baseline gap-2">
+            <span className="text-2xl font-bold text-foreground">{previewOpps}</span>
+            <span className="text-xs text-muted-foreground">de {currentOpps} hoje</span>
+          </div>
+          <div className={`mt-1 text-xs font-semibold ${deltaTone(deltaOpps)}`}>
+            {fmtDelta(deltaOpps)}
+          </div>
+          {sampleOpps.length > 0 && (
+            <ul className="mt-2 space-y-0.5 text-[11px] text-muted-foreground">
+              {sampleOpps.map((t, i) => (
+                <li key={i} className="truncate">• {t}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
