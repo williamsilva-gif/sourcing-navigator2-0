@@ -7,6 +7,7 @@ import type { CriticalAlert, Opportunity } from "@/components/dashboard/decision
 import { evaluateRules } from "./recommendationEngine";
 import { useBaselineStore } from "./baselineStore";
 import { useActionStore } from "./actionStore";
+import { useAppConfigStore } from "./appConfigStore";
 
 export interface Snapshot {
   timestamp: string; // ISO
