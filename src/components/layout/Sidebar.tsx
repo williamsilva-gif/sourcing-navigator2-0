@@ -31,6 +31,12 @@ const modules: { to: string; label: string; icon: typeof LayoutDashboard; key: M
 
 export function Sidebar() {
   const { pathname } = useLocation();
+  const enabledModules = useAppConfigStore((s) => s.enabledModules);
+  const role = useAppConfigStore((s) => s.user.role);
+  const visible = modules.filter((m) => {
+    if (m.key === "admin") return enabledModules.admin && role === "admin";
+    return enabledModules[m.key];
+  });
 
   return (
     <aside className="fixed inset-y-0 left-0 z-30 hidden w-[260px] flex-col border-r border-sidebar-border bg-sidebar lg:flex">
@@ -49,7 +55,7 @@ export function Sidebar() {
           Módulos
         </p>
         <ul className="space-y-0.5">
-          {modules.map((m) => {
+          {visible.map((m) => {
             const active = pathname === m.to;
             const Icon = m.icon;
             return (
