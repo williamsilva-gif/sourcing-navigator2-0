@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { fmtUsd, type Opportunity, type Effort } from "./decisionData";
 import { useActionStore, type ActionKind } from "@/lib/actionStore";
+import { useCanExecute } from "@/lib/appConfigStore";
 
 interface Props {
   opportunity: Opportunity | null;
@@ -51,6 +52,7 @@ export function RecommendedActionsModal({ opportunity, open, onOpenChange }: Pro
   const navigate = useNavigate();
   const executeAction = useActionStore((s) => s.executeAction);
   const actions = useActionStore((s) => s.actions);
+  const canExecute = useCanExecute();
   const executedActionIds = useMemo(
     () => new Set(actions.map((a) => `${a.opportunityId}::${a.label}`)),
     [actions]
@@ -156,7 +158,9 @@ export function RecommendedActionsModal({ opportunity, open, onOpenChange }: Pro
                 ) : (
                   <button
                     onClick={handleExecute}
-                    className="flex shrink-0 items-center justify-center gap-1.5 rounded-md bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary-hover"
+                    disabled={!canExecute}
+                    title={!canExecute ? "Viewer não pode executar ações" : undefined}
+                    className="flex shrink-0 items-center justify-center gap-1.5 rounded-md bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <CheckCircle2 className="h-3.5 w-3.5" />
                     Executar ação
