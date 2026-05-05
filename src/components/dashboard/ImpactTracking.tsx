@@ -12,7 +12,7 @@ import { TrendingUp } from "lucide-react";
 import { IMPACT_TIMELINE } from "./decisionData";
 
 export function ImpactTracking() {
-  const last = IMPACT_TIMELINE[IMPACT_TIMELINE.length - 1];
+  const last = IMPACT_TIMELINE[IMPACT_TIMELINE.length - 1] ?? { expected: 0, actual: 0 };
   const variance = last.actual - last.expected;
   const variancePct = last.expected > 0 ? (variance / last.expected) * 100 : 0;
   const positive = variance >= 0;
