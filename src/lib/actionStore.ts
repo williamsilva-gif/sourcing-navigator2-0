@@ -78,10 +78,24 @@ export interface ExecutedAction {
 // Store
 // ============================================================================
 
+export interface PortfolioOverride {
+  addedHotels: number;
+  cluster: string;
+}
+
 interface ActionStoreState {
   actions: ExecutedAction[];
   // Derived overrides applied to other modules
   capOverrides: Record<string, number>;
+  // % ADR reduction by city (negative number, e.g. -10 = -10%)
+  adrAdjustments: Record<string, number>;
+  // Hotels added per city via cluster_change
+  portfolioOverrides: Record<string, PortfolioOverride>;
+  // Cities with active mini-RFP (reduces concentration)
+  marketExpansion: Record<string, boolean>;
+  // Opportunity ids already addressed (engine dedupe)
+  executedOpportunityIds: string[];
+
   clusterMoves: Array<{ city: string; hotels: number; toCluster: string; actionId: string }>;
   negotiationBatches: Array<{
     id: string;
@@ -131,6 +145,10 @@ function cityFromPayload(payload: ActionPayload): string {
 export const useActionStore = create<ActionStoreState>((set, get) => ({
   actions: [],
   capOverrides: {},
+  adrAdjustments: {},
+  portfolioOverrides: {},
+  marketExpansion: {},
+  executedOpportunityIds: [],
   clusterMoves: [],
   negotiationBatches: [],
   miniRfps: [],
