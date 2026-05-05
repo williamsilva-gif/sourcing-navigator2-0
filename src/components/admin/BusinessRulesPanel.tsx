@@ -82,6 +82,35 @@ export function BusinessRulesPanel() {
     draft.concentrationPct !== String(initial.concentrationPct) ||
     draft.defaultCap !== String(initial.defaultCap);
 
+  // Build a sanitized preview snapshot from the draft. We clamp values so a
+  // mid-typing state (e.g. "") doesn't break the engine; the formal validation
+  // still runs on Save.
+  const previewThresholds = useMemo<Thresholds>(() => {
+    const clamp = (raw: string, fallback: number) => {
+      const n = Number(raw);
+      if (!Number.isFinite(n)) return fallback;
+      return Math.min(100, Math.max(0, n));
+    };
+    return {
+      adrGapPct: clamp(draft.adrGapPct, initial.adrGapPct),
+      compliancePct: clamp(draft.compliancePct, initial.compliancePct),
+      leakagePct: clamp(draft.leakagePct, initial.leakagePct),
+      concentrationPct: clamp(draft.concentrationPct, initial.concentrationPct),
+    };
+  }, [draft, initial]);
+
+  const previewCap = useMemo(() => {
+    const n = Number(draft.defaultCap);
+    if (!Number.isFinite(n) || n < 1) return initial.defaultCap;
+    return Math.min(10000, n);
+  }, [draft.defaultCap, initial.defaultCap]);
+
+  const current = useDecisionData();
+  const preview = useDecisionPreview(previewThresholds, previewCap);
+
+  const deltaAlerts = preview.alerts.length - current.alerts.length;
+  const deltaOpps = preview.opportunities.length - current.opportunities.length;
+
   const update = (key: keyof FormState, raw: string) => {
     setDraft((d) => ({ ...d, [key]: raw }));
     setErrors((e) => ({ ...e, [key]: undefined }));
