@@ -9,6 +9,7 @@ import {
   useCanConfigure,
   type Thresholds,
 } from "@/lib/appConfigStore";
+import { useDecisionData, useDecisionPreview } from "@/components/dashboard/decisionData";
 
 const FIELDS: { key: keyof Thresholds; label: string; help: string; suffix: string; min: number; max: number }[] = [
   { key: "adrGapPct", label: "ADR gap mínimo", help: "Quando ADR fica X% acima do cap, dispara alerta.", suffix: "%", min: 0, max: 100 },
