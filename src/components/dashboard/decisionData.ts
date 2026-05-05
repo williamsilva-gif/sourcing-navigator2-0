@@ -245,7 +245,7 @@ export function fmtUsd(value: number): string {
 import { useMemo } from "react";
 import { useBaselineStore } from "@/lib/baselineStore";
 import { useActionStore } from "@/lib/actionStore";
-import { useAppConfigStore } from "@/lib/appConfigStore";
+import { useThresholds, useDefaultCap } from "@/lib/appConfigStore";
 import { evaluateRules } from "@/lib/recommendationEngine";
 
 export function useDecisionData(): { alerts: CriticalAlert[]; opportunities: Opportunity[]; source: "baseline" | "demo" | "empty" } {
@@ -256,8 +256,8 @@ export function useDecisionData(): { alerts: CriticalAlert[]; opportunities: Opp
   const portfolioOverrides = useActionStore((s) => s.portfolioOverrides);
   const marketExpansion = useActionStore((s) => s.marketExpansion);
   const executedOpportunityIds = useActionStore((s) => s.executedOpportunityIds);
-  const thresholds = useAppConfigStore((s) => s.thresholds);
-  const defaultCap = useAppConfigStore((s) => s.defaultCap);
+  const thresholds = useThresholds();
+  const defaultCap = useDefaultCap();
 
   return useMemo(() => {
     if (bookings.length > 0) {

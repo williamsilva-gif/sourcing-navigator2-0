@@ -7,7 +7,7 @@ import type { CriticalAlert, Opportunity } from "@/components/dashboard/decision
 import { evaluateRules } from "./recommendationEngine";
 import { useBaselineStore } from "./baselineStore";
 import { useActionStore } from "./actionStore";
-import { useAppConfigStore } from "./appConfigStore";
+import { getActiveClientConfig } from "./appConfigStore";
 
 export interface Snapshot {
   timestamp: string; // ISO
@@ -27,7 +27,7 @@ interface SnapshotState {
 function buildSnapshot(): Snapshot {
   const bookings = useBaselineStore.getState().bookings;
   const a = useActionStore.getState();
-  const cfg = useAppConfigStore.getState();
+  const cfg = getActiveClientConfig();
   const { alerts, opportunities } = evaluateRules(bookings, {
     capOverrides: a.capOverrides,
     adrAdjustments: a.adrAdjustments,
