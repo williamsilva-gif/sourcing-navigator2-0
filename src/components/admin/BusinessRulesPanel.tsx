@@ -228,6 +228,19 @@ export function BusinessRulesPanel() {
         </label>
       </div>
 
+      <ImpactPreview
+        dirty={dirty}
+        currentAlerts={current.alerts.length}
+        currentOpps={current.opportunities.length}
+        previewAlerts={preview.alerts.length}
+        previewOpps={preview.opportunities.length}
+        deltaAlerts={deltaAlerts}
+        deltaOpps={deltaOpps}
+        sampleAlerts={preview.alerts.slice(0, 3).map((a) => a.title)}
+        sampleOpps={preview.opportunities.slice(0, 3).map((o) => o.title)}
+        source={preview.source}
+      />
+
       <div className="mt-6 flex items-center justify-end gap-2">
         <button
           type="button"
