@@ -25,8 +25,17 @@ interface SnapshotState {
 
 function buildSnapshot(): Snapshot {
   const bookings = useBaselineStore.getState().bookings;
-  const capOverrides = useActionStore.getState().capOverrides;
-  const { alerts, opportunities } = evaluateRules(bookings, capOverrides);
+  const a = useActionStore.getState();
+  const cfg = useAppConfigStore.getState();
+  const { alerts, opportunities } = evaluateRules(bookings, {
+    capOverrides: a.capOverrides,
+    adrAdjustments: a.adrAdjustments,
+    portfolioOverrides: a.portfolioOverrides,
+    marketExpansion: a.marketExpansion,
+    executedOpportunityIds: a.executedOpportunityIds,
+    thresholds: cfg.thresholds,
+    defaultCap: cfg.defaultCap,
+  });
   return {
     timestamp: new Date().toISOString(),
     alerts,
