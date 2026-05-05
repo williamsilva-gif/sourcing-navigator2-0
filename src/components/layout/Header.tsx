@@ -1,11 +1,27 @@
 import { Search, Bell, ChevronDown, Building2, Database } from "lucide-react";
 import { useBaselineStore } from "@/lib/baselineStore";
+import { useClientsStore } from "@/lib/clientsStore";
+import { useAppConfigStore } from "@/lib/appConfigStore";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export function Header() {
   const bookings = useBaselineStore((s) => s.bookings);
   const uploads = useBaselineStore((s) => s.uploads);
+  const clients = useClientsStore((s) => s.clients);
+  const selectedId = useClientsStore((s) => s.selectedClientId);
+  const selectClient = useClientsStore((s) => s.selectClient);
+  const user = useAppConfigStore((s) => s.user);
   const isLive = bookings.length > 0;
   const last = uploads[0];
+  const selected = clients.find((c) => c.id === selectedId) ?? clients[0];
+  const initials = user.name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
 
   return (
     <header className="sticky top-0 z-20 flex h-[70px] items-center gap-4 border-b border-border bg-card/80 px-6 backdrop-blur-sm">
@@ -32,11 +48,32 @@ export function Header() {
           : "Sem dados — modo demo"}
       </div>
 
-      <button className="flex h-10 items-center gap-2.5 rounded-md border border-input bg-background px-3 text-sm font-medium text-foreground transition-colors hover:border-primary/40 hover:bg-primary-soft">
-        <Building2 className="h-4 w-4 text-muted-foreground" />
-        <span>Acme Travel Corp</span>
-        <ChevronDown className="h-4 w-4 text-muted-foreground" />
-      </button>
+      <DropdownMenu>
+        <DropdownMenuTrigger className="flex h-10 items-center gap-2.5 rounded-md border border-input bg-background px-3 text-sm font-medium text-foreground transition-colors hover:border-primary/40 hover:bg-primary-soft">
+          <Building2 className="h-4 w-4 text-muted-foreground" />
+          <span>{selected?.name ?? "—"}</span>
+          {selected && (
+            <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase text-muted-foreground">
+              {selected.type}
+            </span>
+          )}
+          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-64">
+          <DropdownMenuLabel>Clientes</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          {clients.map((c) => (
+            <DropdownMenuItem
+              key={c.id}
+              onClick={() => selectClient(c.id)}
+              className="flex items-center justify-between"
+            >
+              <span>{c.name}</span>
+              <span className="text-[10px] uppercase text-muted-foreground">{c.type}</span>
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       <button className="relative flex h-10 w-10 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground">
         <Bell className="h-5 w-5" />
@@ -45,11 +82,11 @@ export function Header() {
 
       <div className="flex items-center gap-2.5 border-l border-border pl-4">
         <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
-          MR
+          {initials}
         </div>
         <div className="hidden leading-tight sm:block">
-          <p className="text-sm font-semibold text-foreground">Marina Reis</p>
-          <p className="text-[11px] text-muted-foreground">Sourcing Manager</p>
+          <p className="text-sm font-semibold text-foreground">{user.name}</p>
+          <p className="text-[11px] text-muted-foreground capitalize">{user.role}</p>
         </div>
       </div>
     </header>
