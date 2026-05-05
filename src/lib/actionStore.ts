@@ -182,13 +182,25 @@ export const useActionStore = create<ActionStoreState>((set, get) => ({
     };
 
     set((s) => {
-      const next: Partial<ActionStoreState> = { actions: [action, ...s.actions] };
+      const next: Partial<ActionStoreState> = {
+        actions: [action, ...s.actions],
+        executedOpportunityIds: s.executedOpportunityIds.includes(opportunityId)
+          ? s.executedOpportunityIds
+          : [...s.executedOpportunityIds, opportunityId],
+      };
 
-      // Side-effects per kind: write to module-specific overrides
       if (payload.kind === "cap_adjustment") {
         next.capOverrides = { ...s.capOverrides, [payload.data.city]: payload.data.toCap };
       }
       if (payload.kind === "cluster_change") {
+        const prev = s.portfolioOverrides[payload.data.city];
+        next.portfolioOverrides = {
+          ...s.portfolioOverrides,
+          [payload.data.city]: {
+            addedHotels: (prev?.addedHotels ?? 0) + payload.data.hotelsToAdd,
+            cluster: payload.data.toCluster,
+          },
+        };
         next.clusterMoves = [
           ...s.clusterMoves,
           {
@@ -200,6 +212,9 @@ export const useActionStore = create<ActionStoreState>((set, get) => ({
         ];
       }
       if (payload.kind === "renegotiation") {
+        const existing = s.adrAdjustments[payload.data.city] ?? 0;
+        const combined = Math.max(-40, existing - payload.data.targetAdrReduction);
+        next.adrAdjustments = { ...s.adrAdjustments, [payload.data.city]: combined };
         next.negotiationBatches = [
           ...s.negotiationBatches,
           {
@@ -213,6 +228,7 @@ export const useActionStore = create<ActionStoreState>((set, get) => ({
         ];
       }
       if (payload.kind === "mini_rfp") {
+        next.marketExpansion = { ...s.marketExpansion, [payload.data.city]: true };
         next.miniRfps = [
           ...s.miniRfps,
           { id: uid("rfp"), city: payload.data.city, hotels: payload.data.hotels, actionId: id },
