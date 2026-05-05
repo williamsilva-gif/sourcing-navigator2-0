@@ -286,8 +286,10 @@ export function useDecisionData(): { alerts: CriticalAlert[]; opportunities: Opp
 
 // Preview hook — same engine, but accepts ad-hoc thresholds/cap so the UI
 // can show "what would change" before persisting new business rules.
+import type { Thresholds } from "@/lib/appConfigStore";
+
 export function useDecisionPreview(
-  thresholdsOverride: Parameters<typeof evaluateRules>[1]["thresholds"],
+  thresholdsOverride: Thresholds,
   defaultCapOverride: number,
 ): { alerts: CriticalAlert[]; opportunities: Opportunity[]; source: "baseline" | "demo" | "empty" } {
   const bookings = useBaselineStore((s) => s.bookings);
