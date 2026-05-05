@@ -289,7 +289,17 @@ export const useActionStore = create<ActionStoreState>((set, get) => ({
   },
 
   resetAll: () =>
-    set({ actions: [], capOverrides: {}, clusterMoves: [], negotiationBatches: [], miniRfps: [] }),
+    set({
+      actions: [],
+      capOverrides: {},
+      adrAdjustments: {},
+      portfolioOverrides: {},
+      marketExpansion: {},
+      executedOpportunityIds: [],
+      clusterMoves: [],
+      negotiationBatches: [],
+      miniRfps: [],
+    }),
 }));
 
 // ============================================================================
