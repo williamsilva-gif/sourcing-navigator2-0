@@ -3,6 +3,7 @@ import { MapPin, TrendingUp, Sparkles } from "lucide-react";
 import { useDecisionData, fmtUsd, type Opportunity, type Priority } from "./decisionData";
 import { useSnapshotStore, isOpportunityNew } from "@/lib/snapshotStore";
 import { useActionStore } from "@/lib/actionStore";
+import { useCanExecute } from "@/lib/appConfigStore";
 
 interface Props {
   onTakeAction: (opp: Opportunity) => void;
