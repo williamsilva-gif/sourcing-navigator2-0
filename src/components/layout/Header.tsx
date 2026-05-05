@@ -1,7 +1,7 @@
 import { Search, Bell, ChevronDown, Building2, Database } from "lucide-react";
 import { useBaselineStore } from "@/lib/baselineStore";
 import { useClientsStore } from "@/lib/clientsStore";
-import { useAppConfigStore } from "@/lib/appConfigStore";
+import { useAppConfigStore, useEnvironment } from "@/lib/appConfigStore";
 import {
   DropdownMenu,
   DropdownMenuContent,
