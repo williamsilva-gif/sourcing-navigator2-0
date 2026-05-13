@@ -65,7 +65,7 @@ export function CityHeatmap() {
         roomNights: c.roomNights,
         spend: c.spend,
         hotels: c.hotels,
-        adr: Math.round(c.adr),
+        adr: c.adr,
         cap: Math.round((c.adr * 1.02) / 5) * 5,
       }))
     : useDemo
