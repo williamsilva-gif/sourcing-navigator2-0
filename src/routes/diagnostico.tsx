@@ -144,7 +144,7 @@ function DiagnosticoPage() {
         <InsightCard
           tone="warning"
           title="34% das reservas acima do cap"
-          body="Faixas $300+ representam leakage potencial de US$ 1.9M/ano. Revisão de city caps recomendada para Q2."
+          body="Faixas R$ 300+ representam leakage potencial de R$ 1,9 mi/ano. Revisão de city caps recomendada para Q2."
         />
         <InsightCard
           tone="info"

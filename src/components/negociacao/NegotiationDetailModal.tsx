@@ -330,7 +330,7 @@ export function NegotiationDetailModal({ card, onClose, onSubmitCounter }: Props
                       onChange={(e) => setMessage(e.target.value.slice(0, 500))}
                       rows={5}
                       maxLength={500}
-                      placeholder="Ex: Aceitamos $268 com café da manhã incluso e LRA garantido para os meses de alta temporada..."
+                      placeholder="Ex: Aceitamos R$ 268 com café da manhã incluso e LRA garantido para os meses de alta temporada..."
                       className="w-full resize-none rounded-md border border-border bg-card px-3 py-2 text-xs leading-relaxed text-foreground placeholder:text-muted-foreground/60 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                     />
                     {message.length > 0 && message.trim().length < 5 && (
