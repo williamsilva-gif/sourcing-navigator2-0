@@ -272,7 +272,7 @@ export function CreateRfpWizard({ open, onClose }: Props) {
             </>
           )}
 
-          {step === 4 && (
+          {step === 5 && (
             <>
               <p className="text-sm text-muted-foreground">
                 Marque os requisitos obrigatórios e desejáveis para participar do programa.
