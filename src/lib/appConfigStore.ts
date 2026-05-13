@@ -81,7 +81,9 @@ export function makeDefaultClientConfig(env: Environment = "TMC"): ClientConfig 
   };
 }
 
-export const useAppConfigStore = create<AppConfigState>((set) => ({
+export const useAppConfigStore = create<AppConfigState>()(
+  persist(
+    (set) => ({
   user: { id: "u1", name: "Marina Reis", role: "admin" },
   configByClient: {
     kontik: makeDefaultClientConfig("TMC"),
