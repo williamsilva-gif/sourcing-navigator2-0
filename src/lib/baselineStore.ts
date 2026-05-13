@@ -123,7 +123,20 @@ export const useBaselineStore = create<BaselineState>()(
   },
   deleteHotel: (code) =>
     set((s) => ({ hotels: s.hotels.filter((h) => h.code !== code) }) as Partial<BaselineState> as BaselineState),
-}));
+}),
+    {
+      name: "sourcinghub.baseline.v1",
+      storage: createJSONStorage(() => localStorage),
+      partialize: (s) => ({
+        bookings: s.bookings,
+        hotels: s.hotels,
+        contracts: s.contracts,
+        uploads: s.uploads,
+        useDemo: s.useDemo,
+      }),
+    },
+  ),
+);
 
 // Per-city ADR distribution + cap (cap = ceil of city ADR rounded to 5)
 export function selectAdrDistributionByCity(bookings: Booking[], city: string): { buckets: AdrBucket[]; cap: number; total: number } {
