@@ -23,7 +23,7 @@ interface TimelineEvent {
   metric?: { label: string; value: string; tone?: "success" | "warning" | "default" };
 }
 
-function fmt$(n: number) { return `$${n.toLocaleString("en-US")}`; }
+function fmt$(n: number) { return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n ?? 0); }
 
 function buildTimeline(h: AwardedHotel): TimelineEvent[] {
   const start = new Date(h.contractStart).getTime();

@@ -18,6 +18,7 @@ import { useAppConfigStore, useEnabledModules, type ModuleKey } from "@/lib/appC
 const modules: { to: string; label: string; icon: typeof LayoutDashboard; key: ModuleKey }[] = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, key: "dashboard" },
   { to: "/diagnostico", label: "Diagnóstico", icon: Stethoscope, key: "diagnostico" },
+  { to: "/hoteis", label: "Hotéis", icon: Hotel, key: "diagnostico" },
   { to: "/estrategia", label: "Estratégia", icon: Target, key: "estrategia" },
   { to: "/rfp", label: "RFP", icon: FileText, key: "rfp" },
   { to: "/analise", label: "Análise", icon: BarChart3, key: "analise" },

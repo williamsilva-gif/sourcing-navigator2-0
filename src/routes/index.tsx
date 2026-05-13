@@ -105,7 +105,7 @@ function DashboardPage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <KpiCard
           label="Savings YTD"
-          value="$2.41M"
+          value="R$ 2.410.000,00"
           delta={18.4}
           icon={DollarSign}
           tone="success"
@@ -127,7 +127,7 @@ function DashboardPage() {
         />
         <KpiCard
           label="Leakage detectado"
-          value="$184k"
+          value="R$ 184.000,00"
           delta={-12.7}
           icon={AlertTriangle}
           tone="warning"

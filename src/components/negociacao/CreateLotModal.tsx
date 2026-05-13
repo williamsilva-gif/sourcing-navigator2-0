@@ -73,9 +73,9 @@ export function CreateLotModal({ open, onOpenChange, onPublish }: CreateLotModal
     if (!form.roomNights || Number.isNaN(rn) || rn < 50) e.roomNights = "Mínimo 50 room nights";
     else if (rn > 50000) e.roomNights = "Máximo 50.000 room nights";
     const cap = Number(form.cap);
-    if (!form.cap || Number.isNaN(cap) || cap < 50) e.cap = "Cap deve ser ≥ $50";
+    if (!form.cap || Number.isNaN(cap) || cap < 50) e.cap = "Cap deve ser ≥ R$ 50";
     const adr = Number(form.startingAdr);
-    if (!form.startingAdr || Number.isNaN(adr) || adr < 50) e.startingAdr = "ADR inicial deve ser ≥ $50";
+    if (!form.startingAdr || Number.isNaN(adr) || adr < 50) e.startingAdr = "ADR inicial deve ser ≥ R$ 50";
     else if (cap && adr <= cap) e.startingAdr = "ADR inicial deve ser maior que o cap";
     const dur = Number(form.durationHours);
     if (!form.durationHours || Number.isNaN(dur) || dur < 1) e.durationHours = "Mínimo 1 hora";
@@ -188,11 +188,11 @@ export function CreateLotModal({ open, onOpenChange, onPublish }: CreateLotModal
                 <Input type="number" inputMode="numeric" placeholder="ex: 2500" value={form.roomNights}
                   onChange={(e) => update("roomNights", e.target.value)} />
               </Field>
-              <Field label="City cap (USD)" error={errors.cap}>
+              <Field label="City cap (BRL)" error={errors.cap}>
                 <Input type="number" inputMode="numeric" placeholder="ex: 290" value={form.cap}
                   onChange={(e) => update("cap", e.target.value)} />
               </Field>
-              <Field label="ADR inicial (USD)" error={errors.startingAdr}>
+              <Field label="ADR inicial (BRL)" error={errors.startingAdr}>
                 <Input type="number" inputMode="numeric" placeholder="ex: 320" value={form.startingAdr}
                   onChange={(e) => update("startingAdr", e.target.value)} />
               </Field>
@@ -275,7 +275,7 @@ export function CreateLotModal({ open, onOpenChange, onPublish }: CreateLotModal
               <p className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground">
                 <TrendingDown className="h-3 w-3" /> Economia projetada total
               </p>
-              <p className="mt-1 text-2xl font-bold text-success">${previewSavings.total.toLocaleString("en-US")}</p>
+              <p className="mt-1 text-2xl font-bold text-success">{new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(previewSavings.total)}</p>
               <p className="text-[11px] text-muted-foreground">se todos os room nights fecharem ao city cap</p>
             </div>
 

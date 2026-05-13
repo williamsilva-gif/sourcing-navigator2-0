@@ -15,6 +15,7 @@ import { Route as NegociacaoRouteImport } from './routes/negociacao'
 import { Route as MonitoramentoRouteImport } from './routes/monitoramento'
 import { Route as MonetizacaoRouteImport } from './routes/monetizacao'
 import { Route as ImplementacaoRouteImport } from './routes/implementacao'
+import { Route as HoteisRouteImport } from './routes/hoteis'
 import { Route as EstrategiaRouteImport } from './routes/estrategia'
 import { Route as DiagnosticoRouteImport } from './routes/diagnostico'
 import { Route as AnaliseRouteImport } from './routes/analise'
@@ -51,6 +52,11 @@ const ImplementacaoRoute = ImplementacaoRouteImport.update({
   path: '/implementacao',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HoteisRoute = HoteisRouteImport.update({
+  id: '/hoteis',
+  path: '/hoteis',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EstrategiaRoute = EstrategiaRouteImport.update({
   id: '/estrategia',
   path: '/estrategia',
@@ -83,6 +89,7 @@ export interface FileRoutesByFullPath {
   '/analise': typeof AnaliseRoute
   '/diagnostico': typeof DiagnosticoRoute
   '/estrategia': typeof EstrategiaRoute
+  '/hoteis': typeof HoteisRoute
   '/implementacao': typeof ImplementacaoRoute
   '/monetizacao': typeof MonetizacaoRoute
   '/monitoramento': typeof MonitoramentoRoute
@@ -96,6 +103,7 @@ export interface FileRoutesByTo {
   '/analise': typeof AnaliseRoute
   '/diagnostico': typeof DiagnosticoRoute
   '/estrategia': typeof EstrategiaRoute
+  '/hoteis': typeof HoteisRoute
   '/implementacao': typeof ImplementacaoRoute
   '/monetizacao': typeof MonetizacaoRoute
   '/monitoramento': typeof MonitoramentoRoute
@@ -110,6 +118,7 @@ export interface FileRoutesById {
   '/analise': typeof AnaliseRoute
   '/diagnostico': typeof DiagnosticoRoute
   '/estrategia': typeof EstrategiaRoute
+  '/hoteis': typeof HoteisRoute
   '/implementacao': typeof ImplementacaoRoute
   '/monetizacao': typeof MonetizacaoRoute
   '/monitoramento': typeof MonitoramentoRoute
@@ -125,6 +134,7 @@ export interface FileRouteTypes {
     | '/analise'
     | '/diagnostico'
     | '/estrategia'
+    | '/hoteis'
     | '/implementacao'
     | '/monetizacao'
     | '/monitoramento'
@@ -138,6 +148,7 @@ export interface FileRouteTypes {
     | '/analise'
     | '/diagnostico'
     | '/estrategia'
+    | '/hoteis'
     | '/implementacao'
     | '/monetizacao'
     | '/monitoramento'
@@ -151,6 +162,7 @@ export interface FileRouteTypes {
     | '/analise'
     | '/diagnostico'
     | '/estrategia'
+    | '/hoteis'
     | '/implementacao'
     | '/monetizacao'
     | '/monitoramento'
@@ -165,6 +177,7 @@ export interface RootRouteChildren {
   AnaliseRoute: typeof AnaliseRoute
   DiagnosticoRoute: typeof DiagnosticoRoute
   EstrategiaRoute: typeof EstrategiaRoute
+  HoteisRoute: typeof HoteisRoute
   ImplementacaoRoute: typeof ImplementacaoRoute
   MonetizacaoRoute: typeof MonetizacaoRoute
   MonitoramentoRoute: typeof MonitoramentoRoute
@@ -217,6 +230,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ImplementacaoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/hoteis': {
+      id: '/hoteis'
+      path: '/hoteis'
+      fullPath: '/hoteis'
+      preLoaderRoute: typeof HoteisRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/estrategia': {
       id: '/estrategia'
       path: '/estrategia'
@@ -261,6 +281,7 @@ const rootRouteChildren: RootRouteChildren = {
   AnaliseRoute: AnaliseRoute,
   DiagnosticoRoute: DiagnosticoRoute,
   EstrategiaRoute: EstrategiaRoute,
+  HoteisRoute: HoteisRoute,
   ImplementacaoRoute: ImplementacaoRoute,
   MonetizacaoRoute: MonetizacaoRoute,
   MonitoramentoRoute: MonitoramentoRoute,

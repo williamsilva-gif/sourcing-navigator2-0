@@ -5,7 +5,7 @@ import { CITY_STRATEGY, type CityStrategy } from "./strategyData";
 import { useBaselineStore, selectDerivedCityStrategy } from "@/lib/baselineStore";
 import { useActionStore } from "@/lib/actionStore";
 
-function fmt$(n: number) { return `$${Math.round(n).toLocaleString("en-US")}`; }
+function fmt$(n: number) { return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n ?? 0); }
 
 export function CityCapsTable() {
   const bookings = useBaselineStore((s) => s.bookings);
@@ -82,7 +82,7 @@ export function CityCapsTable() {
           </div>
           <div>
             <h2 className="text-sm font-semibold text-foreground">Configuração de city caps</h2>
-            <p className="text-xs text-muted-foreground">Ajuste o teto de ADR negociado por cidade · valores em USD</p>
+            <p className="text-xs text-muted-foreground">Ajuste o teto de ADR negociado por cidade · valores em BRL</p>
           </div>
         </div>
         <div className="flex items-center gap-2">

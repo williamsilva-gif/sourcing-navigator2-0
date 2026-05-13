@@ -34,8 +34,8 @@ function DiagnosticoPage() {
   const isLive = bookings.length > 0;
   const live = selectKpis(bookings);
 
-  const fmt$ = (n: number) =>
-    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", notation: "compact", maximumFractionDigits: 1 }).format(n);
+  const fmtBRLFull = (n: number) =>
+    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
   const fmtN = (n: number) =>
     new Intl.NumberFormat("pt-BR", { notation: "compact", maximumFractionDigits: 1 }).format(n);
 
@@ -99,7 +99,7 @@ function DiagnosticoPage() {
         />
         <KpiCard
           label="Spend total"
-          value={isLive ? fmt$(live.totalSpend) : "$15.7M"}
+          value={isLive ? fmtBRLFull(live.totalSpend) : "R$ 15.700.000,00"}
           delta={6.8}
           deltaLabel="vs ano anterior"
           icon={DollarSign}
@@ -107,7 +107,7 @@ function DiagnosticoPage() {
         />
         <KpiCard
           label="ADR médio"
-          value={isLive ? `$${Math.round(live.adr)}` : "$293"}
+          value={isLive ? fmtBRLFull(live.adr) : "R$ 293,00"}
           delta={2.1}
           deltaLabel="vs ano anterior"
           icon={TrendingDown}
@@ -144,7 +144,7 @@ function DiagnosticoPage() {
         <InsightCard
           tone="warning"
           title="34% das reservas acima do cap"
-          body="Faixas $300+ representam leakage potencial de US$ 1.9M/ano. Revisão de city caps recomendada para Q2."
+          body="Faixas R$ 300+ representam leakage potencial de R$ 1,9 mi/ano. Revisão de city caps recomendada para Q2."
         />
         <InsightCard
           tone="info"
