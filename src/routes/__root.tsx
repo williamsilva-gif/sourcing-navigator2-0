@@ -83,6 +83,13 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
+  useEffect(() => {
+    const s = useBaselineStore.getState();
+    if (s.bookings.length === 0 && s.uploads.length === 0) {
+      s.ingest("bookings", "demo-dataset-500.synthetic", generateDemoBookings(500));
+      useBaselineStore.setState({ useDemo: true });
+    }
+  }, []);
   return (
     <>
       <Outlet />
