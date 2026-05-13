@@ -21,9 +21,12 @@ export const Route = createFileRoute("/hoteis")({
 function HotelsPage() {
   const hotels = useBaselineStore((s) => s.hotels);
   const upsertHotel = useBaselineStore((s) => s.upsertHotel);
+  const upsertHotelsBulk = useBaselineStore((s) => s.upsertHotelsBulk);
   const deleteHotel = useBaselineStore((s) => s.deleteHotel);
   const [editing, setEditing] = useState<Hotel | "new" | null>(null);
   const [query, setQuery] = useState("");
+  const [importing, setImporting] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
 
   const filtered = useMemo(() => {
     const q = query.toLowerCase().trim();
@@ -44,6 +47,41 @@ function HotelsPage() {
     if (!confirm(`Remover o hotel ${name}?`)) return;
     deleteHotel(code);
     toast.info(`${name} removido`);
+  }
+
+  async function handleBulk(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    setImporting(true);
+    let totalAdded = 0;
+    let totalUpdated = 0;
+    let totalErrors = 0;
+    const errorSamples: string[] = [];
+    try {
+      for (const file of Array.from(files)) {
+        const rows = await readSpreadsheet(file);
+        const valid: Hotel[] = [];
+        rows.forEach((r, i) => {
+          const res = hotelSchema.safeParse(r);
+          if (res.success) valid.push(res.data);
+          else {
+            totalErrors++;
+            if (errorSamples.length < 5) {
+              errorSamples.push(`L${i + 2}: ${res.error.issues.map((x) => `${x.path.join(".")} ${x.message}`).join("; ")}`);
+            }
+          }
+        });
+        const { added, updated } = upsertHotelsBulk(valid);
+        totalAdded += added;
+        totalUpdated += updated;
+      }
+      toast.success(`${totalAdded} novos · ${totalUpdated} atualizados`, {
+        description: totalErrors > 0 ? `${totalErrors} linhas com erro · ex: ${errorSamples[0]}` : undefined,
+      });
+    } catch (e) {
+      toast.error(`Falha na importação: ${(e as Error).message}`);
+    } finally {
+      setImporting(false);
+    }
   }
 
   return (
