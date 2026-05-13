@@ -15,7 +15,7 @@ function aggregates() {
   return { total, primaries, totalNights, weightedAdr, totalSpend, baselineSpend, savings, cities };
 }
 
-function fmt$(n: number) { return `$${Math.round(n).toLocaleString("en-US")}`; }
+function fmt$(n: number) { return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n ?? 0); }
 
 export function exportPdf() {
   const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });

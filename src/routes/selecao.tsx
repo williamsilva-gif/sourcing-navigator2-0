@@ -8,7 +8,7 @@ import { CoverageMap } from "@/components/selecao/CoverageMap";
 import { AWARDED } from "@/components/selecao/selectionData";
 import { exportPdf, exportXlsx } from "@/components/selecao/exportProgram";
 
-function fmt$(n: number) { return `$${Math.round(n).toLocaleString("en-US")}`; }
+function fmt$(n: number) { return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n ?? 0); }
 
 function SelecaoPage() {
   const stats = useMemo(() => {

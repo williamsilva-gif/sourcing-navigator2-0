@@ -14,7 +14,7 @@ interface CityRow {
   tiers: Set<string>;
 }
 
-function fmt$(n: number) { return `$${Math.round(n).toLocaleString("en-US")}`; }
+function fmt$(n: number) { return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n ?? 0); }
 
 export function CoverageMap() {
   const rows: CityRow[] = useMemo(() => {

@@ -5,7 +5,7 @@ import { useBaselineStore, selectDerivedCityStrategy } from "@/lib/baselineStore
 
 const TIERS: Tier[] = ["Luxury", "Upscale", "Midscale", "Economy"];
 
-function fmt$(n: number) { return `$${Math.round(n).toLocaleString("en-US")}`; }
+function fmt$(n: number) { return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n ?? 0); }
 function fmtN(n: number) { return n.toLocaleString("pt-BR"); }
 
 export function TieringMatrix() {

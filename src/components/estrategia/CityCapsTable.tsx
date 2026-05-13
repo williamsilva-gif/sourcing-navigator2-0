@@ -5,7 +5,7 @@ import { CITY_STRATEGY, type CityStrategy } from "./strategyData";
 import { useBaselineStore, selectDerivedCityStrategy } from "@/lib/baselineStore";
 import { useActionStore } from "@/lib/actionStore";
 
-function fmt$(n: number) { return `$${Math.round(n).toLocaleString("en-US")}`; }
+function fmt$(n: number) { return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n ?? 0); }
 
 export function CityCapsTable() {
   const bookings = useBaselineStore((s) => s.bookings);

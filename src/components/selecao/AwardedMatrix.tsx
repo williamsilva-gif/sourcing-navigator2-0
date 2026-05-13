@@ -10,7 +10,7 @@ const AMENITY_ICON: Record<string, typeof Wifi> = {
 
 type SortKey = "city" | "finalAdr" | "roomNights" | "qualityScore" | "compliance";
 
-function fmt$(n: number) { return `$${n.toLocaleString("en-US")}`; }
+function fmt$(n: number) { return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n ?? 0); }
 
 export function AwardedMatrix() {
   const [q, setQ] = useState("");
