@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { Check, ChevronLeft, ChevronRight, FileText, MapPin, Users, ListChecks, Send } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, FileText, MapPin, Users, ListChecks, Send, Target } from "lucide-react";
+import { RfpPoiStep, type RfpPoi } from "./RfpPoiStep";
 import {
   Dialog,
   DialogContent,
