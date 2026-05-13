@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
 import {
   bookingSchema,
   hotelSchema,
@@ -54,7 +55,9 @@ function parseRows<T>(
   return { ok, errors };
 }
 
-export const useBaselineStore = create<BaselineState>((set, get) => ({
+export const useBaselineStore = create<BaselineState>()(
+  persist(
+    (set, get) => ({
   bookings: [],
   hotels: [],
   contracts: [],
@@ -120,7 +123,40 @@ export const useBaselineStore = create<BaselineState>((set, get) => ({
   },
   deleteHotel: (code) =>
     set((s) => ({ hotels: s.hotels.filter((h) => h.code !== code) }) as Partial<BaselineState> as BaselineState),
-}));
+}),
+    {
+      name: "sourcinghub.baseline.v1",
+      storage: createJSONStorage(() =>
+        typeof window === "undefined"
+          ? (({ getItem: () => null, setItem: () => {}, removeItem: () => {} } as unknown) as Storage)
+          : localStorage,
+      ),
+      partialize: (s) => ({
+        bookings: s.bookings,
+        hotels: s.hotels,
+        contracts: s.contracts,
+        uploads: s.uploads,
+        useDemo: s.useDemo,
+      }),
+    },
+  ),
+);
+
+// Auto-seed demo data on the client when nothing has been loaded yet.
+if (typeof window !== "undefined") {
+  const seed = () => {
+    const s = useBaselineStore.getState();
+    if (s.bookings.length === 0 && s.uploads.length === 0) {
+      // Lazy import to avoid bundling demo data on the server entry path.
+      import("./demoData").then(({ generateDemoBookings }) => {
+        s.ingest("bookings", "demo-dataset-500.synthetic", generateDemoBookings(500));
+        useBaselineStore.setState({ useDemo: true });
+      });
+    }
+  };
+  // Wait for persist to finish hydrating, then seed if still empty.
+  setTimeout(seed, 50);
+}
 
 // Per-city ADR distribution + cap (cap = ceil of city ADR rounded to 5)
 export function selectAdrDistributionByCity(bookings: Booking[], city: string): { buckets: AdrBucket[]; cap: number; total: number } {

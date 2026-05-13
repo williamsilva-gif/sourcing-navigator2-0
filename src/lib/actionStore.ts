@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
 
 // ============================================================================
 // Types
@@ -142,7 +143,9 @@ function cityFromPayload(payload: ActionPayload): string {
   return payload.data.city;
 }
 
-export const useActionStore = create<ActionStoreState>((set, get) => ({
+export const useActionStore = create<ActionStoreState>()(
+  persist(
+    (set, get) => ({
   actions: [],
   capOverrides: {},
   adrAdjustments: {},
@@ -300,7 +303,17 @@ export const useActionStore = create<ActionStoreState>((set, get) => ({
       negotiationBatches: [],
       miniRfps: [],
     }),
-}));
+}),
+    {
+      name: "sourcinghub.actions.v1",
+      storage: createJSONStorage(() =>
+        typeof window === "undefined"
+          ? (({ getItem: () => null, setItem: () => {}, removeItem: () => {} } as unknown) as Storage)
+          : localStorage,
+      ),
+    },
+  ),
+);
 
 // ============================================================================
 // Selectors

@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
 import { useClientsStore } from "./clientsStore";
 
 export type Role = "admin" | "manager" | "viewer";
@@ -80,7 +81,9 @@ export function makeDefaultClientConfig(env: Environment = "TMC"): ClientConfig 
   };
 }
 
-export const useAppConfigStore = create<AppConfigState>((set) => ({
+export const useAppConfigStore = create<AppConfigState>()(
+  persist(
+    (set) => ({
   user: { id: "u1", name: "Marina Reis", role: "admin" },
   configByClient: {
     kontik: makeDefaultClientConfig("TMC"),
@@ -130,7 +133,17 @@ export const useAppConfigStore = create<AppConfigState>((set) => ({
       const cfg = s.configByClient[clientId] ?? makeDefaultClientConfig(env);
       return { configByClient: { ...s.configByClient, [clientId]: { ...cfg, environment: env } } };
     }),
-}));
+}),
+    {
+      name: "sourcinghub.appconfig.v1",
+      storage: createJSONStorage(() =>
+        typeof window === "undefined"
+          ? (({ getItem: () => null, setItem: () => {}, removeItem: () => {} } as unknown) as Storage)
+          : localStorage,
+      ),
+    },
+  ),
+);
 
 // ============== Helpers — sempre via cliente ativo ==============
 
