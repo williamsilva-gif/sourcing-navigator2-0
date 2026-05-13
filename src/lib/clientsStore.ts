@@ -39,7 +39,14 @@ export const useClientsStore = create<ClientsState>()(
           selectedClientId: s.selectedClientId === id ? s.clients[0]?.id ?? "" : s.selectedClientId,
         })),
     }),
-    { name: "sourcinghub.clients.v1", storage: createJSONStorage(() => localStorage) },
+    {
+      name: "sourcinghub.clients.v1",
+      storage: createJSONStorage(() =>
+        typeof window === "undefined"
+          ? (({ getItem: () => null, setItem: () => {}, removeItem: () => {} } as unknown) as Storage)
+          : localStorage,
+      ),
+    },
   ),
 );
 
