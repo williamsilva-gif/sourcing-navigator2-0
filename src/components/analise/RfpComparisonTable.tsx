@@ -66,11 +66,11 @@ const STATUS_OPTIONS: RfpStatus[] = ["approved", "negotiation", "rejected", "pen
 function fmtMoney(n: number) {
   if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(2)}M`;
   if (n >= 1_000) return `$${(n / 1_000).toFixed(1)}k`;
-  return `$${n.toLocaleString("en-US")}`;
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n ?? 0);
 }
 
 function fmtNum(n: number) {
-  return n.toLocaleString("en-US");
+  return n.toLocaleString("pt-BR");
 }
 
 export function RfpComparisonTable() {

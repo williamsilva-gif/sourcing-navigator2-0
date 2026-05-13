@@ -11,7 +11,7 @@ const STATUS_STYLES: Record<AuctionLot["status"], { label: string; cls: string; 
 };
 
 function fmtCurrency(n: number) {
-  return `$${n.toLocaleString("en-US")}`;
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n ?? 0);
 }
 
 function LotCard({ lot }: { lot: AuctionLot }) {
