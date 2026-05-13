@@ -21,11 +21,19 @@ export const bookingSchema = z.object({
 });
 
 export const hotelSchema = z.object({
-  hotel_id: z.union([z.string(), z.number()]).transform(String),
+  code: z.union([z.string(), z.number()]).transform(String),
   name: z.string().min(1),
+  address: z.string().optional().default(""),
+  postal_code: z.union([z.string(), z.number()]).transform(String).optional().default(""),
   city: z.string().min(1),
-  category: z.string().optional().default(""),
-  suggested_tier: z.enum(["Luxury", "Upscale", "Midscale", "Economy"]).optional(),
+  state_province: z.string().optional().default(""),
+  country_code: z.string().optional().default(""),
+  phone_number: z.union([z.string(), z.number()]).transform(String).optional().default(""),
+  Contact: z.string().optional().default(""),
+  latitude: z.coerce.number().optional(),
+  longitude: z.coerce.number().optional(),
+  star_rating: z.coerce.number().min(0).max(5).optional(),
+  category_id: z.union([z.string(), z.number()]).transform(String).optional().default(""),
 });
 
 export const contractSchema = z.object({
@@ -50,7 +58,7 @@ export type DatasetType = "bookings" | "hotels" | "contracts";
 
 export const SCHEMA_HEADERS: Record<DatasetType, string[]> = {
   bookings: ["booking_id", "hotel", "city", "state", "checkin", "room_nights", "adr", "channel"],
-  hotels: ["hotel_id", "name", "city", "category", "suggested_tier"],
+  hotels: ["code", "name", "address", "postal_code", "city", "state_province", "country_code", "phone_number", "Contact", "latitude", "longitude", "star_rating", "category_id"],
   contracts: ["hotel", "negotiated_adr", "cap", "valid_until"],
 };
 
