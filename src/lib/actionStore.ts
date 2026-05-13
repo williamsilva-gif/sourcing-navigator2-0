@@ -303,7 +303,13 @@ export const useActionStore = create<ActionStoreState>()(
       negotiationBatches: [],
       miniRfps: [],
     }),
-}));
+}),
+    {
+      name: "sourcinghub.actions.v1",
+      storage: createJSONStorage(() => localStorage),
+    },
+  ),
+);
 
 // ============================================================================
 // Selectors
