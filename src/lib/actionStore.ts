@@ -143,7 +143,9 @@ function cityFromPayload(payload: ActionPayload): string {
   return payload.data.city;
 }
 
-export const useActionStore = create<ActionStoreState>((set, get) => ({
+export const useActionStore = create<ActionStoreState>()(
+  persist(
+    (set, get) => ({
   actions: [],
   capOverrides: {},
   adrAdjustments: {},
