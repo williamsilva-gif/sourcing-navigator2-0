@@ -133,7 +133,10 @@ export const useAppConfigStore = create<AppConfigState>()(
       const cfg = s.configByClient[clientId] ?? makeDefaultClientConfig(env);
       return { configByClient: { ...s.configByClient, [clientId]: { ...cfg, environment: env } } };
     }),
-}));
+}),
+    { name: "sourcinghub.appconfig.v1", storage: createJSONStorage(() => localStorage) },
+  ),
+);
 
 // ============== Helpers — sempre via cliente ativo ==============
 
