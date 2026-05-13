@@ -35,7 +35,9 @@ function DiagnosticoPage() {
   const live = selectKpis(bookings);
 
   const fmt$ = (n: number) =>
-    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", notation: "compact", maximumFractionDigits: 1 }).format(n);
+    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", notation: "compact", maximumFractionDigits: 2 }).format(n);
+  const fmtBRLFull = (n: number) =>
+    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
   const fmtN = (n: number) =>
     new Intl.NumberFormat("pt-BR", { notation: "compact", maximumFractionDigits: 1 }).format(n);
 
