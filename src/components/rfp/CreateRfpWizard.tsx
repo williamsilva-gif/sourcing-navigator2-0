@@ -33,9 +33,10 @@ const CITIES = [
 const STEPS = [
   { id: 1, label: "Briefing", icon: FileText },
   { id: 2, label: "Cobertura", icon: MapPin },
-  { id: 3, label: "Hotéis", icon: Users },
-  { id: 4, label: "Requisitos", icon: ListChecks },
-  { id: 5, label: "Distribuição", icon: Send },
+  { id: 3, label: "Pontos de interesse", icon: Target },
+  { id: 4, label: "Hotéis", icon: Users },
+  { id: 5, label: "Requisitos", icon: ListChecks },
+  { id: 6, label: "Distribuição", icon: Send },
 ];
 
 interface Props {
