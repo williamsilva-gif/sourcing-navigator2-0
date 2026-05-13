@@ -126,7 +126,11 @@ export const useBaselineStore = create<BaselineState>()(
 }),
     {
       name: "sourcinghub.baseline.v1",
-      storage: createJSONStorage(() => localStorage),
+      storage: createJSONStorage(() =>
+        typeof window === "undefined"
+          ? ({ getItem: () => null, setItem: () => {}, removeItem: () => {} } as Storage)
+          : localStorage,
+      ),
       partialize: (s) => ({
         bookings: s.bookings,
         hotels: s.hotels,
@@ -137,6 +141,22 @@ export const useBaselineStore = create<BaselineState>()(
     },
   ),
 );
+
+// Auto-seed demo data on the client when nothing has been loaded yet.
+if (typeof window !== "undefined") {
+  const seed = () => {
+    const s = useBaselineStore.getState();
+    if (s.bookings.length === 0 && s.uploads.length === 0) {
+      // Lazy import to avoid bundling demo data on the server entry path.
+      import("./demoData").then(({ generateDemoBookings }) => {
+        s.ingest("bookings", "demo-dataset-500.synthetic", generateDemoBookings(500));
+        useBaselineStore.setState({ useDemo: true });
+      });
+    }
+  };
+  // Run after potential rehydration (microtask) to avoid being overwritten.
+  Promise.resolve().then(seed);
+}
 
 // Per-city ADR distribution + cap (cap = ceil of city ADR rounded to 5)
 export function selectAdrDistributionByCity(bookings: Booking[], city: string): { buckets: AdrBucket[]; cap: number; total: number } {
