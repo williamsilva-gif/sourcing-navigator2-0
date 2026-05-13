@@ -128,10 +128,10 @@ export function exportXlsx() {
     ["Hotéis primários", agg.primaries],
     ["Cidades cobertas", agg.cities],
     ["Room nights/ano", agg.totalNights],
-    ["ADR médio ponderado (USD)", Math.round(agg.weightedAdr)],
-    ["Spend total (USD)", agg.totalSpend],
-    ["Baseline spend (USD)", agg.baselineSpend],
-    ["Economia (USD)", agg.savings],
+    ["ADR médio ponderado (BRL)", Math.round(agg.weightedAdr)],
+    ["Spend total (BRL)", agg.totalSpend],
+    ["Baseline spend (BRL)", agg.baselineSpend],
+    ["Economia (BRL)", agg.savings],
     ["Economia (%)", Number(((agg.savings / agg.baselineSpend) * 100).toFixed(2))],
   ];
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summary), "Resumo");

@@ -14,7 +14,7 @@ export function TopOpportunities() {
         <div>
           <h3 className="text-base font-semibold text-foreground">Top oportunidades</h3>
           <p className="mt-0.5 text-sm text-muted-foreground">
-            Maior potencial de savings (k USD)
+            Maior potencial de savings (k BRL)
           </p>
         </div>
         <span className="flex items-center gap-1 rounded-full bg-success-soft px-2.5 py-1 text-xs font-semibold text-success">

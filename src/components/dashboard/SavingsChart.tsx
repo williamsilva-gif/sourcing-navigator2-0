@@ -29,7 +29,7 @@ export function SavingsChart() {
             Savings acumulados vs meta
           </h3>
           <p className="mt-0.5 text-sm text-muted-foreground">
-            Evolução mensal em milhares de USD
+            Evolução mensal em milhares de BRL
           </p>
         </div>
         <div className="flex gap-1 rounded-md border border-border bg-secondary p-0.5 text-xs font-medium">

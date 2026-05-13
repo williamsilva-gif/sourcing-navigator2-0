@@ -188,11 +188,11 @@ export function CreateLotModal({ open, onOpenChange, onPublish }: CreateLotModal
                 <Input type="number" inputMode="numeric" placeholder="ex: 2500" value={form.roomNights}
                   onChange={(e) => update("roomNights", e.target.value)} />
               </Field>
-              <Field label="City cap (USD)" error={errors.cap}>
+              <Field label="City cap (BRL)" error={errors.cap}>
                 <Input type="number" inputMode="numeric" placeholder="ex: 290" value={form.cap}
                   onChange={(e) => update("cap", e.target.value)} />
               </Field>
-              <Field label="ADR inicial (USD)" error={errors.startingAdr}>
+              <Field label="ADR inicial (BRL)" error={errors.startingAdr}>
                 <Input type="number" inputMode="numeric" placeholder="ex: 320" value={form.startingAdr}
                   onChange={(e) => update("startingAdr", e.target.value)} />
               </Field>

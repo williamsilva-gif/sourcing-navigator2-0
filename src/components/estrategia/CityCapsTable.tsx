@@ -82,7 +82,7 @@ export function CityCapsTable() {
           </div>
           <div>
             <h2 className="text-sm font-semibold text-foreground">Configuração de city caps</h2>
-            <p className="text-xs text-muted-foreground">Ajuste o teto de ADR negociado por cidade · valores em USD</p>
+            <p className="text-xs text-muted-foreground">Ajuste o teto de ADR negociado por cidade · valores em BRL</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
