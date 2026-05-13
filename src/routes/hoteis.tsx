@@ -1,11 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
-import { Hotel as HotelIcon, Plus, Pencil, Trash2, MapPin, Search } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
+import { Hotel as HotelIcon, Plus, Pencil, Trash2, MapPin, Search, Upload, Download } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/AppShell";
 import { useBaselineStore } from "@/lib/baselineStore";
-import type { Hotel } from "@/lib/baselineSchemas";
+import { hotelSchema, type Hotel } from "@/lib/baselineSchemas";
 import { HotelForm } from "@/components/hotels/HotelForm";
+import { downloadTemplate, readSpreadsheet } from "@/lib/xlsxTemplates";
 
 export const Route = createFileRoute("/hoteis")({
   head: () => ({
@@ -20,9 +21,12 @@ export const Route = createFileRoute("/hoteis")({
 function HotelsPage() {
   const hotels = useBaselineStore((s) => s.hotels);
   const upsertHotel = useBaselineStore((s) => s.upsertHotel);
+  const upsertHotelsBulk = useBaselineStore((s) => s.upsertHotelsBulk);
   const deleteHotel = useBaselineStore((s) => s.deleteHotel);
   const [editing, setEditing] = useState<Hotel | "new" | null>(null);
   const [query, setQuery] = useState("");
+  const [importing, setImporting] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
 
   const filtered = useMemo(() => {
     const q = query.toLowerCase().trim();
@@ -45,6 +49,41 @@ function HotelsPage() {
     toast.info(`${name} removido`);
   }
 
+  async function handleBulk(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    setImporting(true);
+    let totalAdded = 0;
+    let totalUpdated = 0;
+    let totalErrors = 0;
+    const errorSamples: string[] = [];
+    try {
+      for (const file of Array.from(files)) {
+        const rows = await readSpreadsheet(file);
+        const valid: Hotel[] = [];
+        rows.forEach((r, i) => {
+          const res = hotelSchema.safeParse(r);
+          if (res.success) valid.push(res.data);
+          else {
+            totalErrors++;
+            if (errorSamples.length < 5) {
+              errorSamples.push(`L${i + 2}: ${res.error.issues.map((x) => `${x.path.join(".")} ${x.message}`).join("; ")}`);
+            }
+          }
+        });
+        const { added, updated } = upsertHotelsBulk(valid);
+        totalAdded += added;
+        totalUpdated += updated;
+      }
+      toast.success(`${totalAdded} novos · ${totalUpdated} atualizados`, {
+        description: totalErrors > 0 ? `${totalErrors} linhas com erro · ex: ${errorSamples[0]}` : undefined,
+      });
+    } catch (e) {
+      toast.error(`Falha na importação: ${(e as Error).message}`);
+    } finally {
+      setImporting(false);
+    }
+  }
+
   return (
     <AppShell>
       <div className="space-y-6">
@@ -61,13 +100,41 @@ function HotelsPage() {
             </div>
           </div>
           {editing === null && (
-            <button
-              onClick={() => setEditing("new")}
-              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              Novo hotel
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => downloadTemplate("hotels")}
+                className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:bg-secondary"
+              >
+                <Download className="h-3.5 w-3.5" />
+                Template .xlsx
+              </button>
+              <button
+                onClick={() => fileInput.current?.click()}
+                disabled={importing}
+                className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:bg-secondary disabled:opacity-50"
+              >
+                <Upload className="h-3.5 w-3.5" />
+                {importing ? "Importando…" : "Upload em massa"}
+              </button>
+              <input
+                ref={fileInput}
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                multiple
+                className="hidden"
+                onChange={(e) => {
+                  handleBulk(e.target.files);
+                  e.target.value = "";
+                }}
+              />
+              <button
+                onClick={() => setEditing("new")}
+                className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Novo hotel
+              </button>
+            </div>
           )}
         </header>
 

@@ -1,5 +1,28 @@
-// Client-side wrapper that calls the secure server-side Google Geocoding proxy.
-import { geocodeAddressFn } from "./geocode.functions";
+// Client-side wrapper that calls the secure server-side Google proxies.
+import { geocodeAddressFn, placesAutocompleteFn, placeDetailsFn, type PlacesAutocompleteResult } from "./geocode.functions";
+
+export type AutocompletePrediction = PlacesAutocompleteResult["predictions"][number];
+
+export async function autocompleteAddress(query: string, sessionToken?: string): Promise<AutocompletePrediction[]> {
+  if (query.trim().length < 2) return [];
+  const res = await placesAutocompleteFn({ data: { query, sessionToken } });
+  if (!res.ok) throw new Error(res.error ?? "Falha no autocomplete");
+  return res.predictions;
+}
+
+export async function resolvePlace(placeId: string): Promise<GeocodeResult | null> {
+  const res = await placeDetailsFn({ data: { placeId } });
+  if (!res.ok) throw new Error(res.error ?? "Falha em place details");
+  const confidence: GeocodeResult["confidence"] =
+    res.locationType === "ROOFTOP" ? "high" : res.locationType === "RANGE_INTERPOLATED" ? "medium" : "low";
+  return {
+    lat: res.lat!,
+    lng: res.lng!,
+    displayName: res.displayName!,
+    confidence,
+    placeId: res.placeId,
+  };
+}
 
 export interface GeocodeResult {
   lat: number;

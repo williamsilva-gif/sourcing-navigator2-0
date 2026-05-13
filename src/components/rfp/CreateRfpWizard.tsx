@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { Check, ChevronLeft, ChevronRight, FileText, MapPin, Users, ListChecks, Send } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, FileText, MapPin, Users, ListChecks, Send, Target } from "lucide-react";
+import { RfpPoiStep, type RfpPoi } from "./RfpPoiStep";
 import {
   Dialog,
   DialogContent,
@@ -32,9 +33,10 @@ const CITIES = [
 const STEPS = [
   { id: 1, label: "Briefing", icon: FileText },
   { id: 2, label: "Cobertura", icon: MapPin },
-  { id: 3, label: "Hotéis", icon: Users },
-  { id: 4, label: "Requisitos", icon: ListChecks },
-  { id: 5, label: "Distribuição", icon: Send },
+  { id: 3, label: "Pontos de interesse", icon: Target },
+  { id: 4, label: "Hotéis", icon: Users },
+  { id: 5, label: "Requisitos", icon: ListChecks },
+  { id: 6, label: "Distribuição", icon: Send },
 ];
 
 interface Props {
@@ -49,6 +51,7 @@ export function CreateRfpWizard({ open, onClose }: Props) {
   const [cycle, setCycle] = useState("2026");
   const [briefing, setBriefing] = useState("");
   const [selectedCities, setSelectedCities] = useState<string[]>([]);
+  const [pois, setPois] = useState<RfpPoi[]>([]);
   const [hotelStrategy, setHotelStrategy] = useState("preferred");
   const [estimatedHotels, setEstimatedHotels] = useState("80");
   const [reqs, setReqs] = useState<string[]>(
@@ -62,6 +65,7 @@ export function CreateRfpWizard({ open, onClose }: Props) {
     setName("");
     setBriefing("");
     setSelectedCities([]);
+    setPois([]);
     setReqs(RFP_REQUIREMENT_TEMPLATES.filter((r) => r.required).map((r) => r.id));
   };
 
@@ -81,7 +85,7 @@ export function CreateRfpWizard({ open, onClose }: Props) {
   const canAdvance = () => {
     if (step === 1) return name.trim().length > 0 && briefing.trim().length > 0;
     if (step === 2) return selectedCities.length > 0;
-    if (step === 4) return reqs.length > 0;
+    if (step === 5) return reqs.length > 0;
     return true;
   };
 
@@ -230,7 +234,9 @@ export function CreateRfpWizard({ open, onClose }: Props) {
             </>
           )}
 
-          {step === 3 && (
+          {step === 3 && <RfpPoiStep pois={pois} onChange={setPois} />}
+
+          {step === 4 && (
             <>
               <div>
                 <Label>Estratégia de convite</Label>
@@ -266,7 +272,7 @@ export function CreateRfpWizard({ open, onClose }: Props) {
             </>
           )}
 
-          {step === 4 && (
+          {step === 5 && (
             <>
               <p className="text-sm text-muted-foreground">
                 Marque os requisitos obrigatórios e desejáveis para participar do programa.
@@ -299,7 +305,7 @@ export function CreateRfpWizard({ open, onClose }: Props) {
             </>
           )}
 
-          {step === 5 && (
+          {step === 6 && (
             <>
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -333,6 +339,10 @@ export function CreateRfpWizard({ open, onClose }: Props) {
                   <dd className="font-medium text-foreground">{cycle}</dd>
                   <dt className="text-muted-foreground">Cidades:</dt>
                   <dd className="font-medium text-foreground">{selectedCities.length}</dd>
+                  <dt className="text-muted-foreground">Pontos de interesse:</dt>
+                  <dd className="font-medium text-foreground">
+                    {pois.length} ({pois.filter((p) => p.lat != null).length} geocodificados)
+                  </dd>
                   <dt className="text-muted-foreground">Hotéis estimados:</dt>
                   <dd className="font-medium text-foreground">~{estimatedHotels}</dd>
                   <dt className="text-muted-foreground">Requisitos:</dt>
