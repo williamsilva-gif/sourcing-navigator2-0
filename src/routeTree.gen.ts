@@ -26,12 +26,12 @@ const SelecaoRoute = SelecaoRouteImport.update({
   id: '/selecao',
   path: '/selecao',
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any).lazy(() => import('./routes/selecao.lazy').then((d) => d.Route))
 const RfpRoute = RfpRouteImport.update({
   id: '/rfp',
   path: '/rfp',
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any).lazy(() => import('./routes/rfp.lazy').then((d) => d.Route))
 const NegociacaoRoute = NegociacaoRouteImport.update({
   id: '/negociacao',
   path: '/negociacao',
@@ -292,3 +292,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
