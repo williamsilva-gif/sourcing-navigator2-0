@@ -39,10 +39,10 @@ export const CLUSTERS: ClusterDefinition[] = [];
 export const BUSINESS_RULES: BusinessRule[] = [];
 
 export const TIER_META: Record<Tier, { label: string; bg: string; fg: string; rangeAdr: string }> = {
-  Luxury: { label: "Luxury", bg: "bg-violet-100", fg: "text-violet-700", rangeAdr: ">$400" },
+  Luxury: { label: "Luxury", bg: "bg-violet-100", fg: "text-violet-700", rangeAdr: ">R$ 400" },
   Upscale: { label: "Upscale", bg: "bg-primary-soft", fg: "text-primary", rangeAdr: "R$ 280–R$ 400" },
   Midscale: { label: "Midscale", bg: "bg-emerald-100", fg: "text-emerald-700", rangeAdr: "R$ 180–R$ 280" },
-  Economy: { label: "Economy", bg: "bg-amber-100", fg: "text-amber-700", rangeAdr: "<$180" },
+  Economy: { label: "Economy", bg: "bg-amber-100", fg: "text-amber-700", rangeAdr: "<R$ 180" },
 };
 
 export const PRIORITY_META: Record<CityStrategy["priority"], { bg: string; fg: string }> = {

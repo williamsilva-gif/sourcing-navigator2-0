@@ -73,9 +73,9 @@ export function CreateLotModal({ open, onOpenChange, onPublish }: CreateLotModal
     if (!form.roomNights || Number.isNaN(rn) || rn < 50) e.roomNights = "Mínimo 50 room nights";
     else if (rn > 50000) e.roomNights = "Máximo 50.000 room nights";
     const cap = Number(form.cap);
-    if (!form.cap || Number.isNaN(cap) || cap < 50) e.cap = "Cap deve ser ≥ $50";
+    if (!form.cap || Number.isNaN(cap) || cap < 50) e.cap = "Cap deve ser ≥ R$ 50";
     const adr = Number(form.startingAdr);
-    if (!form.startingAdr || Number.isNaN(adr) || adr < 50) e.startingAdr = "ADR inicial deve ser ≥ $50";
+    if (!form.startingAdr || Number.isNaN(adr) || adr < 50) e.startingAdr = "ADR inicial deve ser ≥ R$ 50";
     else if (cap && adr <= cap) e.startingAdr = "ADR inicial deve ser maior que o cap";
     const dur = Number(form.durationHours);
     if (!form.durationHours || Number.isNaN(dur) || dur < 1) e.durationHours = "Mínimo 1 hora";

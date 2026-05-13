@@ -70,7 +70,7 @@ export function SavingsChart() {
               fontSize={12}
               tickLine={false}
               axisLine={false}
-              tickFormatter={(v) => `$${v}k`}
+              tickFormatter={(v) => `R$ ${v}k`}
             />
             <Tooltip
               contentStyle={{
@@ -80,7 +80,7 @@ export function SavingsChart() {
                 fontSize: "12px",
                 boxShadow: "0 4px 12px -2px oklch(0 0 0 / 0.08)",
               }}
-              formatter={(v: number) => [`$${v}k`, ""]}
+              formatter={(v: number) => [`R$ ${v}k`, ""]}
             />
             <Area
               type="monotone"
