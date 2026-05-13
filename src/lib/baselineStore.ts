@@ -154,8 +154,8 @@ if (typeof window !== "undefined") {
       });
     }
   };
-  // Run after potential rehydration (microtask) to avoid being overwritten.
-  Promise.resolve().then(seed);
+  // Wait for persist to finish hydrating, then seed if still empty.
+  setTimeout(seed, 50);
 }
 
 // Per-city ADR distribution + cap (cap = ceil of city ADR rounded to 5)
