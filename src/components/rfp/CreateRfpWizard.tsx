@@ -305,7 +305,7 @@ export function CreateRfpWizard({ open, onClose }: Props) {
             </>
           )}
 
-          {step === 5 && (
+          {step === 6 && (
             <>
               <div className="grid grid-cols-2 gap-3">
                 <div>
