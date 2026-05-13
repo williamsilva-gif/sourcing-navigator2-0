@@ -339,6 +339,10 @@ export function CreateRfpWizard({ open, onClose }: Props) {
                   <dd className="font-medium text-foreground">{cycle}</dd>
                   <dt className="text-muted-foreground">Cidades:</dt>
                   <dd className="font-medium text-foreground">{selectedCities.length}</dd>
+                  <dt className="text-muted-foreground">Pontos de interesse:</dt>
+                  <dd className="font-medium text-foreground">
+                    {pois.length} ({pois.filter((p) => p.lat != null).length} geocodificados)
+                  </dd>
                   <dt className="text-muted-foreground">Hotéis estimados:</dt>
                   <dd className="font-medium text-foreground">~{estimatedHotels}</dd>
                   <dt className="text-muted-foreground">Requisitos:</dt>
