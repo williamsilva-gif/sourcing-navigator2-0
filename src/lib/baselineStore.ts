@@ -128,7 +128,7 @@ export const useBaselineStore = create<BaselineState>()(
       name: "sourcinghub.baseline.v1",
       storage: createJSONStorage(() =>
         typeof window === "undefined"
-          ? ({ getItem: () => null, setItem: () => {}, removeItem: () => {} } as Storage)
+          ? (({ getItem: () => null, setItem: () => {}, removeItem: () => {} } as unknown) as Storage)
           : localStorage,
       ),
       partialize: (s) => ({
