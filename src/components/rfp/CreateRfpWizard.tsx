@@ -51,6 +51,7 @@ export function CreateRfpWizard({ open, onClose }: Props) {
   const [cycle, setCycle] = useState("2026");
   const [briefing, setBriefing] = useState("");
   const [selectedCities, setSelectedCities] = useState<string[]>([]);
+  const [pois, setPois] = useState<RfpPoi[]>([]);
   const [hotelStrategy, setHotelStrategy] = useState("preferred");
   const [estimatedHotels, setEstimatedHotels] = useState("80");
   const [reqs, setReqs] = useState<string[]>(
@@ -64,6 +65,7 @@ export function CreateRfpWizard({ open, onClose }: Props) {
     setName("");
     setBriefing("");
     setSelectedCities([]);
+    setPois([]);
     setReqs(RFP_REQUIREMENT_TEMPLATES.filter((r) => r.required).map((r) => r.id));
   };
 
@@ -83,7 +85,7 @@ export function CreateRfpWizard({ open, onClose }: Props) {
   const canAdvance = () => {
     if (step === 1) return name.trim().length > 0 && briefing.trim().length > 0;
     if (step === 2) return selectedCities.length > 0;
-    if (step === 4) return reqs.length > 0;
+    if (step === 5) return reqs.length > 0;
     return true;
   };
 
