@@ -134,7 +134,14 @@ export const useAppConfigStore = create<AppConfigState>()(
       return { configByClient: { ...s.configByClient, [clientId]: { ...cfg, environment: env } } };
     }),
 }),
-    { name: "sourcinghub.appconfig.v1", storage: createJSONStorage(() => localStorage) },
+    {
+      name: "sourcinghub.appconfig.v1",
+      storage: createJSONStorage(() =>
+        typeof window === "undefined"
+          ? (({ getItem: () => null, setItem: () => {}, removeItem: () => {} } as unknown) as Storage)
+          : localStorage,
+      ),
+    },
   ),
 );
 
