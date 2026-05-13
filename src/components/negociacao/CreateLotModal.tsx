@@ -275,7 +275,7 @@ export function CreateLotModal({ open, onOpenChange, onPublish }: CreateLotModal
               <p className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground">
                 <TrendingDown className="h-3 w-3" /> Economia projetada total
               </p>
-              <p className="mt-1 text-2xl font-bold text-success">${previewSavings.total.toLocaleString("en-US")}</p>
+              <p className="mt-1 text-2xl font-bold text-success">{new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(previewSavings.total)}</p>
               <p className="text-[11px] text-muted-foreground">se todos os room nights fecharem ao city cap</p>
             </div>
 
