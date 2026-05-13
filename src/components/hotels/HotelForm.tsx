@@ -123,40 +123,40 @@ export function HotelForm({ initial, onSave, onCancel, existingCodes }: Props) {
               value={form.code}
               onChange={(e) => set("code", e.target.value)}
               disabled={isEdit}
-              className="input"
+              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
               placeholder="H-001"
             />
           </Field>
           <Field label="Nome do hotel" error={errors.name} required>
-            <input value={form.name} onChange={(e) => set("name", e.target.value)} className="input" />
+            <input value={form.name} onChange={(e) => set("name", e.target.value)} className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50" />
           </Field>
         </div>
 
         <Field label="Endereço" error={errors.address}>
-          <input value={form.address ?? ""} onChange={(e) => set("address", e.target.value)} className="input" placeholder="Av. das Nações Unidas, 13301" />
+          <input value={form.address ?? ""} onChange={(e) => set("address", e.target.value)} className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50" placeholder="Av. das Nações Unidas, 13301" />
         </Field>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Field label="CEP" error={errors.postal_code}>
-            <input value={form.postal_code ?? ""} onChange={(e) => set("postal_code", e.target.value)} className="input" placeholder="04578-000" />
+            <input value={form.postal_code ?? ""} onChange={(e) => set("postal_code", e.target.value)} className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50" placeholder="04578-000" />
           </Field>
           <Field label="Cidade" error={errors.city} required>
-            <input value={form.city} onChange={(e) => set("city", e.target.value)} className="input" />
+            <input value={form.city} onChange={(e) => set("city", e.target.value)} className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50" />
           </Field>
           <Field label="Estado / Província" error={errors.state_province}>
-            <input value={form.state_province ?? ""} onChange={(e) => set("state_province", e.target.value)} className="input" placeholder="SP" />
+            <input value={form.state_province ?? ""} onChange={(e) => set("state_province", e.target.value)} className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50" placeholder="SP" />
           </Field>
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Field label="País (ISO)" error={errors.country_code}>
-            <input value={form.country_code ?? ""} onChange={(e) => set("country_code", e.target.value.toUpperCase())} className="input" placeholder="BR" maxLength={3} />
+            <input value={form.country_code ?? ""} onChange={(e) => set("country_code", e.target.value.toUpperCase())} className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50" placeholder="BR" maxLength={3} />
           </Field>
           <Field label="Telefone" error={errors.phone_number}>
-            <input value={form.phone_number ?? ""} onChange={(e) => set("phone_number", e.target.value)} className="input" placeholder="+55 11 0000-0000" />
+            <input value={form.phone_number ?? ""} onChange={(e) => set("phone_number", e.target.value)} className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50" placeholder="+55 11 0000-0000" />
           </Field>
           <Field label="Contato" error={errors.Contact}>
-            <input value={form.Contact ?? ""} onChange={(e) => set("Contact", e.target.value)} className="input" placeholder="reservas@hotel.com" />
+            <input value={form.Contact ?? ""} onChange={(e) => set("Contact", e.target.value)} className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50" placeholder="reservas@hotel.com" />
           </Field>
         </div>
 
@@ -167,7 +167,7 @@ export function HotelForm({ initial, onSave, onCancel, existingCodes }: Props) {
               step="0.0001"
               value={form.latitude ?? ""}
               onChange={(e) => set("latitude", e.target.value === "" ? undefined : Number(e.target.value))}
-              className="input"
+              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
             />
           </Field>
           <Field label="Longitude" error={errors.longitude}>
@@ -176,7 +176,7 @@ export function HotelForm({ initial, onSave, onCancel, existingCodes }: Props) {
               step="0.0001"
               value={form.longitude ?? ""}
               onChange={(e) => set("longitude", e.target.value === "" ? undefined : Number(e.target.value))}
-              className="input"
+              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
             />
           </Field>
           <Field label="Estrelas" error={errors.star_rating}>
@@ -187,11 +187,11 @@ export function HotelForm({ initial, onSave, onCancel, existingCodes }: Props) {
               step="0.5"
               value={form.star_rating ?? ""}
               onChange={(e) => set("star_rating", e.target.value === "" ? undefined : Number(e.target.value))}
-              className="input"
+              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
             />
           </Field>
           <Field label="Categoria" error={errors.category_id}>
-            <input value={form.category_id ?? ""} onChange={(e) => set("category_id", e.target.value)} className="input" placeholder="UPSCALE" />
+            <input value={form.category_id ?? ""} onChange={(e) => set("category_id", e.target.value)} className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50" placeholder="UPSCALE" />
           </Field>
         </div>
 
