@@ -306,7 +306,11 @@ export const useActionStore = create<ActionStoreState>()(
 }),
     {
       name: "sourcinghub.actions.v1",
-      storage: createJSONStorage(() => localStorage),
+      storage: createJSONStorage(() =>
+        typeof window === "undefined"
+          ? (({ getItem: () => null, setItem: () => {}, removeItem: () => {} } as unknown) as Storage)
+          : localStorage,
+      ),
     },
   ),
 );
