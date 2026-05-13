@@ -1,11 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
-import { Hotel as HotelIcon, Plus, Pencil, Trash2, MapPin, Search } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
+import { Hotel as HotelIcon, Plus, Pencil, Trash2, MapPin, Search, Upload, Download } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/AppShell";
 import { useBaselineStore } from "@/lib/baselineStore";
-import type { Hotel } from "@/lib/baselineSchemas";
+import { hotelSchema, type Hotel } from "@/lib/baselineSchemas";
 import { HotelForm } from "@/components/hotels/HotelForm";
+import { downloadTemplate, readSpreadsheet } from "@/lib/xlsxTemplates";
 
 export const Route = createFileRoute("/hoteis")({
   head: () => ({
