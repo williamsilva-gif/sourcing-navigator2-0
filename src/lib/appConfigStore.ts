@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
 import { useClientsStore } from "./clientsStore";
 
 export type Role = "admin" | "manager" | "viewer";
