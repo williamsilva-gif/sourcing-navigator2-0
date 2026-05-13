@@ -1,30 +1,37 @@
-// Free geocoding via OpenStreetMap Nominatim. No API key required.
-// For production volume, swap for Google Geocoding API (requires key).
+// Client-side wrapper that calls the secure server-side Google Geocoding proxy.
+import { geocodeAddressFn } from "./geocode.functions";
 
 export interface GeocodeResult {
   lat: number;
   lng: number;
   displayName: string;
   confidence: "high" | "medium" | "low";
-  raw: unknown;
+  placeId?: string;
+  partialMatch?: boolean;
 }
 
 export async function geocodeAddress(query: string): Promise<GeocodeResult | null> {
   if (!query.trim()) return null;
-  const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=1&q=${encodeURIComponent(query)}`;
-  const res = await fetch(url, { headers: { Accept: "application/json" } });
-  if (!res.ok) throw new Error(`Falha no geocode (${res.status})`);
-  const data = (await res.json()) as Array<{ lat: string; lon: string; display_name: string; importance?: number }>;
-  if (!data || data.length === 0) return null;
-  const top = data[0];
-  const importance = top.importance ?? 0;
-  const confidence: GeocodeResult["confidence"] = importance > 0.6 ? "high" : importance > 0.35 ? "medium" : "low";
+  const res = await geocodeAddressFn({ data: { query } });
+  if (!res.ok) {
+    if (res.error === "Endereço não encontrado") return null;
+    throw new Error(res.error ?? "Falha no geocode");
+  }
+  // Google location_type → confidence
+  // ROOFTOP = high, RANGE_INTERPOLATED = medium, GEOMETRIC_CENTER/APPROXIMATE = low
+  const confidence: GeocodeResult["confidence"] =
+    res.locationType === "ROOFTOP"
+      ? "high"
+      : res.locationType === "RANGE_INTERPOLATED"
+        ? "medium"
+        : "low";
   return {
-    lat: parseFloat(top.lat),
-    lng: parseFloat(top.lon),
-    displayName: top.display_name,
-    confidence,
-    raw: top,
+    lat: res.lat!,
+    lng: res.lng!,
+    displayName: res.displayName!,
+    confidence: res.partialMatch ? "low" : confidence,
+    placeId: res.placeId,
+    partialMatch: res.partialMatch,
   };
 }
 
