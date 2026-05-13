@@ -234,7 +234,9 @@ export function CreateRfpWizard({ open, onClose }: Props) {
             </>
           )}
 
-          {step === 3 && (
+          {step === 3 && <RfpPoiStep pois={pois} onChange={setPois} />}
+
+          {step === 4 && (
             <>
               <div>
                 <Label>Estratégia de convite</Label>
