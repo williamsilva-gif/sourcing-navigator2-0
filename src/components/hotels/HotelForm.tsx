@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { MapPin, Save, X, CheckCircle2, AlertTriangle, Loader2, Search } from "lucide-react";
 import { hotelSchema, type Hotel } from "@/lib/baselineSchemas";
@@ -10,7 +10,9 @@ import {
   type GeocodeResult,
   type AutocompletePrediction,
 } from "@/lib/geocode";
-import { HotelMap } from "./HotelMap";
+
+// Lazy: keeps the heavy Google Maps iframe out of the form's initial render.
+const HotelMap = lazy(() => import("./HotelMap").then((m) => ({ default: m.HotelMap })));
 
 interface Props {
   initial?: Partial<Hotel>;
