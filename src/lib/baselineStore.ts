@@ -30,6 +30,8 @@ interface BaselineState {
   removeUpload: (id: string) => void;
   reset: () => void;
   setUseDemo: (v: boolean) => void;
+  upsertHotel: (hotel: Hotel) => void;
+  deleteHotel: (code: string) => void;
 }
 
 function parseRows<T>(
@@ -93,7 +95,40 @@ export const useBaselineStore = create<BaselineState>((set, get) => ({
   },
   reset: () => set({ bookings: [], hotels: [], contracts: [], uploads: [], useDemo: false }),
   setUseDemo: (v) => set({ useDemo: v }),
+  upsertHotel: (hotel) =>
+    set((s) => {
+      const idx = s.hotels.findIndex((h) => h.code === hotel.code);
+      if (idx === -1) return { hotels: [...s.hotels, hotel] } as Partial<BaselineState> as BaselineState;
+      const next = [...s.hotels];
+      next[idx] = hotel;
+      return { hotels: next } as Partial<BaselineState> as BaselineState;
+    }),
+  deleteHotel: (code) =>
+    set((s) => ({ hotels: s.hotels.filter((h) => h.code !== code) }) as Partial<BaselineState> as BaselineState),
 }));
+
+// Per-city ADR distribution + cap (cap = ceil of city ADR rounded to 5)
+export function selectAdrDistributionByCity(bookings: Booking[], city: string): { buckets: AdrBucket[]; cap: number; total: number } {
+  const filtered = city === "__all__" ? bookings : bookings.filter((b) => b.city === city);
+  const ranges: { label: string; min: number; max: number; mid: number }[] = [
+    { label: "120-150", min: 120, max: 150, mid: 135 },
+    { label: "150-180", min: 150, max: 180, mid: 165 },
+    { label: "180-210", min: 180, max: 210, mid: 195 },
+    { label: "210-240", min: 210, max: 240, mid: 225 },
+    { label: "240-270", min: 240, max: 270, mid: 255 },
+    { label: "270-300", min: 270, max: 300, mid: 285 },
+    { label: "300-330", min: 300, max: 330, mid: 315 },
+    { label: "330-360", min: 330, max: 360, mid: 345 },
+    { label: "360-390", min: 360, max: 390, mid: 375 },
+    { label: "390+", min: 390, max: Infinity, mid: 405 },
+  ];
+  const buckets = ranges.map((r) => ({ bucket: r.label, mid: r.mid, count: filtered.filter((b) => b.adr >= r.min && b.adr < r.max).length }));
+  const totalRn = filtered.reduce((s, b) => s + b.room_nights, 0);
+  const totalSpend = filtered.reduce((s, b) => s + b.room_nights * b.adr, 0);
+  const adr = totalRn > 0 ? totalSpend / totalRn : 0;
+  const cap = Math.round((adr * 1.02) / 5) * 5;
+  return { buckets, cap, total: filtered.length };
+}
 
 // ============== Selectors / derivations ==============
 
