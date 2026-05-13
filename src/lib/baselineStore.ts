@@ -55,7 +55,9 @@ function parseRows<T>(
   return { ok, errors };
 }
 
-export const useBaselineStore = create<BaselineState>((set, get) => ({
+export const useBaselineStore = create<BaselineState>()(
+  persist(
+    (set, get) => ({
   bookings: [],
   hotels: [],
   contracts: [],
