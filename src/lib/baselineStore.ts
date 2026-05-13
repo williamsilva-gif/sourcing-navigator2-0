@@ -104,6 +104,20 @@ export const useBaselineStore = create<BaselineState>((set, get) => ({
       next[idx] = hotel;
       return { hotels: next } as Partial<BaselineState> as BaselineState;
     }),
+  upsertHotelsBulk: (incoming) => {
+    let added = 0;
+    let updated = 0;
+    set((s) => {
+      const map = new Map(s.hotels.map((h) => [h.code, h] as const));
+      for (const h of incoming) {
+        if (map.has(h.code)) updated++;
+        else added++;
+        map.set(h.code, h);
+      }
+      return { hotels: Array.from(map.values()) } as Partial<BaselineState> as BaselineState;
+    });
+    return { added, updated };
+  },
   deleteHotel: (code) =>
     set((s) => ({ hotels: s.hotels.filter((h) => h.code !== code) }) as Partial<BaselineState> as BaselineState),
 }));
