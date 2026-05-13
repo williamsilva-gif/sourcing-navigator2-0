@@ -31,6 +31,7 @@ interface BaselineState {
   reset: () => void;
   setUseDemo: (v: boolean) => void;
   upsertHotel: (hotel: Hotel) => void;
+  upsertHotelsBulk: (hotels: Hotel[]) => { added: number; updated: number };
   deleteHotel: (code: string) => void;
 }
 
