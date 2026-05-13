@@ -20,20 +20,41 @@ export const bookingSchema = z.object({
   channel: z.string().optional().default("Direct"),
 });
 
+// Some property-list exports drop the decimal point in coordinates
+// (e.g. -2917487 instead of -29.17487). Auto-rescale until value falls in range.
+function normalizeCoord(max: number) {
+  return (v: unknown) => {
+    if (v === null || v === undefined || v === "") return undefined;
+    let n = typeof v === "number" ? v : Number(String(v).replace(",", "."));
+    if (!Number.isFinite(n)) return undefined;
+    let abs = Math.abs(n);
+    let guard = 0;
+    while (abs > max && guard < 20) {
+      n = n / 10;
+      abs = Math.abs(n);
+      guard++;
+    }
+    return n;
+  };
+}
+
 export const hotelSchema = z.object({
   code: z.union([z.string(), z.number()]).transform(String),
   name: z.string().min(1),
-  address: z.string().optional().default(""),
-  postal_code: z.union([z.string(), z.number()]).transform(String).optional().default(""),
-  city: z.string().min(1),
-  state_province: z.string().optional().default(""),
-  country_code: z.string().optional().default(""),
-  phone_number: z.union([z.string(), z.number()]).transform(String).optional().default(""),
-  Contact: z.string().optional().default(""),
-  latitude: z.coerce.number().optional(),
-  longitude: z.coerce.number().optional(),
-  star_rating: z.coerce.number().min(0).max(5).optional(),
-  category_id: z.union([z.string(), z.number()]).transform(String).optional().default(""),
+  address: z.preprocess((v) => (v == null ? "" : String(v)), z.string().default("")),
+  postal_code: z.preprocess((v) => (v == null ? "" : String(v)), z.string().default("")),
+  city: z.preprocess((v) => (v == null ? "" : String(v).trim()), z.string().min(1)),
+  state_province: z.preprocess((v) => (v == null ? "" : String(v)), z.string().default("")),
+  country_code: z.preprocess((v) => (v == null ? "" : String(v).toUpperCase()), z.string().default("")),
+  phone_number: z.preprocess((v) => (v == null ? "" : String(v)), z.string().default("")),
+  Contact: z.preprocess((v) => (v == null ? "" : String(v)), z.string().default("")),
+  latitude: z.preprocess(normalizeCoord(90), z.number().min(-90).max(90).optional()),
+  longitude: z.preprocess(normalizeCoord(180), z.number().min(-180).max(180).optional()),
+  star_rating: z.preprocess(
+    (v) => (v === null || v === undefined || v === "" ? undefined : Number(v)),
+    z.number().min(0).max(5).optional(),
+  ),
+  category_id: z.preprocess((v) => (v == null ? "" : String(v)), z.string().default("")),
 });
 
 export const contractSchema = z.object({
