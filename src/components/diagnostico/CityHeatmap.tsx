@@ -39,9 +39,18 @@ function fmtNumber(n: number) {
 function fmtCurrency(n: number) {
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
-    currency: "USD",
+    currency: "BRL",
     notation: "compact",
     maximumFractionDigits: 1,
+  }).format(n);
+}
+
+function fmtBRL(n: number) {
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(n);
 }
 
@@ -165,7 +174,7 @@ export function CityHeatmap() {
                       : "oklch(0.45 0.03 254)",
                 }}
               >
-                {fmtCurrency(c.spend)} · ADR ${c.adr}
+                {fmtCurrency(c.spend)} · ADR {fmtBRL(c.adr)}
               </p>
             </div>
           );

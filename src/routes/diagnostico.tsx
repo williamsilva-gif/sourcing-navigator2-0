@@ -101,7 +101,7 @@ function DiagnosticoPage() {
         />
         <KpiCard
           label="Spend total"
-          value={isLive ? fmt$(live.totalSpend) : "$15.7M"}
+          value={isLive ? fmtBRLFull(live.totalSpend) : "R$ 15.700.000,00"}
           delta={6.8}
           deltaLabel="vs ano anterior"
           icon={DollarSign}
@@ -109,7 +109,7 @@ function DiagnosticoPage() {
         />
         <KpiCard
           label="ADR médio"
-          value={isLive ? `$${Math.round(live.adr)}` : "$293"}
+          value={isLive ? fmtBRLFull(live.adr) : "R$ 293,00"}
           delta={2.1}
           deltaLabel="vs ano anterior"
           icon={TrendingDown}
