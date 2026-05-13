@@ -1,8 +1,8 @@
-import { useEffect } from "react";
 import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 import { Toaster } from "@/components/ui/sonner";
-import { useBaselineStore } from "@/lib/baselineStore";
-import { generateDemoBookings } from "@/lib/demoData";
+// Importing baselineStore here ensures the module-level demo auto-seed runs
+// as soon as the app boots on the client.
+import "@/lib/baselineStore";
 
 import appCss from "../styles.css?url";
 
