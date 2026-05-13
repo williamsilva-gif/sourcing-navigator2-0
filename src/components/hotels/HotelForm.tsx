@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { MapPin, Save, X, CheckCircle2, AlertTriangle, Loader2, Search } from "lucide-react";
 import { hotelSchema, type Hotel } from "@/lib/baselineSchemas";
@@ -10,7 +10,9 @@ import {
   type GeocodeResult,
   type AutocompletePrediction,
 } from "@/lib/geocode";
-import { HotelMap } from "./HotelMap";
+
+// Lazy: keeps the heavy Google Maps iframe out of the form's initial render.
+const HotelMap = lazy(() => import("./HotelMap").then((m) => ({ default: m.HotelMap })));
 
 interface Props {
   initial?: Partial<Hotel>;
@@ -329,12 +331,10 @@ export function HotelForm({ initial, onSave, onCancel, existingCodes }: Props) {
 
       <div className="space-y-2">
         <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Pré-visualização do mapa</p>
-        <HotelMap
-          lat={form.latitude}
-          lng={form.longitude}
-          query={[form.name, form.address, form.city, form.state_province, form.country_code].filter(Boolean).join(", ")}
-          height={420}
-        />
+        <Suspense fallback={<div className="flex h-[420px] items-center justify-center rounded-md border border-dashed border-border bg-muted/20 text-xs text-muted-foreground">Carregando mapa…</div>}>
+          {/* Pass only coords — avoids re-loading the iframe on every keystroke. */}
+          <HotelMap lat={form.latitude} lng={form.longitude} height={420} />
+        </Suspense>
         <p className="text-[10px] leading-relaxed text-muted-foreground">
           Autocomplete e validação via Google Places + Geocoding. A chave fica no servidor.
         </p>
