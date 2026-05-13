@@ -26,12 +26,12 @@ const SelecaoRoute = SelecaoRouteImport.update({
   id: '/selecao',
   path: '/selecao',
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any).lazy(() => import('./routes/selecao.lazy').then((d) => d.Route))
 const RfpRoute = RfpRouteImport.update({
   id: '/rfp',
   path: '/rfp',
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any).lazy(() => import('./routes/rfp.lazy').then((d) => d.Route))
 const NegociacaoRoute = NegociacaoRouteImport.update({
   id: '/negociacao',
   path: '/negociacao',
