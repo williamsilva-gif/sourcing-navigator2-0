@@ -55,7 +55,7 @@ export function HotelForm({ initial, onSave, onCancel, existingCodes }: Props) {
     try {
       const result = await geocodeAddress(query);
       if (!result) {
-        setValidation({ ok: false, message: "Endereço não encontrado pelo Google Maps/OpenStreetMap" });
+        setValidation({ ok: false, message: "Endereço não encontrado pelo Google Maps" });
         toast.warning("Endereço não localizado");
         return;
       }
@@ -244,7 +244,7 @@ export function HotelForm({ initial, onSave, onCancel, existingCodes }: Props) {
           height={420}
         />
         <p className="text-[10px] leading-relaxed text-muted-foreground">
-          Mapa via Google Maps. Validação por OpenStreetMap Nominatim — gratuito, sem API key. Para volumes maiores, conecte uma chave do Google Geocoding.
+          Mapa via Google Maps. Validação via Google Geocoding API. A chave fica no servidor — nunca exposta no navegador.
         </p>
       </div>
     </div>
