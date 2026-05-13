@@ -100,13 +100,41 @@ function HotelsPage() {
             </div>
           </div>
           {editing === null && (
-            <button
-              onClick={() => setEditing("new")}
-              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              Novo hotel
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => downloadTemplate("hotels")}
+                className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:bg-secondary"
+              >
+                <Download className="h-3.5 w-3.5" />
+                Template .xlsx
+              </button>
+              <button
+                onClick={() => fileInput.current?.click()}
+                disabled={importing}
+                className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:bg-secondary disabled:opacity-50"
+              >
+                <Upload className="h-3.5 w-3.5" />
+                {importing ? "Importando…" : "Upload em massa"}
+              </button>
+              <input
+                ref={fileInput}
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                multiple
+                className="hidden"
+                onChange={(e) => {
+                  handleBulk(e.target.files);
+                  e.target.value = "";
+                }}
+              />
+              <button
+                onClick={() => setEditing("new")}
+                className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Novo hotel
+              </button>
+            </div>
           )}
         </header>
 
