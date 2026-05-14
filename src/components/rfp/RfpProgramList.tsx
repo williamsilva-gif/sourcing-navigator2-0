@@ -114,9 +114,16 @@ export function RfpProgramList({ onView, onCreate }: Props) {
                     <Progress value={responseRate} className="h-1.5" />
                   </div>
                 </div>
-                <Button size="sm" variant="outline" onClick={() => onView(rfp.id)}>
-                  <Eye className="mr-1.5 h-3.5 w-3.5" />Detalhes
-                </Button>
+                <div className="flex flex-col gap-2">
+                  <Button size="sm" variant="outline" onClick={() => onView(rfp.id)}>
+                    <Eye className="mr-1.5 h-3.5 w-3.5" />Detalhes
+                  </Button>
+                  {rfp.status !== "Encerrado" && (
+                    <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => setCancelId(rfp.id)}>
+                      <XCircle className="mr-1.5 h-3.5 w-3.5" />Cancelar
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           );
