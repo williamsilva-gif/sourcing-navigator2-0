@@ -1,11 +1,12 @@
 import { useMemo, useState } from "react";
-import { createFileRoute, useOutletContext, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { WikiMarkdown } from "@/components/wiki/WikiMarkdown";
 import { WikiEditor } from "@/components/wiki/WikiEditor";
 import { Pencil, ChevronRight, Calendar } from "lucide-react";
 import { updateWikiPage, deleteWikiPage, type WikiPage } from "@/lib/wikiRepo";
-import { useAuth } from "@/hooks/useAuth";
+import { useWikiPages } from "@/lib/wikiStore";
+import { useAuth, getPrimaryRole } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/wiki/$slug")({
@@ -14,18 +15,16 @@ export const Route = createFileRoute("/wiki/$slug")({
 
 function WikiPageView() {
   const { slug } = Route.useParams();
-  const { pages, reload, isTaMaster } = useOutletContext<{
-    pages: WikiPage[];
-    reload: () => Promise<void>;
-    isTaMaster: boolean;
-  }>();
-  const { user } = useAuth();
+  const { pages, reload } = useWikiPages();
+  const { user, roles } = useAuth();
+  const role = getPrimaryRole(roles);
+  const isTaMaster = role === "ta_master" || role === "ta_staff";
   const navigate = useNavigate();
 
   const page = useMemo(() => pages.find((p) => p.slug === slug), [pages, slug]);
-  const breadcrumb = useMemo(() => {
+  const breadcrumb = useMemo<WikiPage[]>(() => {
     if (!page) return [];
-    const map = new Map(pages.map((p) => [p.id, p]));
+    const map = new Map<string, WikiPage>(pages.map((p) => [p.id, p]));
     const chain: WikiPage[] = [];
     let cur: WikiPage | undefined = page;
     while (cur) {

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
 import { AppShell } from "@/components/layout/AppShell";
 import { WikiSidebar } from "@/components/wiki/WikiSidebar";
@@ -7,15 +7,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus } from "lucide-react";
-import { listWikiPages, createWikiPage, slugify, type WikiPage } from "@/lib/wikiRepo";
+import { createWikiPage, slugify, type WikiPage } from "@/lib/wikiRepo";
+import { useWikiPages } from "@/lib/wikiStore";
 import { useAuth, getPrimaryRole } from "@/hooks/useAuth";
 import { toast } from "sonner";
-
-interface WikiCtx {
-  pages: WikiPage[];
-  reload: () => Promise<void>;
-  isTaMaster: boolean;
-}
 
 export const Route = createFileRoute("/wiki")({
   component: WikiLayout,
@@ -26,25 +21,8 @@ function WikiLayout() {
   const role = getPrimaryRole(roles);
   const isTaMaster = role === "ta_master" || role === "ta_staff";
   const navigate = useNavigate();
-
-  const [pages, setPages] = useState<WikiPage[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { pages, reload } = useWikiPages();
   const [newOpen, setNewOpen] = useState(false);
-
-  const reload = useCallback(async () => {
-    try {
-      const data = await listWikiPages();
-      setPages(data);
-    } catch (e) {
-      toast.error("Erro ao carregar páginas");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    reload();
-  }, [reload]);
 
   return (
     <AppShell>
@@ -59,7 +37,7 @@ function WikiLayout() {
                 </Button>
               </div>
             )}
-            <Outlet context={{ pages, reload, isTaMaster, loading } satisfies WikiCtx & { loading: boolean }} />
+            <Outlet />
           </div>
         </div>
       </div>
@@ -95,12 +73,11 @@ function NewPageDialog({
     if (!title.trim()) return;
     setSaving(true);
     try {
-      let slug = slugify(title);
-      // Ensure unique slug
+      const base = slugify(title);
       const existing = new Set(pages.map((p) => p.slug));
-      let candidate = slug;
+      let candidate = base;
       let i = 2;
-      while (existing.has(candidate)) candidate = `${slug}-${i++}`;
+      while (existing.has(candidate)) candidate = `${base}-${i++}`;
       await createWikiPage({
         title: title.trim(),
         slug: candidate,
@@ -114,8 +91,7 @@ function NewPageDialog({
       setParentId("");
       onCreated(candidate);
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Erro ao criar página";
-      toast.error(msg);
+      toast.error(e instanceof Error ? e.message : "Erro ao criar página");
     } finally {
       setSaving(false);
     }
