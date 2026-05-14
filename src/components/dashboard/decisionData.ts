@@ -71,8 +71,11 @@ import { useActionStore } from "@/lib/actionStore";
 import { useThresholds, useDefaultCap } from "@/lib/appConfigStore";
 import { evaluateRules } from "@/lib/recommendationEngine";
 
-export function useDecisionData(): { alerts: CriticalAlert[]; opportunities: Opportunity[]; source: "baseline" | "demo" | "empty" } {
-  const bookings = useBaselineStore((s) => s.bookings);
+import { filterByWindow, type PeriodWindow } from "@/lib/periodFilter";
+
+export function useDecisionData(window?: PeriodWindow | null): { alerts: CriticalAlert[]; opportunities: Opportunity[]; source: "baseline" | "demo" | "empty" } {
+  const allBookings = useBaselineStore((s) => s.bookings);
+  const bookings = window ? filterByWindow(allBookings, window) : allBookings;
   const useDemo = useBaselineStore((s) => s.useDemo);
   const capOverrides = useActionStore((s) => s.capOverrides);
   const adrAdjustments = useActionStore((s) => s.adrAdjustments);
