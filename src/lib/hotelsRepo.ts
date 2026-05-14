@@ -63,13 +63,21 @@ function toDb(h: Hotel) {
 }
 
 export async function listHotels(): Promise<HotelWithLocal[]> {
-  const { data, error } = await supabase
-    .from("hotels")
-    .select("*")
-    .order("name", { ascending: true })
-    .limit(5000);
-  if (error) throw error;
-  return (data as HotelRow[]).map(fromDb);
+  // Paginate — Supabase caps each response at 1000 rows.
+  const PAGE = 1000;
+  const all: HotelRow[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await supabase
+      .from("hotels")
+      .select("*")
+      .order("name", { ascending: true })
+      .range(from, from + PAGE - 1);
+    if (error) throw error;
+    const rows = (data ?? []) as HotelRow[];
+    all.push(...rows);
+    if (rows.length < PAGE) break;
+  }
+  return all.map(fromDb);
 }
 
 export async function createHotel(h: Hotel): Promise<HotelWithLocal> {
