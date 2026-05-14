@@ -133,7 +133,8 @@ function HotelsPage() {
           }
         });
       }
-      const result = await bulkUpsertByCode(allValid);
+      setImportProgress({ processed: 0, total: allValid.length, batch: 0, batches: Math.max(1, Math.ceil(allValid.length / 1000)) });
+      const result = await bulkUpsertByCode(allValid, (info) => setImportProgress(info));
       const desc =
         (totalErrors > 0 ? `${totalErrors} linhas com erro · ex: ${errorSamples[0]}` : undefined) ??
         result.firstError;
@@ -145,73 +146,7 @@ function HotelsPage() {
       toast.error(`Falha na importação: ${(e as Error).message}`);
     } finally {
       setImporting(false);
-    }
-  }
-
-  async function handleMigrateLocal() {
-    if (localHotels.length === 0) return;
-    setMigrating(true);
-    setMigrateProgress({ processed: 0, total: localHotels.length, batch: 0, batches: Math.max(1, Math.ceil(localHotels.length / 1000)) });
-    try {
-      const result = await bulkUpsertByCode(localHotels, (info) => setMigrateProgress(info));
-      toast.success(`Migrados: ${result.added} novos · ${result.updated} atualizados`, {
-        description: result.failed
-          ? `${result.failed} falharam — ${result.firstError ?? "verifique permissões"}`
-          : "Verificando consistência com o banco…",
-      });
-
-      // Consistency check: re-query the DB by the codes we tried to migrate and
-      // make sure every local hotel is now present.
-      const codes = localHotels.map((h) => h.code).filter((c): c is string => Boolean(c));
-      const withoutCode = localHotels.length - codes.length;
-      let dbFound = 0;
-      let missingCodes: string[] = [];
-      if (codes.length > 0) {
-        const { data, error } = await supabase.from("hotels").select("code").in("code", codes);
-        if (error) {
-          toast.warning("Não foi possível verificar consistência", { description: error.message });
-        } else {
-          const foundSet = new Set((data ?? []).map((r: { code: string | null }) => r.code).filter(Boolean) as string[]);
-          dbFound = foundSet.size;
-          missingCodes = codes.filter((c) => !foundSet.has(c));
-        }
-      }
-      const expected = localHotels.length;
-      const accounted = dbFound + withoutCode; // hotéis sem código não dá pra reconciliar
-      const discrepancy = expected - accounted;
-
-      if (discrepancy > 0 || result.failed > 0) {
-        toast.warning(`Discrepância detectada: ${discrepancy} hotel(is) faltando no banco`, {
-          description:
-            (missingCodes.length > 0
-              ? `Códigos ausentes (até 5): ${missingCodes.slice(0, 5).join(", ")}${missingCodes.length > 5 ? "…" : ""}. `
-              : "") +
-            (withoutCode > 0
-              ? `${withoutCode} hotel(is) sem código não puderam ser reconciliados automaticamente. `
-              : "") +
-            "Cópia local preservada para revisão.",
-          duration: 10000,
-        });
-      } else if (result.failed === 0) {
-        toast.success(`Consistência OK: ${accounted}/${expected} hotéis confirmados no banco`);
-        const ok = confirm(
-          `Migração e verificação concluídas: ${accounted}/${expected} hotéis confirmados no banco.\n\n` +
-            `Deseja limpar a cópia local do navegador agora?\n\n` +
-            `Recomendado apenas após revisar a lista no banco. Cancele se quiser conferir antes.`,
-        );
-        if (ok) {
-          for (const h of localHotels) clearLocalHotels(h.code);
-          toast.info("Cópia local removida");
-        } else {
-          toast.message("Cópia local mantida — limpe manualmente quando quiser");
-        }
-      }
-      refresh();
-    } catch (e) {
-      toast.error(`Falha ao migrar: ${(e as Error).message}`);
-    } finally {
-      setMigrating(false);
-      setMigrateProgress(null);
+      setImportProgress(null);
     }
   }
 
