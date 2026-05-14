@@ -146,11 +146,23 @@ function TaClientsPage() {
   return (
     <AppShell>
       <div className="mx-auto max-w-6xl space-y-6">
-        <header>
-          <h1 className="text-2xl font-semibold text-foreground">Clientes da plataforma</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Gerencie TMCs e clientes corporativos diretos do Travel Academy.
-          </p>
+        <header className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-semibold text-foreground">Clientes da plataforma</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Gerencie TMCs e clientes corporativos diretos do Travel Academy.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleSeedAcme}
+            disabled={busy}
+            className="inline-flex h-10 items-center gap-2 rounded-md border border-input bg-background px-4 text-sm font-medium text-foreground hover:border-primary/40 hover:bg-primary-soft disabled:opacity-50"
+            title="Importa 500 bookings demo no tenant Acme (idempotente)"
+          >
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Database className="h-4 w-4" />}
+            Carregar dados demo Acme
+          </button>
         </header>
 
         {/* Create form */}
