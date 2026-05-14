@@ -53,9 +53,7 @@ function DiagnosticoPage() {
             <p className="mt-0.5 text-sm text-muted-foreground">
               {isLive
                 ? `Baseline real · ${bookings.length.toLocaleString("pt-BR")} bookings carregados · período ${period}`
-                : useDemo
-                  ? `Dados de demonstração · período ${period} · Acme Travel Corp`
-                  : `Sem baseline · carregue um arquivo abaixo`}
+                : `Sem baseline · carregue um arquivo abaixo`}
             </p>
           </div>
         </div>
