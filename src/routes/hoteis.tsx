@@ -75,14 +75,22 @@ function HotelsPage() {
   }, []);
 
   const filtered = useMemo(() => {
-    const q = query.toLowerCase().trim();
+    const q = debouncedQuery.toLowerCase().trim();
     if (!q) return hotels;
     return hotels.filter((h) =>
       [h.code, h.name, h.city, h.state, h.country_code, h.address]
         .filter(Boolean)
         .some((v) => String(v).toLowerCase().includes(q)),
     );
-  }, [hotels, query]);
+  }, [hotels, debouncedQuery]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const pageStart = (currentPage - 1) * pageSize;
+  const pageRows = useMemo(
+    () => filtered.slice(pageStart, pageStart + pageSize),
+    [filtered, pageStart, pageSize],
+  );
 
   async function handleSave(h: Hotel) {
     try {
