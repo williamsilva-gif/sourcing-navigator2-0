@@ -1,8 +1,11 @@
 import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { Toaster } from "@/components/ui/sonner";
 // Importing baselineStore here ensures the module-level demo auto-seed runs
 // as soon as the app boots on the client.
 import "@/lib/baselineStore";
+import { useAuth } from "@/hooks/useAuth";
+import { useClientsStore } from "@/lib/clientsStore";
 
 import appCss from "../styles.css?url";
 
@@ -83,6 +86,12 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
+  const { user } = useAuth();
+  const syncClients = useClientsStore((s) => s.syncFromDb);
+  useEffect(() => {
+    if (user) syncClients();
+  }, [user, syncClients]);
+
   return (
     <>
       <Outlet />
