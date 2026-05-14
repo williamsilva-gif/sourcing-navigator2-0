@@ -5,6 +5,7 @@ import {
   createRfpFn,
   listRfpsFn,
   getRfpFn,
+  cancelRfpFn,
   type RfpRecord,
 } from "./rfp.functions";
 
