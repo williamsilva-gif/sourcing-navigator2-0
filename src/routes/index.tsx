@@ -155,9 +155,38 @@ function DashboardPage() {
             Bom dia, Marina
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {opportunities.length} oportunidades · fonte: {source === "baseline" ? "baseline carregado" : source === "demo" ? "demo" : "vazio"} · janela: {currentWindow?.label ?? "—"} · última avaliação {timeAgo(evaluatedAt)}
+            {opportunities.length} oportunidades · fonte: {source === "baseline" ? "baseline carregado" : source === "demo" ? "demo" : "vazio"} · última avaliação {timeAgo(evaluatedAt)}
             {evaluatedAt && ` · próxima em ${daysNext}d`}
           </p>
+          <div className="mt-2 inline-flex flex-wrap items-center gap-2 rounded-md border border-border bg-muted/40 px-3 py-1.5 text-xs">
+            <span className="font-semibold text-foreground">Atual:</span>
+            <span className="rounded bg-primary-soft px-1.5 py-0.5 font-medium text-primary">
+              {currentWindow?.label ?? "—"}
+            </span>
+            <span className="text-muted-foreground">
+              {currentBookings.length.toLocaleString("pt-BR")} bookings
+            </span>
+            <span className="text-muted-foreground">·</span>
+            <span className="font-semibold text-foreground">Comparando com:</span>
+            {previousHasData && prevWindow ? (
+              <>
+                <span className="rounded bg-muted px-1.5 py-0.5 font-medium text-foreground">
+                  {prevWindow.label}
+                </span>
+                <span className="text-muted-foreground">
+                  {previousBookings.length.toLocaleString("pt-BR")} bookings
+                </span>
+              </>
+            ) : (
+              <span className="rounded bg-muted px-1.5 py-0.5 italic text-muted-foreground">
+                sem histórico
+              </span>
+            )}
+            <span className="text-muted-foreground">·</span>
+            <span className="text-muted-foreground">
+              {contracts.length} contratos vigentes
+            </span>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <PeriodSelector
@@ -217,6 +246,8 @@ function DashboardPage() {
 
       <div className="mt-6 space-y-6">
         <CriticalAlerts onViewRecommendation={openByOpportunityId} />
+
+        <Rfp2026Plan />
 
         <OpportunitiesList onTakeAction={openOpportunity} />
 
