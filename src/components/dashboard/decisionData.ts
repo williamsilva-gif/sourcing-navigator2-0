@@ -75,6 +75,7 @@ import { filterByWindow, type PeriodWindow } from "@/lib/periodFilter";
 
 export function useDecisionData(window?: PeriodWindow | null): { alerts: CriticalAlert[]; opportunities: Opportunity[]; source: "baseline" | "demo" | "empty" } {
   const allBookings = useBaselineStore((s) => s.bookings);
+  const contracts = useBaselineStore((s) => s.contracts);
   const bookings = window ? filterByWindow(allBookings, window) : allBookings;
   const useDemo = useBaselineStore((s) => s.useDemo);
   const capOverrides = useActionStore((s) => s.capOverrides);
@@ -95,6 +96,7 @@ export function useDecisionData(window?: PeriodWindow | null): { alerts: Critica
         executedOpportunityIds,
         thresholds,
         defaultCap,
+        contracts,
       });
       return { alerts, opportunities, source: "baseline" };
     }
@@ -107,7 +109,7 @@ export function useDecisionData(window?: PeriodWindow | null): { alerts: Critica
       };
     }
     return { alerts: [], opportunities: [], source: "empty" };
-  }, [bookings, capOverrides, adrAdjustments, portfolioOverrides, marketExpansion, executedOpportunityIds, thresholds, defaultCap, useDemo]);
+  }, [bookings, contracts, capOverrides, adrAdjustments, portfolioOverrides, marketExpansion, executedOpportunityIds, thresholds, defaultCap, useDemo]);
 }
 
 // Preview hook — same engine, but accepts ad-hoc thresholds/cap so the UI

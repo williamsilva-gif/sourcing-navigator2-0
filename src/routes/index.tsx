@@ -15,6 +15,7 @@ import { useDecisionData, type Opportunity } from "@/components/dashboard/decisi
 import { useSnapshotStore, timeAgo, daysUntilNextEval } from "@/lib/snapshotStore";
 import { useAuth, getPrimaryRole, landingForRole } from "@/hooks/useAuth";
 import { PeriodSelector } from "@/components/common/PeriodSelector";
+import { Rfp2026Plan } from "@/components/dashboard/Rfp2026Plan";
 import { useBaselineStore, selectKpis } from "@/lib/baselineStore";
 import {
   defaultPeriod,
@@ -54,6 +55,7 @@ function DashboardPage() {
   const search = Route.useSearch();
   const { ready, user, roles } = useAuth();
   const allBookings = useBaselineStore((s) => s.bookings);
+  const contracts = useBaselineStore((s) => s.contracts);
 
   // Resolve period: search params take priority, otherwise default from data.
   const fallbackPeriod = useMemo(() => defaultPeriod(allBookings), [allBookings]);
@@ -66,8 +68,8 @@ function DashboardPage() {
   const currentBookings = useMemo(() => filterByWindow(allBookings, currentWindow), [allBookings, currentWindow]);
   const previousBookings = useMemo(() => filterByWindow(allBookings, prevWindow), [allBookings, prevWindow]);
 
-  const currentKpis = useMemo(() => selectKpis(currentBookings), [currentBookings]);
-  const previousKpis = useMemo(() => selectKpis(previousBookings), [previousBookings]);
+  const currentKpis = useMemo(() => selectKpis(currentBookings, contracts), [currentBookings, contracts]);
+  const previousKpis = useMemo(() => selectKpis(previousBookings, contracts), [previousBookings, contracts]);
   const previousHasData = previousBookings.length > 0;
 
   const availableYears = useMemo(() => {
@@ -153,9 +155,38 @@ function DashboardPage() {
             Bom dia, Marina
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {opportunities.length} oportunidades · fonte: {source === "baseline" ? "baseline carregado" : source === "demo" ? "demo" : "vazio"} · janela: {currentWindow?.label ?? "—"} · última avaliação {timeAgo(evaluatedAt)}
+            {opportunities.length} oportunidades · fonte: {source === "baseline" ? "baseline carregado" : source === "demo" ? "demo" : "vazio"} · última avaliação {timeAgo(evaluatedAt)}
             {evaluatedAt && ` · próxima em ${daysNext}d`}
           </p>
+          <div className="mt-2 inline-flex flex-wrap items-center gap-2 rounded-md border border-border bg-muted/40 px-3 py-1.5 text-xs">
+            <span className="font-semibold text-foreground">Atual:</span>
+            <span className="rounded bg-primary-soft px-1.5 py-0.5 font-medium text-primary">
+              {currentWindow?.label ?? "—"}
+            </span>
+            <span className="text-muted-foreground">
+              {currentBookings.length.toLocaleString("pt-BR")} bookings
+            </span>
+            <span className="text-muted-foreground">·</span>
+            <span className="font-semibold text-foreground">Comparando com:</span>
+            {previousHasData && prevWindow ? (
+              <>
+                <span className="rounded bg-muted px-1.5 py-0.5 font-medium text-foreground">
+                  {prevWindow.label}
+                </span>
+                <span className="text-muted-foreground">
+                  {previousBookings.length.toLocaleString("pt-BR")} bookings
+                </span>
+              </>
+            ) : (
+              <span className="rounded bg-muted px-1.5 py-0.5 italic text-muted-foreground">
+                sem histórico
+              </span>
+            )}
+            <span className="text-muted-foreground">·</span>
+            <span className="text-muted-foreground">
+              {contracts.length} contratos vigentes
+            </span>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <PeriodSelector
@@ -215,6 +246,8 @@ function DashboardPage() {
 
       <div className="mt-6 space-y-6">
         <CriticalAlerts onViewRecommendation={openByOpportunityId} />
+
+        <Rfp2026Plan />
 
         <OpportunitiesList onTakeAction={openOpportunity} />
 

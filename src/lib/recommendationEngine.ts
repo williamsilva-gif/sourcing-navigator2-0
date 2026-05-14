@@ -2,19 +2,21 @@
 // Pure functions: consume baseline data + overrides, return derived
 // CriticalAlerts and Opportunities.
 
-import type { Booking } from "./baselineSchemas";
+import type { Booking, Contract } from "./baselineSchemas";
 import type { CriticalAlert, Opportunity, RecommendedAction } from "@/components/dashboard/decisionData";
 import type { PortfolioOverride } from "./actionStore";
 import type { Thresholds } from "./appConfigStore";
+import { capForBooking } from "./baselineStore";
 
 export interface EngineOverrides {
   capOverrides: Record<string, number>;
-  adrAdjustments?: Record<string, number>; // city -> % (negative = reduction)
+  adrAdjustments?: Record<string, number>;
   portfolioOverrides?: Record<string, PortfolioOverride>;
   marketExpansion?: Record<string, boolean>;
   executedOpportunityIds?: string[];
   defaultCap?: number;
   thresholds?: Thresholds;
+  contracts?: Contract[];
 }
 
 const DEFAULT_THRESHOLDS: Thresholds = {
@@ -43,6 +45,7 @@ interface CityStats {
 
 function computeCityStats(bookings: Booking[], overrides: EngineOverrides): CityStats[] {
   const baseCap = overrides.defaultCap ?? DEFAULT_CAP;
+  const contracts = overrides.contracts ?? [];
   const byCity = new Map<string, Booking[]>();
   bookings.forEach((b) => {
     const arr = byCity.get(b.city) ?? [];
@@ -52,8 +55,15 @@ function computeCityStats(bookings: Booking[], overrides: EngineOverrides): City
 
   const stats: CityStats[] = [];
   byCity.forEach((bs, city) => {
-    const cap = overrides.capOverrides[city] ?? baseCap;
-    const adrAdj = overrides.adrAdjustments?.[city] ?? 0; // negative %
+    // City-level cap override still wins; otherwise use mean of contract caps for hotels in this city; else default.
+    const cityContractCaps = contracts
+      .filter((c) => bs.some((b) => b.hotel === c.hotel))
+      .map((c) => c.cap);
+    const contractCityCap = cityContractCaps.length
+      ? Math.round(cityContractCaps.reduce((s, v) => s + v, 0) / cityContractCaps.length)
+      : null;
+    const cap = overrides.capOverrides[city] ?? contractCityCap ?? baseCap;
+    const adrAdj = overrides.adrAdjustments?.[city] ?? 0;
     const adrFactor = 1 + adrAdj / 100;
 
     const roomNights = bs.reduce((s, b) => s + b.room_nights, 0);
@@ -62,10 +72,14 @@ function computeCityStats(bookings: Booking[], overrides: EngineOverrides): City
     const rawAdr = roomNights > 0 ? rawSpend / roomNights : 0;
     const adr = rawAdr * adrFactor;
 
-    const overCap = bs.filter((b) => b.adr * adrFactor > cap);
+    // Per-booking effective cap (contract cap when present; else city cap).
+    const effCap = (b: Booking) =>
+      overrides.capOverrides[city] ?? capForBooking(b, contracts, baseCap);
+
+    const overCap = bs.filter((b) => b.adr * adrFactor > effCap(b));
     const overCapSpend = overCap.reduce((s, b) => s + b.room_nights * b.adr * adrFactor, 0);
     const overCapPct = spend > 0 ? (overCapSpend / spend) * 100 : 0;
-    const inCapRn = bs.filter((b) => b.adr * adrFactor <= cap).reduce((s, b) => s + b.room_nights, 0);
+    const inCapRn = bs.filter((b) => b.adr * adrFactor <= effCap(b)).reduce((s, b) => s + b.room_nights, 0);
     const compliancePct = roomNights > 0 ? (inCapRn / roomNights) * 100 : 0;
 
     const byHotel = new Map<string, number>();
@@ -74,7 +88,6 @@ function computeCityStats(bookings: Booking[], overrides: EngineOverrides): City
     const top2 = (sortedHotels[0] ?? 0) + (sortedHotels[1] ?? 0);
     let hotelTop2Share = roomNights > 0 ? (top2 / roomNights) * 100 : 0;
 
-    // Adjustments: marketExpansion reduces concentration by ~15pp; portfolioOverrides reduces by 5pp per added hotel
     if (overrides.marketExpansion?.[city]) hotelTop2Share = Math.max(0, hotelTop2Share - 15);
     const portfolio = overrides.portfolioOverrides?.[city];
     if (portfolio) hotelTop2Share = Math.max(0, hotelTop2Share - portfolio.addedHotels * 5);

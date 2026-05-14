@@ -204,14 +204,29 @@ export function selectCityAggregates(bookings: Booking[]): CityAggregate[] {
     .sort((a, b) => b.roomNights - a.roomNights);
 }
 
-export function selectKpis(bookings: Booking[]) {
+/**
+ * Build a per-hotel cap lookup that's year-aware. For each booking, picks the
+ * contract whose `valid_until` year matches the booking's checkin year, then
+ * falls back to the hotel's most recent contract, then to `defaultCap`.
+ */
+export function capForBooking(b: Booking, contracts: Contract[], defaultCap = 280): number {
+  if (!contracts || contracts.length === 0) return defaultCap;
+  const bookingYear = (b.checkin ?? "").slice(0, 4);
+  const sameHotel = contracts.filter((c) => c.hotel === b.hotel);
+  if (sameHotel.length === 0) return defaultCap;
+  const sameYear = sameHotel.find((c) => (c.valid_until ?? "").slice(0, 4) === bookingYear);
+  if (sameYear) return sameYear.cap;
+  // Fallback: most recent valid_until
+  return sameHotel.slice().sort((a, b) => (b.valid_until ?? "").localeCompare(a.valid_until ?? ""))[0].cap;
+}
+
+export function selectKpis(bookings: Booking[], contracts: Contract[] = []) {
   const totalRn = bookings.reduce((s, b) => s + b.room_nights, 0);
   const totalSpend = bookings.reduce((s, b) => s + b.room_nights * b.adr, 0);
   const adr = totalRn > 0 ? totalSpend / totalRn : 0;
   const hotels = new Set(bookings.map((b) => b.hotel)).size;
-  const cap = 280;
   const overCapSpend = bookings
-    .filter((b) => b.adr > cap)
+    .filter((b) => b.adr > capForBooking(b, contracts))
     .reduce((s, b) => s + b.room_nights * b.adr, 0);
   const leakagePct = totalSpend > 0 ? (overCapSpend / totalSpend) * 100 : 0;
   return { totalRn, totalSpend, adr, hotels, leakagePct };
