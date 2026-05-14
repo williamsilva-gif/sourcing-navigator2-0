@@ -38,6 +38,18 @@ function HotelsPage() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<HotelWithLocal | "new" | null>(null);
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQuery(query), 200);
+    return () => clearTimeout(t);
+  }, [query]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedQuery, pageSize]);
   const [importing, setImporting] = useState(false);
   const [migrating, setMigrating] = useState(false);
   const [migrateProgress, setMigrateProgress] = useState<{ processed: number; total: number; batch: number; batches: number } | null>(null);
