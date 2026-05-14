@@ -3,6 +3,7 @@ import { useLocation, Link } from "@tanstack/react-router";
 import { Lock } from "lucide-react";
 import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
+import { LegalFooter } from "@/components/privacy/LegalFooter";
 import { useEnabledModules, type ModuleKey } from "@/lib/appConfigStore";
 
 const PATH_TO_MODULE: Record<string, ModuleKey> = {
@@ -33,6 +34,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <main className="mx-auto max-w-[1600px] px-6 py-8">
           {blocked ? <ModuleDisabled module={moduleKey!} /> : children}
         </main>
+        <LegalFooter />
       </div>
     </div>
   );
