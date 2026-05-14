@@ -1,7 +1,10 @@
-import { Search, Bell, ChevronDown, Building2, Database } from "lucide-react";
+import { Search, Bell, ChevronDown, Building2, Database, LogOut, LogIn, Shield } from "lucide-react";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useBaselineStore } from "@/lib/baselineStore";
 import { useClientsStore } from "@/lib/clientsStore";
 import { useAppConfigStore, useEnvironment } from "@/lib/appConfigStore";
+import { useAuth, getPrimaryRole } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,8 +13,20 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
 
 export function Header() {
+  const navigate = useNavigate();
+  const { user, roles } = useAuth();
+  const primaryRole = getPrimaryRole(roles);
+  const isTa = primaryRole === "ta_master" || primaryRole === "ta_staff";
+
+  async function handleLogout() {
+    await supabase.auth.signOut();
+    toast.success("Sessão encerrada");
+    navigate({ to: "/login" });
+  }
+
   const bookings = useBaselineStore((s) => s.bookings);
   const uploads = useBaselineStore((s) => s.uploads);
   const clients = useClientsStore((s) => s.clients);
