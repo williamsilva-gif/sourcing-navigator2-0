@@ -1,5 +1,6 @@
 import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useClientsStore } from "@/lib/clientsStore";
@@ -102,15 +103,16 @@ function RootShell({ children }: { children: React.ReactNode }) {
 function RootComponent() {
   const { user } = useAuth();
   const syncClients = useClientsStore((s) => s.syncFromDb);
+  const [queryClient] = useState(() => new QueryClient());
   useEffect(() => {
     if (user) syncClients();
   }, [user, syncClients]);
 
   return (
-    <>
+    <QueryClientProvider client={queryClient}>
       <Outlet />
       <CookieBanner />
       <Toaster richColors position="bottom-right" />
-    </>
+    </QueryClientProvider>
   );
 }
