@@ -11,6 +11,7 @@ import {
   cleanup,
   createUser,
   describeIntegration as describe,
+  hasIntegrationEnv,
   PASSWORD,
   RUN_ID,
   signIn,
@@ -26,6 +27,7 @@ let invitee: CreatedUser;
 let corpUser: CreatedUser;
 
 beforeAll(async () => {
+  if (!hasIntegrationEnv) return;
   // Resolve the root TA tenant (must already exist in seed data).
   const { data: ta, error: taErr } = await admin
     .from("tenants")
@@ -49,6 +51,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+  if (!hasIntegrationEnv) return;
   await cleanup(created, PREFIX);
 });
 
