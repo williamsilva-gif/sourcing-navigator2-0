@@ -114,7 +114,7 @@ function SignupPage() {
             <label className="block text-xs font-medium text-foreground">{orgLabel}</label>
             <input
               type="text"
-              required={accountType !== "TA"}
+              required
               value={orgName}
               onChange={(e) => setOrgName(e.target.value)}
               className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
