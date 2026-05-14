@@ -9,9 +9,11 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SelecaoRouteImport } from './routes/selecao'
 import { Route as RfpRouteImport } from './routes/rfp'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as NegociacaoRouteImport } from './routes/negociacao'
 import { Route as MonitoramentoRouteImport } from './routes/monitoramento'
 import { Route as MonetizacaoRouteImport } from './routes/monetizacao'
@@ -24,8 +26,14 @@ import { Route as AnaliseRouteImport } from './routes/analise'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AccountPrivacyRouteImport } from './routes/account.privacy'
 import { Route as AuthenticatedTaClientsRouteImport } from './routes/_authenticated/ta.clients'
 
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
@@ -41,6 +49,11 @@ const RfpRoute = RfpRouteImport.update({
   path: '/rfp',
   getParentRoute: () => rootRouteImport,
 } as any).lazy(() => import('./routes/rfp.lazy').then((d) => d.Route))
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const NegociacaoRoute = NegociacaoRouteImport.update({
   id: '/negociacao',
   path: '/negociacao',
@@ -100,6 +113,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AccountPrivacyRoute = AccountPrivacyRouteImport.update({
+  id: '/account/privacy',
+  path: '/account/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedTaClientsRoute = AuthenticatedTaClientsRouteImport.update({
   id: '/ta/clients',
   path: '/ta/clients',
@@ -118,9 +136,12 @@ export interface FileRoutesByFullPath {
   '/monetizacao': typeof MonetizacaoRoute
   '/monitoramento': typeof MonitoramentoRoute
   '/negociacao': typeof NegociacaoRoute
+  '/privacy': typeof PrivacyRoute
   '/rfp': typeof RfpRoute
   '/selecao': typeof SelecaoRoute
   '/signup': typeof SignupRoute
+  '/terms': typeof TermsRoute
+  '/account/privacy': typeof AccountPrivacyRoute
   '/ta/clients': typeof AuthenticatedTaClientsRoute
 }
 export interface FileRoutesByTo {
@@ -135,9 +156,12 @@ export interface FileRoutesByTo {
   '/monetizacao': typeof MonetizacaoRoute
   '/monitoramento': typeof MonitoramentoRoute
   '/negociacao': typeof NegociacaoRoute
+  '/privacy': typeof PrivacyRoute
   '/rfp': typeof RfpRoute
   '/selecao': typeof SelecaoRoute
   '/signup': typeof SignupRoute
+  '/terms': typeof TermsRoute
+  '/account/privacy': typeof AccountPrivacyRoute
   '/ta/clients': typeof AuthenticatedTaClientsRoute
 }
 export interface FileRoutesById {
@@ -154,9 +178,12 @@ export interface FileRoutesById {
   '/monetizacao': typeof MonetizacaoRoute
   '/monitoramento': typeof MonitoramentoRoute
   '/negociacao': typeof NegociacaoRoute
+  '/privacy': typeof PrivacyRoute
   '/rfp': typeof RfpRoute
   '/selecao': typeof SelecaoRoute
   '/signup': typeof SignupRoute
+  '/terms': typeof TermsRoute
+  '/account/privacy': typeof AccountPrivacyRoute
   '/_authenticated/ta/clients': typeof AuthenticatedTaClientsRoute
 }
 export interface FileRouteTypes {
@@ -173,9 +200,12 @@ export interface FileRouteTypes {
     | '/monetizacao'
     | '/monitoramento'
     | '/negociacao'
+    | '/privacy'
     | '/rfp'
     | '/selecao'
     | '/signup'
+    | '/terms'
+    | '/account/privacy'
     | '/ta/clients'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -190,9 +220,12 @@ export interface FileRouteTypes {
     | '/monetizacao'
     | '/monitoramento'
     | '/negociacao'
+    | '/privacy'
     | '/rfp'
     | '/selecao'
     | '/signup'
+    | '/terms'
+    | '/account/privacy'
     | '/ta/clients'
   id:
     | '__root__'
@@ -208,9 +241,12 @@ export interface FileRouteTypes {
     | '/monetizacao'
     | '/monitoramento'
     | '/negociacao'
+    | '/privacy'
     | '/rfp'
     | '/selecao'
     | '/signup'
+    | '/terms'
+    | '/account/privacy'
     | '/_authenticated/ta/clients'
   fileRoutesById: FileRoutesById
 }
@@ -227,13 +263,23 @@ export interface RootRouteChildren {
   MonetizacaoRoute: typeof MonetizacaoRoute
   MonitoramentoRoute: typeof MonitoramentoRoute
   NegociacaoRoute: typeof NegociacaoRoute
+  PrivacyRoute: typeof PrivacyRoute
   RfpRoute: typeof RfpRoute
   SelecaoRoute: typeof SelecaoRoute
   SignupRoute: typeof SignupRoute
+  TermsRoute: typeof TermsRoute
+  AccountPrivacyRoute: typeof AccountPrivacyRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/signup': {
       id: '/signup'
       path: '/signup'
@@ -253,6 +299,13 @@ declare module '@tanstack/react-router' {
       path: '/rfp'
       fullPath: '/rfp'
       preLoaderRoute: typeof RfpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/negociacao': {
@@ -339,6 +392,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/account/privacy': {
+      id: '/account/privacy'
+      path: '/account/privacy'
+      fullPath: '/account/privacy'
+      preLoaderRoute: typeof AccountPrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/ta/clients': {
       id: '/_authenticated/ta/clients'
       path: '/ta/clients'
@@ -374,9 +434,12 @@ const rootRouteChildren: RootRouteChildren = {
   MonetizacaoRoute: MonetizacaoRoute,
   MonitoramentoRoute: MonitoramentoRoute,
   NegociacaoRoute: NegociacaoRoute,
+  PrivacyRoute: PrivacyRoute,
   RfpRoute: RfpRoute,
   SelecaoRoute: SelecaoRoute,
   SignupRoute: SignupRoute,
+  TermsRoute: TermsRoute,
+  AccountPrivacyRoute: AccountPrivacyRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

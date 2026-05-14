@@ -70,7 +70,7 @@ export const consentManager = {
   getConsent(type: ConsentType): boolean {
     if (type === "cookies_essential") return true;
     const s = this.getState();
-    return Boolean((s as Record<string, unknown>)[type]);
+    return Boolean((s as unknown as Record<string, unknown>)[type]);
   },
 
   setConsent(type: ConsentType, value: boolean) {

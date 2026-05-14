@@ -52,10 +52,13 @@ function AccountPrivacyPage() {
 
   useEffect(() => {
     setHistory(consentManager.getConsentHistory());
-    return consentManager.subscribe((s) => {
+    const unsub = consentManager.subscribe((s) => {
       setState(s);
       setHistory(consentManager.getConsentHistory());
     });
+    return () => {
+      unsub();
+    };
   }, []);
 
   useEffect(() => {
