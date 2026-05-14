@@ -56,7 +56,6 @@ function fmtBRL(n: number) {
 
 export function CityHeatmap() {
   const bookings = useBaselineStore((s) => s.bookings);
-  const useDemo = useBaselineStore((s) => s.useDemo);
   const isLive = bookings.length > 0;
   const cities: CityRow[] = isLive
     ? selectCityAggregates(bookings).slice(0, 10).map((c) => ({
@@ -68,9 +67,7 @@ export function CityHeatmap() {
         adr: c.adr,
         cap: Math.round((c.adr * 1.02) / 5) * 5,
       }))
-    : useDemo
-      ? DEMO_CITIES
-      : [];
+    : [];
   const max = Math.max(1, ...cities.map((c) => c.roomNights));
 
   if (cities.length === 0) {
