@@ -1,79 +1,108 @@
-# Plano: rodar fluxo end-to-end com Acme/Kontik + corrigir comparações temporais
+## Plano — Refinar "Plano para a RFP 2026"
 
-## Objetivo
-Validar o pipeline ponta-a-ponta com um cliente fictício realista (Acme abaixo da Kontik Viagens) e corrigir o bug em que o Decision Center "compara contra nada" — números fantasma de período anterior em datasets que só têm um ano.
+Reestruturar o componente `src/components/dashboard/Rfp2026Plan.tsx` para virar um verdadeiro decision engine, separando ADR real, CAP negociado e CAP sugerido, e adicionando status, prioridade, justificativa, impacto operacional e ações clicáveis.
 
----
+### 1. Modelo de dados (CityRecommendation)
 
-## Etapa 1 — Hierarquia Kontik → Acme (seed limpo)
+Trocar o cálculo atual por:
 
-1. Criar tenant **Kontik Viagens** (type=`TMC`).
-2. Criar tenant **Acme Travel Corp** (type=`CORP`, `parent_tenant_id` = Kontik).
-3. Limpar quaisquer bookings/RFPs/hotéis órfãos vinculados a um Acme antigo.
-4. Botão **"Carregar dados demo Acme"** em `/ta/clients` continua disparando os 500 bookings sintéticos do `generateDemoBookings()` — agora com Kontik visível como pai na coluna "via" da listagem.
-5. Verificação: logar como `ta_master`, abrir Diagnóstico e Decision Center filtrando por Acme — devem aparecer alertas/oportunidades reais.
+```text
+adr2025          = média real paga em 2025
+currentCap       = média dos contract.cap vigentes em 2025 para hotéis da cidade
+                   (sem fallback para ADR — se não houver contrato: null → "Sem cobertura")
+suggestedCap2026 = round5(min(adr2025 * 0.95, currentCap * 1.02))
+                   nunca acima de currentCap + 2% (impede "subir o teto")
+gapPct           = (adr2025 - currentCap) / currentCap * 100
+overCapPct       = % de room nights com adr > capForBooking
+hotelsInvolved   = nº de hotéis distintos da cidade em 2025
+hotelsOverCap    = nº de hotéis com pelo menos 1 reserva acima do cap
+top2Share        = concentração nos 2 maiores hotéis
+status           = derivado (regra abaixo)
+priority         = derivada (regra abaixo)
+reason           = string curta explicando o suggestedCap
+estimatedSavings = leakageSpend * 0.35 (mantém)
+```
 
-> Eu **não** crio usuários TMC/CORP de mentira; você usa seu Admin Master para testar o "ver como Kontik/Acme". Quando quiser convidar pessoas reais para Kontik, usamos o fluxo de promoção por email já existente.
+### 2. Status da cidade (badge colorido)
 
----
+Regra de decisão na ordem:
 
-## Etapa 2 — Seletor de período + comparação automática
+```text
+sem contratos vigentes              → "Sem cobertura"   (cinza)
+overCapPct >= 25%                   → "Leakage crítico" (destructive)
+top2Share  >= 60% e hotelsInvolved>=2 → "Alta concentração" (warning)
+gapPct     >= 8%                    → "Acima do cap"    (warning)
+caso contrário                      → "Dentro do cap"   (success)
+```
 
-### UX
-Adicionar um **PeriodSelector** no topo do Decision Center (e reutilizável em Diagnóstico):
+### 3. Prioridade
 
-- **Granularidade**: Ano · Trimestre · Mês · Intervalo customizado
-- **Período atual**: dropdown contextual à granularidade
-- **Comparação**: período imediatamente anterior do mesmo tamanho, **automático**
-- Estado persistido em **search params** (`?period=2025&grain=year`) para ser linkável e sobreviver a refresh
+```text
+Alta  : status ∈ {Leakage crítico} OU estimatedSavings >= 30% do total
+Média : status ∈ {Acima do cap, Alta concentração}
+Baixa : restante (incluindo Dentro do cap e Sem cobertura sem leakage)
+```
 
-### Regras de cálculo
-- KPIs do "atual" filtram bookings por `checkin` dentro da janela.
-- Deltas (`vs período anterior`) usam a janela imediatamente anterior do mesmo tamanho.
-- Se a janela anterior **não tem dados**, o componente exibe `—` (em vez de `0%` ou `▼ 100%`) e um tooltip "Sem histórico para comparar".
-- Mesma regra propaga para `recommendationEngine` (leakage, concentração, ADR vs cap) — só comparam se as duas janelas têm bookings.
+Ordenar tabela por prioridade (Alta → Baixa) e dentro disso por `estimatedSavings` desc.
 
-### Default ao abrir
-- Se houver dados: granularidade = **Ano**, período atual = ano com mais bookings recentes.
-- Se vazio: estado "sem baseline" como já existe.
+### 4. Justificativa ("Por quê?")
 
----
+Subtítulo abaixo do `suggestedCap2026` (texto pequeno, muted):
+- Se gap alto: `"ADR 12.4% acima do cap negociado"`
+- Se leakage alto: `"38% das reservas acima do cap"`
+- Se concentração: `"62% concentrado em 2 hotéis"`
+- Combina até 2 razões com `·`.
 
-## Etapa 3 — Validação manual do fluxo completo (checklist)
+### 5. Impacto operacional
 
-Com Acme seedado e período = 2025:
+Nova coluna "Impacto":
+```text
+{hotelsOverCap} de {hotelsInvolved} hotéis
+```
+Tooltip explica: "hotéis que precisam ser renegociados / total na cidade".
 
-1. **Diagnóstico** — histograma ADR, heatmap de cidades, painel de ingestão.
-2. **Estratégia** — caps por cidade, tiering, regras de negócio.
-3. **RFP** — criar 1 RFP, anexar 2-3 hotéis, mandar convites.
-4. **Negociação** — abrir lote, leilão reverso simulado.
-5. **Análise** — comparar respostas.
-6. **Seleção** — premiar primary/backup.
-7. **Implementação / Monitoramento** — confirmar que a oportunidade vira ação executada e some do Decision Center.
+### 6. Ações clicáveis
 
-Cada passo bloqueante vira um bug ticket separado, não tentamos consertar tudo em uma só rodada.
+Coluna "Renegociar" vira coluna "Ação" com botões (`<Button size="sm" variant="outline">`):
+- **"Abrir mini-RFP"** → navega para `/rfp?city={city}&suggestedCap={cap}` (a wizard de RFP já existe em `src/components/rfp/CreateRfpWizard.tsx`; só passamos query params, sem alterar o wizard nesta fase)
+- **"Negociar"** → navega para `/negociacao?city={city}` (filtro existente)
+- **"+ Pipeline"** → chama `actionStore.queueAction({ kind: 'renegotiation', city, hotels: hotelsOverCap, targetCap: suggestedCap2026 })` para entrar no Action Inbox (mesma store usada pelo `recommendationEngine`)
 
----
+Botão primário muda conforme status:
+- Leakage crítico / Acima do cap → "Negociar" como primário
+- Alta concentração → "Abrir mini-RFP" como primário
+- Sem cobertura → "Abrir RFP" como primário
+- Dentro do cap → só "+ Pipeline" (secundário)
 
-## Etapa 4 (futura, fora deste plano) — Cliente real
-Depois que o fluxo Acme estiver verde, repetimos com o relatório real: criamos o tenant do cliente, importamos o XLSX/CSV via painel de ingestão, e o seletor de período já estará pronto para a janela que o relatório cobrir.
+### 7. Layout final da tabela
 
----
+```text
+| Cidade | Status | Prio | ADR 2025 | CAP atual | CAP sugerido 2026   | Leakage 2025 | Economia | Impacto       | Ação        |
+|        | badge  | badge|          |           | valor + "porquê?"   |              |          | Xde Y hotéis  | botões      |
+```
 
-## Detalhes técnicos
+Header da seção mostra:
+- "Economia potencial estimada: R$ X/ano"
+- Contadores por status: `3 críticas · 2 acima · 1 sem cobertura · 4 dentro` (chips clicáveis para filtrar a tabela)
 
-- **Migração SQL**: nenhuma nova tabela. Apenas seed via `supabase--insert` para Kontik + religar Acme.
-- **Novos arquivos**:
-  - `src/components/common/PeriodSelector.tsx`
-  - `src/lib/periodFilter.ts` (helpers `windowFor(grain, period)` e `previousWindow(window)`)
-- **Editados**:
-  - `src/routes/_authenticated/ta/clients.tsx` — seed agora cria Kontik + Acme se faltarem
-  - `src/lib/recommendationEngine.ts` — aceita `currentWindow` e `previousWindow` opcionais
-  - `src/components/dashboard/*` (KpiCard, ImpactTracking, SavingsChart, CriticalAlerts) — consomem o seletor via search params
-  - `src/routes/index.tsx` (Decision Center) e `src/routes/diagnostico.tsx` — montam o `PeriodSelector` e validam search params com `zodValidator`
-- **Comparações fantasma**: substituir cálculos `delta = current - 0` por `delta = previousHasData ? current - previous : null` e renderizar `—` quando `null`.
+### 8. Detalhes técnicos
 
-## Fora de escopo
-- Importação de CSV/XLSX real (Etapa 4).
-- Comparações multi-tenant cruzadas.
-- Histórico de seletores por usuário.
+Arquivos:
+- `src/components/dashboard/Rfp2026Plan.tsx` — refatorar (único arquivo de componente)
+- `src/lib/rfpPlanModel.ts` — **novo**, função pura `buildCityRecommendations(bookings, contracts, year)` retornando `CityRecommendation[]`. Mantém o componente "burro" e permite testar a lógica isoladamente.
+- `src/lib/actionStore.ts` — verificar se já existe `queueAction`/equivalente; se não, adicionar método mínimo para enfileirar a recomendação (sem mudar o schema atual do inbox).
+
+Não tocar:
+- `recommendationEngine.ts`, `baselineStore.ts`, `decisionData.ts`, `periodFilter.ts` — a lógica de KPIs continua igual.
+- Wizard de RFP e tela de Negociação — apenas recebem query params; nada muda no comportamento delas.
+
+### 9. Validação manual
+
+1. `/diagnostico` → "Carregar demo 2024+2025".
+2. `/` (Decision Center) → conferir tabela:
+   - CAP atual ≠ ADR 2025 (vem de `contracts`).
+   - Pelo menos 1 cidade "Leakage crítico" e 1 "Dentro do cap" aparecem com badges distintos.
+   - Coluna "CAP sugerido" mostra valor + razão curta.
+   - Coluna "Impacto" mostra `X de Y hotéis`.
+   - Botões da coluna "Ação" navegam para `/rfp` e `/negociacao` com query params corretos.
+3. Filtrar pelos chips de status no header reduz as linhas visíveis.
