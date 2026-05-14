@@ -32,18 +32,14 @@ interface ClientsState {
   syncFromDb: () => Promise<void>;
 }
 
-// Default seed list — used only as a placeholder before the first DB sync,
-// to avoid an empty header dropdown on first paint.
-const SEED: ClientRecord[] = [
-  { id: "kontik", name: "Kontik", type: "TMC" },
-  { id: "acme", name: "Acme Travel Corp", type: "Corporate" },
-];
+// No seed clients — the app starts empty. Clients come from the DB via syncFromDb.
+const SEED: ClientRecord[] = [];
 
 export const useClientsStore = create<ClientsState>()(
   persist(
     (set, get) => ({
       clients: SEED,
-      selectedClientId: "acme",
+      selectedClientId: "",
       loading: false,
       loaded: false,
 

@@ -105,9 +105,9 @@ export async function bulkUpsertByCode(
 ): Promise<{ added: number; updated: number; failed: number; firstError?: string }> {
   if (hotels.length === 0) return { added: 0, updated: 0, failed: 0 };
 
-  // Split into exactly 4 batches, capped at 5000/batch (server limit).
-  const batches = 4;
-  const BATCH_SIZE = Math.min(5000, Math.ceil(hotels.length / batches));
+  // Fixed batch size of 1000 (server limit). Avoids worker timeout / lost session.
+  const BATCH_SIZE = 1000;
+  const batches = Math.max(1, Math.ceil(hotels.length / BATCH_SIZE));
   let added = 0;
   let updated = 0;
   let failed = 0;

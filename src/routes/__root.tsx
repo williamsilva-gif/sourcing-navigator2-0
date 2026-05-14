@@ -1,11 +1,24 @@
 import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { Toaster } from "@/components/ui/sonner";
-// Importing baselineStore here ensures the module-level demo auto-seed runs
-// as soon as the app boots on the client.
-import "@/lib/baselineStore";
 import { useAuth } from "@/hooks/useAuth";
 import { useClientsStore } from "@/lib/clientsStore";
+
+// One-time purge of legacy persisted local data (demo bookings, seed clients,
+// pending hotel uploads). Bumps the flag whenever we want to wipe again.
+const PURGE_FLAG = "sourcinghub.localPurge.v2";
+if (typeof window !== "undefined") {
+  try {
+    if (localStorage.getItem(PURGE_FLAG) !== "1") {
+      localStorage.removeItem("sourcinghub.baseline.v1");
+      localStorage.removeItem("sourcinghub.clients.v1");
+      localStorage.removeItem("sourcinghub.snapshot.v1");
+      localStorage.setItem(PURGE_FLAG, "1");
+    }
+  } catch {
+    /* ignore */
+  }
+}
 
 import appCss from "../styles.css?url";
 
