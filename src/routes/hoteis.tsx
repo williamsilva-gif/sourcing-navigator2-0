@@ -16,6 +16,7 @@ import {
   type HotelWithLocal,
 } from "@/lib/hotelsRepo";
 import { useAuth, getPrimaryRole } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/hoteis")({
   head: () => ({
