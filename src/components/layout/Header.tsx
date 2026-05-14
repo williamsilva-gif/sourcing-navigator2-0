@@ -32,12 +32,14 @@ export function Header() {
   const clients = useClientsStore((s) => s.clients);
   const selectedId = useClientsStore((s) => s.selectedClientId);
   const selectClient = useClientsStore((s) => s.selectClient);
-  const user = useAppConfigStore((s) => s.user);
+  const localUser = useAppConfigStore((s) => s.user);
   const env = useEnvironment();
   const isLive = bookings.length > 0;
   const last = uploads[0];
   const selected = clients.find((c) => c.id === selectedId) ?? clients[0];
-  const initials = user.name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
+  const displayName = user?.email?.split("@")[0] ?? localUser.name;
+  const displayRole = primaryRole ?? localUser.role;
+  const initials = displayName.split(/[.\s_-]+/).map((p: string) => p[0]).filter(Boolean).slice(0, 2).join("").toUpperCase() || "U";
 
   return (
     <header className="sticky top-0 z-20 flex h-[70px] items-center gap-4 border-b border-border bg-card/80 px-6 backdrop-blur-sm">
@@ -89,6 +91,16 @@ export function Header() {
         </DropdownMenuContent>
       </DropdownMenu>
 
+      {isTa && (
+        <Link
+          to="/ta/clients"
+          className="hidden h-10 items-center gap-1.5 rounded-md border border-input bg-background px-3 text-sm font-medium text-foreground transition-colors hover:border-primary/40 hover:bg-primary-soft md:inline-flex"
+        >
+          <Shield className="h-4 w-4 text-primary" />
+          TA Console
+        </Link>
+      )}
+
       <button className="relative flex h-10 w-10 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground">
         <Bell className="h-5 w-5" />
         <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-destructive ring-2 ring-card" />
@@ -99,9 +111,26 @@ export function Header() {
           {initials}
         </div>
         <div className="hidden leading-tight sm:block">
-          <p className="text-sm font-semibold text-foreground">{user.name}</p>
-          <p className="text-[11px] text-muted-foreground capitalize">{user.role}</p>
+          <p className="text-sm font-semibold text-foreground">{displayName}</p>
+          <p className="text-[11px] text-muted-foreground capitalize">{displayRole}</p>
         </div>
+        {user ? (
+          <button
+            onClick={handleLogout}
+            title="Sair"
+            className="ml-1 flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
+        ) : (
+          <Link
+            to="/login"
+            title="Entrar"
+            className="ml-1 flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+          >
+            <LogIn className="h-4 w-4" />
+          </Link>
+        )}
       </div>
     </header>
   );
