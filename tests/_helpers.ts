@@ -1,24 +1,21 @@
 /** Shared helpers for RLS integration tests. */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { beforeAll } from "vitest";
+import { describe } from "vitest";
 
 export const SUPABASE_URL = process.env.SUPABASE_URL!;
 export const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 export const ANON_KEY = process.env.SUPABASE_PUBLISHABLE_KEY!;
 export const hasIntegrationEnv = Boolean(SUPABASE_URL && SERVICE_KEY && ANON_KEY);
+export const describeIntegration = hasIntegrationEnv ? describe : describe.skip;
 
-export function requireIntegrationEnv() {
-  beforeAll(() => {
-    if (!hasIntegrationEnv) {
-      throw new Error("Missing SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY / SUPABASE_PUBLISHABLE_KEY");
-    }
-  });
-}
+const clientUrl = SUPABASE_URL || "http://127.0.0.1:54321";
+const serviceKey = SERVICE_KEY || "missing-service-role-key";
+const anonKey = ANON_KEY || "missing-publishable-key";
 
 export const PASSWORD = "Test!12345";
 export const RUN_ID = Math.random().toString(36).slice(2, 8);
 
-export const admin = createClient(SUPABASE_URL, SERVICE_KEY, {
+export const admin = createClient(clientUrl, serviceKey, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 
@@ -53,7 +50,7 @@ export async function createUser(
 }
 
 export function userClient(): SupabaseClient {
-  return createClient(SUPABASE_URL, ANON_KEY, {
+  return createClient(clientUrl, anonKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 }
