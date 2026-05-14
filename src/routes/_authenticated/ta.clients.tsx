@@ -3,8 +3,9 @@ import { useEffect, useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth, getPrimaryRole } from "@/hooks/useAuth";
 import { AppShell } from "@/components/layout/AppShell";
-import { Building2, Plus, Loader2, ShieldAlert } from "lucide-react";
+import { Building2, Plus, Loader2, ShieldAlert, Database } from "lucide-react";
 import { toast } from "sonner";
+import { generateDemoBookings } from "@/lib/demoData";
 
 type TenantRow = {
   id: string;
@@ -66,6 +67,50 @@ function TaClientsPage() {
     setName("");
     setParent("");
     setRefreshKey((k) => k + 1);
+  }
+
+  async function handleSeedAcme() {
+    const acme = tenants.find((t) => t.name === "Acme Travel Corp" && t.type === "CORP");
+    if (!acme) {
+      toast.error("Tenant Acme não encontrado");
+      return;
+    }
+    setBusy(true);
+    try {
+      // Idempotency: skip if already seeded
+      const { count } = await supabase
+        .from("bookings")
+        .select("id", { count: "exact", head: true })
+        .eq("client_tenant_id", acme.id);
+      if ((count ?? 0) > 0) {
+        toast.info(`Acme já possui ${count} bookings — seed ignorado`);
+        setBusy(false);
+        return;
+      }
+      const bookings = generateDemoBookings(500);
+      const rows = bookings.map((b) => ({
+        client_tenant_id: acme.id,
+        booking_external_id: b.booking_id,
+        hotel_name: b.hotel,
+        city: b.city,
+        state: b.state ?? null,
+        checkin: b.checkin,
+        room_nights: b.room_nights,
+        adr: b.adr,
+        channel: b.channel ?? null,
+      }));
+      // Insert in batches of 100
+      for (let i = 0; i < rows.length; i += 100) {
+        const slice = rows.slice(i, i + 100);
+        const { error } = await supabase.from("bookings").insert(slice);
+        if (error) throw error;
+      }
+      toast.success(`500 bookings importados para Acme`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha no seed");
+    } finally {
+      setBusy(false);
+    }
   }
 
   if (loading) {
