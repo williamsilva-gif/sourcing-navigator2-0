@@ -9,11 +9,13 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SelecaoRouteImport } from './routes/selecao'
 import { Route as RfpRouteImport } from './routes/rfp'
 import { Route as NegociacaoRouteImport } from './routes/negociacao'
 import { Route as MonitoramentoRouteImport } from './routes/monitoramento'
 import { Route as MonetizacaoRouteImport } from './routes/monetizacao'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as ImplementacaoRouteImport } from './routes/implementacao'
 import { Route as HoteisRouteImport } from './routes/hoteis'
 import { Route as EstrategiaRouteImport } from './routes/estrategia'
@@ -22,6 +24,11 @@ import { Route as AnaliseRouteImport } from './routes/analise'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SelecaoRoute = SelecaoRouteImport.update({
   id: '/selecao',
   path: '/selecao',
@@ -45,6 +52,11 @@ const MonitoramentoRoute = MonitoramentoRouteImport.update({
 const MonetizacaoRoute = MonetizacaoRouteImport.update({
   id: '/monetizacao',
   path: '/monetizacao',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ImplementacaoRoute = ImplementacaoRouteImport.update({
@@ -91,11 +103,13 @@ export interface FileRoutesByFullPath {
   '/estrategia': typeof EstrategiaRoute
   '/hoteis': typeof HoteisRoute
   '/implementacao': typeof ImplementacaoRoute
+  '/login': typeof LoginRoute
   '/monetizacao': typeof MonetizacaoRoute
   '/monitoramento': typeof MonitoramentoRoute
   '/negociacao': typeof NegociacaoRoute
   '/rfp': typeof RfpRoute
   '/selecao': typeof SelecaoRoute
+  '/signup': typeof SignupRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -105,11 +119,13 @@ export interface FileRoutesByTo {
   '/estrategia': typeof EstrategiaRoute
   '/hoteis': typeof HoteisRoute
   '/implementacao': typeof ImplementacaoRoute
+  '/login': typeof LoginRoute
   '/monetizacao': typeof MonetizacaoRoute
   '/monitoramento': typeof MonitoramentoRoute
   '/negociacao': typeof NegociacaoRoute
   '/rfp': typeof RfpRoute
   '/selecao': typeof SelecaoRoute
+  '/signup': typeof SignupRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -120,11 +136,13 @@ export interface FileRoutesById {
   '/estrategia': typeof EstrategiaRoute
   '/hoteis': typeof HoteisRoute
   '/implementacao': typeof ImplementacaoRoute
+  '/login': typeof LoginRoute
   '/monetizacao': typeof MonetizacaoRoute
   '/monitoramento': typeof MonitoramentoRoute
   '/negociacao': typeof NegociacaoRoute
   '/rfp': typeof RfpRoute
   '/selecao': typeof SelecaoRoute
+  '/signup': typeof SignupRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -136,11 +154,13 @@ export interface FileRouteTypes {
     | '/estrategia'
     | '/hoteis'
     | '/implementacao'
+    | '/login'
     | '/monetizacao'
     | '/monitoramento'
     | '/negociacao'
     | '/rfp'
     | '/selecao'
+    | '/signup'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -150,11 +170,13 @@ export interface FileRouteTypes {
     | '/estrategia'
     | '/hoteis'
     | '/implementacao'
+    | '/login'
     | '/monetizacao'
     | '/monitoramento'
     | '/negociacao'
     | '/rfp'
     | '/selecao'
+    | '/signup'
   id:
     | '__root__'
     | '/'
@@ -164,11 +186,13 @@ export interface FileRouteTypes {
     | '/estrategia'
     | '/hoteis'
     | '/implementacao'
+    | '/login'
     | '/monetizacao'
     | '/monitoramento'
     | '/negociacao'
     | '/rfp'
     | '/selecao'
+    | '/signup'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -179,15 +203,24 @@ export interface RootRouteChildren {
   EstrategiaRoute: typeof EstrategiaRoute
   HoteisRoute: typeof HoteisRoute
   ImplementacaoRoute: typeof ImplementacaoRoute
+  LoginRoute: typeof LoginRoute
   MonetizacaoRoute: typeof MonetizacaoRoute
   MonitoramentoRoute: typeof MonitoramentoRoute
   NegociacaoRoute: typeof NegociacaoRoute
   RfpRoute: typeof RfpRoute
   SelecaoRoute: typeof SelecaoRoute
+  SignupRoute: typeof SignupRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/selecao': {
       id: '/selecao'
       path: '/selecao'
@@ -221,6 +254,13 @@ declare module '@tanstack/react-router' {
       path: '/monetizacao'
       fullPath: '/monetizacao'
       preLoaderRoute: typeof MonetizacaoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/implementacao': {
@@ -283,11 +323,13 @@ const rootRouteChildren: RootRouteChildren = {
   EstrategiaRoute: EstrategiaRoute,
   HoteisRoute: HoteisRoute,
   ImplementacaoRoute: ImplementacaoRoute,
+  LoginRoute: LoginRoute,
   MonetizacaoRoute: MonetizacaoRoute,
   MonitoramentoRoute: MonitoramentoRoute,
   NegociacaoRoute: NegociacaoRoute,
   RfpRoute: RfpRoute,
   SelecaoRoute: SelecaoRoute,
+  SignupRoute: SignupRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
