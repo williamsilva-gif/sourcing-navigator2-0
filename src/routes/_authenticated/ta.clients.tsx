@@ -251,6 +251,38 @@ function TaClientsPage() {
           </div>
         </form>
 
+        {/* TA staff invite */}
+        <form
+          onSubmit={handleInviteTaStaff}
+          className="rounded-lg border border-border bg-card p-5 shadow-[var(--shadow-card)]"
+        >
+          <h2 className="mb-1 flex items-center gap-2 text-sm font-semibold text-foreground">
+            <UserPlus className="h-4 w-4" /> Conceder acesso TA staff
+          </h2>
+          <p className="mb-3 text-xs text-muted-foreground">
+            O cadastro público não permite criar contas Travel Academy. Para adicionar um membro
+            interno, peça para a pessoa se cadastrar como Hotel/TMC/Corporativo (será descartado) e
+            promova abaixo pelo email.
+          </p>
+          <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+            <input
+              type="email"
+              required
+              placeholder="email@travelacademy.com.br"
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+            />
+            <button
+              type="submit"
+              disabled={inviting}
+              className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+            >
+              {inviting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Promover
+            </button>
+          </div>
+        </form>
+
         {/* Lists */}
         <section className="grid gap-6 lg:grid-cols-2">
           <TenantList title="TMCs" rows={tmcs} />
