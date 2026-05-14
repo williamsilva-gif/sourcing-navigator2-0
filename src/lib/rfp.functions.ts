@@ -2,20 +2,20 @@ import { createServerFn } from "@tanstack/react-start";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import type { Database } from "@/integrations/supabase/types";
+import type { Database, Json } from "@/integrations/supabase/types";
 
 // ----- Shared types -----
 export interface RfpRecord {
   id: string;
   name: string;
   client_tenant_id: string;
-  client_name?: string;
+  client_name: string;
   status: string;
   deadline: string | null;
   created_at: string;
   updated_at: string;
-  pois: unknown;
-  metadata: Record<string, unknown>;
+  pois: Json;
+  metadata: Json;
   invited_count: number;
   responded_count: number;
 }
@@ -36,7 +36,7 @@ export interface ResponseRecord {
   id: string;
   rfp_id: string;
   hotel_id: string;
-  rates: Record<string, unknown>;
+  rates: Json;
   submitted_at: string;
 }
 
