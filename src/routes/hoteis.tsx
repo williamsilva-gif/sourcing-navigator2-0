@@ -40,6 +40,7 @@ function HotelsPage() {
   const [query, setQuery] = useState("");
   const [importing, setImporting] = useState(false);
   const [migrating, setMigrating] = useState(false);
+  const [migrateProgress, setMigrateProgress] = useState<{ processed: number; total: number; batch: number; batches: number } | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
   const localHotels = useBaselineStore((s) => s.hotels);
@@ -136,8 +137,9 @@ function HotelsPage() {
   async function handleMigrateLocal() {
     if (localHotels.length === 0) return;
     setMigrating(true);
+    setMigrateProgress({ processed: 0, total: localHotels.length, batch: 0, batches: Math.max(1, Math.ceil(localHotels.length / 1000)) });
     try {
-      const result = await bulkUpsertByCode(localHotels);
+      const result = await bulkUpsertByCode(localHotels, (info) => setMigrateProgress(info));
       toast.success(`Migrados: ${result.added} novos · ${result.updated} atualizados`, {
         description: result.failed
           ? `${result.failed} falharam — ${result.firstError ?? "verifique permissões"}`
@@ -195,6 +197,7 @@ function HotelsPage() {
       toast.error(`Falha ao migrar: ${(e as Error).message}`);
     } finally {
       setMigrating(false);
+      setMigrateProgress(null);
     }
   }
 
@@ -273,6 +276,24 @@ function HotelsPage() {
               {migrating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <DatabaseZap className="h-3.5 w-3.5" />}
               {migrating ? "Migrando…" : "Migrar para o banco"}
             </button>
+            {migrating && migrateProgress && (
+              <div className="w-full">
+                <div className="mb-1 flex items-center justify-between text-[11px] font-medium text-muted-foreground">
+                  <span>
+                    Lote {migrateProgress.batch}/{migrateProgress.batches} · {migrateProgress.processed.toLocaleString("pt-BR")} de {migrateProgress.total.toLocaleString("pt-BR")} hotéis
+                  </span>
+                  <span className="font-mono text-foreground">
+                    {Math.round((migrateProgress.processed / Math.max(1, migrateProgress.total)) * 100)}%
+                  </span>
+                </div>
+                <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full bg-primary transition-[width] duration-300 ease-out"
+                    style={{ width: `${Math.min(100, (migrateProgress.processed / Math.max(1, migrateProgress.total)) * 100)}%` }}
+                  />
+                </div>
+              </div>
+            )}
           </div>
         )}
 
