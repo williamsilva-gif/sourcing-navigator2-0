@@ -91,7 +91,33 @@ export async function deleteHotelById(id: string): Promise<void> {
 
 // Bulk upsert by `code` (natural key). Falls back to insert when code is empty.
 // Returns count of inserts vs updates so the UI can confirm what happened.
-export async function bulkUpsertByCode(hotels: Hotel[]): Promise<{ added: number; updated: number; failed: number; firstError?: string }> {
+export async function bulkUpsertByCode(
+  hotels: Hotel[],
+  onProgress?: (info: { processed: number; total: number; batch: number; batches: number }) => void,
+): Promise<{ added: number; updated: number; failed: number; firstError?: string }> {
   if (hotels.length === 0) return { added: 0, updated: 0, failed: 0 };
-  return bulkUpsertHotelsByCodeFn({ data: { hotels } });
+
+  const BATCH_SIZE = 1000;
+  const batches = Math.ceil(hotels.length / BATCH_SIZE);
+  let added = 0;
+  let updated = 0;
+  let failed = 0;
+  let firstError: string | undefined;
+
+  for (let i = 0; i < batches; i++) {
+    const chunk = hotels.slice(i * BATCH_SIZE, (i + 1) * BATCH_SIZE);
+    try {
+      const res = await bulkUpsertHotelsByCodeFn({ data: { hotels: chunk } });
+      added += res.added ?? 0;
+      updated += res.updated ?? 0;
+      failed += res.failed ?? 0;
+      if (!firstError && res.firstError) firstError = res.firstError;
+    } catch (e) {
+      failed += chunk.length;
+      if (!firstError) firstError = e instanceof Error ? e.message : String(e);
+    }
+    onProgress?.({ processed: Math.min((i + 1) * BATCH_SIZE, hotels.length), total: hotels.length, batch: i + 1, batches });
+  }
+
+  return { added, updated, failed, firstError };
 }
