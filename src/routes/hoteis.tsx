@@ -197,6 +197,7 @@ function HotelsPage() {
       toast.error(`Falha ao migrar: ${(e as Error).message}`);
     } finally {
       setMigrating(false);
+      setMigrateProgress(null);
     }
   }
 
