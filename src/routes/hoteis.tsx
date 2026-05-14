@@ -1,9 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Hotel as HotelIcon, Plus, Pencil, Trash2, MapPin, Search, Upload, Download, DatabaseZap, Loader2 } from "lucide-react";
+import { Hotel as HotelIcon, Plus, Pencil, Trash2, MapPin, Search, Upload, Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/AppShell";
-import { useBaselineStore } from "@/lib/baselineStore";
 import { hotelSchema, type Hotel } from "@/lib/baselineSchemas";
 import { HotelForm } from "@/components/hotels/HotelForm";
 import { downloadTemplate, readSpreadsheet } from "@/lib/xlsxTemplates";
@@ -16,7 +15,6 @@ import {
   type HotelWithLocal,
 } from "@/lib/hotelsRepo";
 import { useAuth, getPrimaryRole } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/hoteis")({
   head: () => ({
@@ -51,23 +49,8 @@ function HotelsPage() {
     setPage(1);
   }, [debouncedQuery, pageSize]);
   const [importing, setImporting] = useState(false);
-  const [migrating, setMigrating] = useState(false);
-  const [migrateProgress, setMigrateProgress] = useState<{ processed: number; total: number; batch: number; batches: number } | null>(null);
+  const [importProgress, setImportProgress] = useState<{ processed: number; total: number; batch: number; batches: number } | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
-
-  const localHotels = useBaselineStore((s) => s.hotels);
-  const clearLocalHotels = useBaselineStore((s) => s.deleteHotel);
-
-  // Migration is complete in production (15.035 hotels in DB). Auto-clear any
-  // leftover local copies once we confirm the DB has data, so the legacy
-  // "Migrar para o banco" banner never shows again.
-  useEffect(() => {
-    if (!loading && hotels.length > 0 && localHotels.length > 0) {
-      for (const h of localHotels) {
-        if (h.code) clearLocalHotels(h.code);
-      }
-    }
-  }, [loading, hotels.length, localHotels, clearLocalHotels]);
 
   async function refresh() {
     setLoading(true);
