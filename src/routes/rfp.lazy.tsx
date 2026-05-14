@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { createLazyFileRoute } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
+import { createLazyFileRoute, useNavigate } from "@tanstack/react-router";
 import { FileText, Plus, Send, CheckCircle2, AlertCircle, Calendar } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
@@ -7,33 +7,54 @@ import { RfpProgramList } from "@/components/rfp/RfpProgramList";
 import { HotelResponseTracker } from "@/components/rfp/HotelResponseTracker";
 import { CreateRfpWizard } from "@/components/rfp/CreateRfpWizard";
 import { RfpDetailModal } from "@/components/rfp/RfpDetailModal";
-import { RFP_PROGRAMS, RFP_INVITED_HOTELS, type RfpProgram } from "@/components/rfp/rfpProgramData";
 import { ActionInboxBanner } from "@/components/layout/ActionInboxBanner";
+import { useRfps } from "@/lib/rfpRepo";
+import { useActionStore } from "@/lib/actionStore";
 
 export const Route = createLazyFileRoute("/rfp")({
   component: RfpPage,
 });
 
 function RfpPage() {
+  const search = Route.useSearch();
+  const navigate = useNavigate();
   const [wizardOpen, setWizardOpen] = useState(false);
-  const [selected, setSelected] = useState<RfpProgram | null>(null);
+  const [prefill, setPrefill] = useState<{ city?: string; suggestedCap?: number } | undefined>();
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const { data: rfps = [] } = useRfps();
+  const actions = useActionStore((s) => s.actions);
+
+  // Auto-open wizard when navigated from Decision Center (with city/cap or openWizard)
+  useEffect(() => {
+    if (search.city || search.suggestedCap || search.openWizard) {
+      setPrefill({ city: search.city, suggestedCap: search.suggestedCap });
+      setWizardOpen(true);
+      // Clear search params so it doesn't re-open after closing
+      navigate({ to: "/rfp", search: {}, replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const stats = useMemo(() => {
-    const active = RFP_PROGRAMS.filter(
-      (r) => r.status !== "Encerrado" && r.status !== "Rascunho",
-    ).length;
-    const totalInvited = RFP_PROGRAMS.reduce((s, r) => s + r.invitedHotels, 0);
-    const totalResponses = RFP_PROGRAMS.reduce((s, r) => s + r.responsesReceived, 0);
+    const active = rfps.filter((r) => r.status !== "Encerrado" && r.status !== "Rascunho").length;
+    const totalInvited = rfps.reduce((s, r) => s + r.invited_count, 0);
+    const totalResponses = rfps.reduce((s, r) => s + r.responded_count, 0);
     const responseRate = totalInvited > 0 ? Math.round((totalResponses / totalInvited) * 100) : 0;
-    const pending = RFP_INVITED_HOTELS.filter((h) => h.status === "Não respondeu").length;
-    const upcoming = RFP_PROGRAMS.filter((r) => {
-      const d = Math.ceil(
-        (new Date(r.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24),
-      );
+    const upcoming = rfps.filter((r) => {
+      if (!r.deadline) return false;
+      const d = Math.ceil((new Date(r.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
       return d > 0 && d <= 14 && r.status !== "Encerrado";
     }).length;
+    const pending = totalInvited - totalResponses;
     return { active, responseRate, pending, upcoming };
-  }, []);
+  }, [rfps]);
+
+  function openWizardForAction(actionId: string) {
+    const a = actions.find((x) => x.id === actionId);
+    if (!a) return;
+    setPrefill({ city: a.city });
+    setWizardOpen(true);
+  }
 
   return (
     <AppShell>
@@ -49,72 +70,42 @@ function RfpPage() {
             gestão centralizada de respostas com prazos e lembretes.
           </p>
         </div>
-        <Button onClick={() => setWizardOpen(true)}>
+        <Button onClick={() => { setPrefill(undefined); setWizardOpen(true); }}>
           <Plus className="mr-1.5 h-4 w-4" />
           Novo RFP
         </Button>
       </div>
 
       <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Kpi
-          icon={Send}
-          label="RFPs ativos"
-          value={String(stats.active)}
-          hint={`de ${RFP_PROGRAMS.length} totais`}
-          tone="primary"
-        />
-        <Kpi
-          icon={CheckCircle2}
-          label="Taxa de resposta"
-          value={`${stats.responseRate}%`}
-          hint="média ponderada"
-          tone={stats.responseRate >= 70 ? "success" : "warning"}
-        />
-        <Kpi
-          icon={AlertCircle}
-          label="Hotéis pendentes"
-          value={String(stats.pending)}
-          hint="sem resposta"
-          tone={stats.pending > 0 ? "destructive" : "default"}
-        />
-        <Kpi
-          icon={Calendar}
-          label="Prazos próximos"
-          value={String(stats.upcoming)}
-          hint="vencem em ≤14 dias"
-          tone={stats.upcoming > 0 ? "warning" : "default"}
-        />
+        <Kpi icon={Send} label="RFPs ativos" value={String(stats.active)} hint={`de ${rfps.length} totais`} tone="primary" />
+        <Kpi icon={CheckCircle2} label="Taxa de resposta" value={`${stats.responseRate}%`} hint="média ponderada" tone={stats.responseRate >= 70 ? "success" : "warning"} />
+        <Kpi icon={AlertCircle} label="Hotéis pendentes" value={String(stats.pending)} hint="sem resposta" tone={stats.pending > 0 ? "destructive" : "default"} />
+        <Kpi icon={Calendar} label="Prazos próximos" value={String(stats.upcoming)} hint="vencem em ≤14 dias" tone={stats.upcoming > 0 ? "warning" : "default"} />
       </div>
 
       <ActionInboxBanner
         kinds={["mini_rfp"]}
         title="Mini-RFPs solicitados pelo Decision Center"
+        actionLabel="Abrir wizard"
+        onItemClick={openWizardForAction}
       />
 
       <div className="space-y-6">
-        <RfpProgramList onView={(r) => setSelected(r)} />
+        <RfpProgramList onView={(id) => setSelectedId(id)} onCreate={() => { setPrefill(undefined); setWizardOpen(true); }} />
         <HotelResponseTracker />
       </div>
 
-      <CreateRfpWizard open={wizardOpen} onClose={() => setWizardOpen(false)} />
-      <RfpDetailModal rfp={selected} onClose={() => setSelected(null)} />
+      <CreateRfpWizard
+        open={wizardOpen}
+        onClose={() => { setWizardOpen(false); setPrefill(undefined); }}
+        prefill={prefill}
+      />
+      <RfpDetailModal rfpId={selectedId} onClose={() => setSelectedId(null)} />
     </AppShell>
   );
 }
 
-function Kpi({
-  icon: Icon,
-  label,
-  value,
-  hint,
-  tone = "default",
-}: {
-  icon: typeof FileText;
-  label: string;
-  value: string;
-  hint: string;
-  tone?: "default" | "success" | "primary" | "warning" | "destructive";
-}) {
+function Kpi({ icon: Icon, label, value, hint, tone = "default" }: { icon: typeof FileText; label: string; value: string; hint: string; tone?: "default" | "success" | "primary" | "warning" | "destructive" }) {
   const valueCls =
     tone === "success" ? "text-success" :
     tone === "primary" ? "text-primary" :
