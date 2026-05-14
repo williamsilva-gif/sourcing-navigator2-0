@@ -16,6 +16,7 @@ import {
   type HotelWithLocal,
 } from "@/lib/hotelsRepo";
 import { useAuth, getPrimaryRole } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/hoteis")({
   head: () => ({
@@ -140,11 +141,45 @@ function HotelsPage() {
       toast.success(`Migrados: ${result.added} novos · ${result.updated} atualizados`, {
         description: result.failed
           ? `${result.failed} falharam — ${result.firstError ?? "verifique permissões"}`
-          : "Você pode limpar a cópia local agora.",
+          : "Verificando consistência com o banco…",
       });
-      if (result.failed === 0) {
+
+      // Consistency check: re-query the DB by the codes we tried to migrate and
+      // make sure every local hotel is now present.
+      const codes = localHotels.map((h) => h.code).filter((c): c is string => Boolean(c));
+      const withoutCode = localHotels.length - codes.length;
+      let dbFound = 0;
+      let missingCodes: string[] = [];
+      if (codes.length > 0) {
+        const { data, error } = await supabase.from("hotels").select("code").in("code", codes);
+        if (error) {
+          toast.warning("Não foi possível verificar consistência", { description: error.message });
+        } else {
+          const foundSet = new Set((data ?? []).map((r: { code: string | null }) => r.code).filter(Boolean) as string[]);
+          dbFound = foundSet.size;
+          missingCodes = codes.filter((c) => !foundSet.has(c));
+        }
+      }
+      const expected = localHotels.length;
+      const accounted = dbFound + withoutCode; // hotéis sem código não dá pra reconciliar
+      const discrepancy = expected - accounted;
+
+      if (discrepancy > 0 || result.failed > 0) {
+        toast.warning(`Discrepância detectada: ${discrepancy} hotel(is) faltando no banco`, {
+          description:
+            (missingCodes.length > 0
+              ? `Códigos ausentes (até 5): ${missingCodes.slice(0, 5).join(", ")}${missingCodes.length > 5 ? "…" : ""}. `
+              : "") +
+            (withoutCode > 0
+              ? `${withoutCode} hotel(is) sem código não puderam ser reconciliados automaticamente. `
+              : "") +
+            "Cópia local preservada para revisão.",
+          duration: 10000,
+        });
+      } else if (result.failed === 0) {
+        toast.success(`Consistência OK: ${accounted}/${expected} hotéis confirmados no banco`);
         const ok = confirm(
-          `Migração concluída: ${result.added} novos · ${result.updated} atualizados.\n\n` +
+          `Migração e verificação concluídas: ${accounted}/${expected} hotéis confirmados no banco.\n\n` +
             `Deseja limpar a cópia local do navegador agora?\n\n` +
             `Recomendado apenas após revisar a lista no banco. Cancele se quiser conferir antes.`,
         );
