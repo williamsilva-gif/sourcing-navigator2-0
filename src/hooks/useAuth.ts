@@ -20,47 +20,65 @@ export interface AuthState {
   roles: UserRoleRow[];
 }
 
+// ---------- Module-level singleton cache ----------
+// Keeps auth state stable across component remounts so UI elements that depend
+// on `roles` (e.g. the "TA Console" link) don't flicker every time a route
+// re-mounts the Header.
+let cached: AuthState = { session: null, user: null, loading: true, roles: [] };
+const listeners = new Set<(s: AuthState) => void>();
+let initialized = false;
+
+function setCached(next: Partial<AuthState>) {
+  cached = { ...cached, ...next };
+  listeners.forEach((fn) => fn(cached));
+}
+
+async function loadRolesFor(uid: string) {
+  const { data } = await supabase
+    .from("user_roles")
+    .select("tenant_id, role")
+    .eq("user_id", uid);
+  setCached({ roles: (data ?? []) as UserRoleRow[] });
+}
+
+function ensureInit() {
+  if (initialized) return;
+  initialized = true;
+
+  supabase.auth.onAuthStateChange((_event, sess) => {
+    setCached({ session: sess, user: sess?.user ?? null });
+    if (sess?.user) {
+      // Defer DB query so we never call Supabase synchronously inside the listener
+      setTimeout(() => loadRolesFor(sess.user.id), 0);
+    } else {
+      setCached({ roles: [] });
+    }
+  });
+
+  supabase.auth.getSession().then(({ data }) => {
+    setCached({ session: data.session, user: data.session?.user ?? null, loading: false });
+    if (data.session?.user) loadRolesFor(data.session.user.id);
+  });
+}
+
 export function useAuth(): AuthState {
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [roles, setRoles] = useState<UserRoleRow[]>([]);
+  const [state, setState] = useState<AuthState>(cached);
 
   useEffect(() => {
-    // Set up listener FIRST
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, sess) => {
-      setSession(sess);
-      if (sess?.user) {
-        // Defer DB query — never call Supabase inside the listener directly
-        setTimeout(() => loadRoles(sess.user.id), 0);
-      } else {
-        setRoles([]);
-      }
-    });
-
-    // Then check existing session
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      if (data.session?.user) loadRoles(data.session.user.id);
-      setLoading(false);
-    });
-
-    async function loadRoles(uid: string) {
-      const { data } = await supabase
-        .from("user_roles")
-        .select("tenant_id, role")
-        .eq("user_id", uid);
-      setRoles((data ?? []) as UserRoleRow[]);
-    }
-
-    return () => sub.subscription.unsubscribe();
+    ensureInit();
+    listeners.add(setState);
+    // Sync once on mount in case state changed between render and effect
+    setState(cached);
+    return () => {
+      listeners.delete(setState);
+    };
   }, []);
 
-  return { session, user: session?.user ?? null, loading, roles };
+  return state;
 }
 
 export function getPrimaryRole(roles: UserRoleRow[]): AppRole | null {
   if (!roles.length) return null;
-  // Priority order
   const order: AppRole[] = [
     "ta_master", "ta_staff",
     "tmc_admin", "tmc_user",
