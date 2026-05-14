@@ -1,20 +1,41 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Hotel, Loader2 } from "lucide-react";
+import { Hotel, Building2, Briefcase, GraduationCap, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/signup")({
-  head: () => ({ meta: [{ title: "Cadastro Hotel — Navigator Sourcing CoPilot" }] }),
+  head: () => ({ meta: [{ title: "Cadastro — Navigator Sourcing CoPilot" }] }),
   component: SignupPage,
 });
 
+type AccountType = "HOTEL" | "TMC" | "CORP" | "TA";
+
+const ACCOUNT_OPTIONS: { value: AccountType; label: string; desc: string; icon: typeof Hotel }[] = [
+  { value: "HOTEL", label: "Hotel", desc: "Receber RFPs e participar de leilões", icon: Hotel },
+  { value: "TMC", label: "TMC", desc: "Travel Management Company", icon: Briefcase },
+  { value: "CORP", label: "Cliente Corporativo", desc: "Empresa que viaja", icon: Building2 },
+  // TODO: remover após confirmação do master TA
+  { value: "TA", label: "Travel Academy", desc: "Equipe interna TA", icon: GraduationCap },
+];
+
 function SignupPage() {
   const navigate = useNavigate();
+  const [accountType, setAccountType] = useState<AccountType>("HOTEL");
   const [fullName, setFullName] = useState("");
+  const [orgName, setOrgName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
+
+  const orgLabel =
+    accountType === "HOTEL"
+      ? "Nome do hotel"
+      : accountType === "TMC"
+      ? "Nome da TMC"
+      : accountType === "CORP"
+      ? "Nome da empresa"
+      : "Equipe / área (opcional)";
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -25,7 +46,11 @@ function SignupPage() {
       password,
       options: {
         emailRedirectTo: redirectUrl,
-        data: { full_name: fullName },
+        data: {
+          full_name: fullName,
+          account_type: accountType,
+          org_name: orgName,
+        },
       },
     });
     if (error) {
@@ -38,22 +63,45 @@ function SignupPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="w-full max-w-md rounded-lg border border-border bg-card p-8 shadow-[var(--shadow-card)]">
+    <div className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
+      <div className="w-full max-w-lg rounded-lg border border-border bg-card p-8 shadow-[var(--shadow-card)]">
         <div className="mb-6 flex items-center gap-2.5">
           <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary text-primary-foreground">
             <Hotel className="h-5 w-5" />
           </div>
           <div>
             <p className="text-sm font-semibold text-foreground">Navigator</p>
-            <p className="text-[11px] text-muted-foreground">Cadastro de Hotel</p>
+            <p className="text-[11px] text-muted-foreground">Criar conta</p>
           </div>
         </div>
 
-        <h1 className="text-xl font-semibold text-foreground">Criar conta de Hotel</h1>
+        <h1 className="text-xl font-semibold text-foreground">Criar conta</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Acesso ao painel de RFPs, leilão reverso e gestão do seu cadastro.
+          Escolha o tipo de conta para começar.
         </p>
+
+        <div className="mt-5 grid grid-cols-2 gap-2">
+          {ACCOUNT_OPTIONS.map((opt) => {
+            const Icon = opt.icon;
+            const active = accountType === opt.value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setAccountType(opt.value)}
+                className={`flex flex-col items-start gap-1 rounded-md border p-3 text-left transition-colors ${
+                  active
+                    ? "border-primary bg-primary/5"
+                    : "border-border bg-background hover:border-primary/40"
+                }`}
+              >
+                <Icon className={`h-4 w-4 ${active ? "text-primary" : "text-muted-foreground"}`} />
+                <span className="text-sm font-medium text-foreground">{opt.label}</span>
+                <span className="text-[11px] leading-tight text-muted-foreground">{opt.desc}</span>
+              </button>
+            );
+          })}
+        </div>
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <div>
@@ -63,6 +111,16 @@ function SignupPage() {
               required
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
+              className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-foreground">{orgLabel}</label>
+            <input
+              type="text"
+              required={accountType !== "TA"}
+              value={orgName}
+              onChange={(e) => setOrgName(e.target.value)}
               className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
           </div>
