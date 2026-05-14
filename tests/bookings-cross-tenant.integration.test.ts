@@ -11,11 +11,12 @@
  *  - CorpA cannot DELETE any booking (no DELETE policy for corp role).
  *  - TA master can DELETE bookings.
  */
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, expect, it } from "vitest";
 import {
   admin,
   cleanup,
   createUser,
+  describeIntegration as describe,
   RUN_ID,
   signIn,
   tenantIdOf,
