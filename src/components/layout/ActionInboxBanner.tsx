@@ -7,9 +7,11 @@ interface Props {
   // Filter to only actions of these kinds (e.g., for /negociacao show only renegotiations)
   kinds: ActionKind[];
   title: string;
+  actionLabel?: string;
+  onItemClick?: (actionId: string) => void;
 }
 
-export function ActionInboxBanner({ kinds, title }: Props) {
+export function ActionInboxBanner({ kinds, title, actionLabel, onItemClick }: Props) {
   const navigate = useNavigate();
   const allActions = useActionStore((s) => s.actions);
   const actions = useMemo(
