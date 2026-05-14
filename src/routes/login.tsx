@@ -23,22 +23,37 @@ function LoginPage() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setBusy(true);
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      toast.error(error.message);
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        toast.error(error.message);
+        setBusy(false);
+        return;
+      }
+      if (!data.user) {
+        toast.error("Login não retornou usuário. Tente novamente.");
+        setBusy(false);
+        return;
+      }
+      // Load roles to decide landing
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("tenant_id, role")
+        .eq("user_id", data.user.id);
+      const primary = getPrimaryRole((roles ?? []) as { tenant_id: string; role: import("@/hooks/useAuth").AppRole }[]);
+      const dest = search.redirect || landingForRole(primary);
+      toast.success("Bem-vindo!");
+      // Hard redirect — escapa de iframes da preview onde router.navigate
+      // às vezes não troca de rota antes da sessão propagar.
+      window.location.assign(dest);
+    } catch (err) {
+      console.error("[login] inesperado", err);
+      toast.error(`Falha no login: ${(err as Error).message ?? "erro desconhecido"}`);
       setBusy(false);
-      return;
     }
-    // Load roles to decide landing
-    const { data: roles } = await supabase
-      .from("user_roles")
-      .select("tenant_id, role")
-      .eq("user_id", data.user!.id);
-    const primary = getPrimaryRole((roles ?? []) as { tenant_id: string; role: import("@/hooks/useAuth").AppRole }[]);
-    const dest = search.redirect || landingForRole(primary);
-    toast.success("Bem-vindo!");
-    navigate({ to: dest });
   }
+  // Silence unused — navigate kept for future use
+  void navigate;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
