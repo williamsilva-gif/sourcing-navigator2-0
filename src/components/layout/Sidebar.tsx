@@ -12,6 +12,7 @@ import {
   DollarSign,
   Hotel,
   Settings,
+  BookOpen,
 } from "lucide-react";
 import { useAppConfigStore, useEnabledModules, type ModuleKey } from "@/lib/appConfigStore";
 import { useAuth, getPrimaryRole } from "@/hooks/useAuth";
@@ -28,6 +29,7 @@ const modules: { to: string; label: string; icon: typeof LayoutDashboard; key: M
   { to: "/implementacao", label: "Implementação", icon: Rocket, key: "implementacao" },
   { to: "/monitoramento", label: "Monitoramento", icon: Activity, key: "monitoramento" },
   { to: "/monetizacao", label: "Monetização", icon: DollarSign, key: "monetizacao" },
+  { to: "/wiki", label: "Documentação", icon: BookOpen, key: "dashboard" },
   { to: "/admin", label: "Admin", icon: Settings, key: "admin" },
 ];
 

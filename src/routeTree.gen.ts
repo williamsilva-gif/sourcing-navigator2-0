@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WikiRouteImport } from './routes/wiki'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SelecaoRouteImport } from './routes/selecao'
@@ -26,9 +27,16 @@ import { Route as AnaliseRouteImport } from './routes/analise'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as WikiIndexRouteImport } from './routes/wiki.index'
+import { Route as WikiSlugRouteImport } from './routes/wiki.$slug'
 import { Route as AccountPrivacyRouteImport } from './routes/account.privacy'
 import { Route as AuthenticatedTaClientsRouteImport } from './routes/_authenticated/ta.clients'
 
+const WikiRoute = WikiRouteImport.update({
+  id: '/wiki',
+  path: '/wiki',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
@@ -113,6 +121,16 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WikiIndexRoute = WikiIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => WikiRoute,
+} as any)
+const WikiSlugRoute = WikiSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => WikiRoute,
+} as any)
 const AccountPrivacyRoute = AccountPrivacyRouteImport.update({
   id: '/account/privacy',
   path: '/account/privacy',
@@ -141,7 +159,10 @@ export interface FileRoutesByFullPath {
   '/selecao': typeof SelecaoRoute
   '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
+  '/wiki': typeof WikiRouteWithChildren
   '/account/privacy': typeof AccountPrivacyRoute
+  '/wiki/$slug': typeof WikiSlugRoute
+  '/wiki/': typeof WikiIndexRoute
   '/ta/clients': typeof AuthenticatedTaClientsRoute
 }
 export interface FileRoutesByTo {
@@ -162,6 +183,8 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
   '/account/privacy': typeof AccountPrivacyRoute
+  '/wiki/$slug': typeof WikiSlugRoute
+  '/wiki': typeof WikiIndexRoute
   '/ta/clients': typeof AuthenticatedTaClientsRoute
 }
 export interface FileRoutesById {
@@ -183,7 +206,10 @@ export interface FileRoutesById {
   '/selecao': typeof SelecaoRoute
   '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
+  '/wiki': typeof WikiRouteWithChildren
   '/account/privacy': typeof AccountPrivacyRoute
+  '/wiki/$slug': typeof WikiSlugRoute
+  '/wiki/': typeof WikiIndexRoute
   '/_authenticated/ta/clients': typeof AuthenticatedTaClientsRoute
 }
 export interface FileRouteTypes {
@@ -205,7 +231,10 @@ export interface FileRouteTypes {
     | '/selecao'
     | '/signup'
     | '/terms'
+    | '/wiki'
     | '/account/privacy'
+    | '/wiki/$slug'
+    | '/wiki/'
     | '/ta/clients'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -226,6 +255,8 @@ export interface FileRouteTypes {
     | '/signup'
     | '/terms'
     | '/account/privacy'
+    | '/wiki/$slug'
+    | '/wiki'
     | '/ta/clients'
   id:
     | '__root__'
@@ -246,7 +277,10 @@ export interface FileRouteTypes {
     | '/selecao'
     | '/signup'
     | '/terms'
+    | '/wiki'
     | '/account/privacy'
+    | '/wiki/$slug'
+    | '/wiki/'
     | '/_authenticated/ta/clients'
   fileRoutesById: FileRoutesById
 }
@@ -268,11 +302,19 @@ export interface RootRouteChildren {
   SelecaoRoute: typeof SelecaoRoute
   SignupRoute: typeof SignupRoute
   TermsRoute: typeof TermsRoute
+  WikiRoute: typeof WikiRouteWithChildren
   AccountPrivacyRoute: typeof AccountPrivacyRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/wiki': {
+      id: '/wiki'
+      path: '/wiki'
+      fullPath: '/wiki'
+      preLoaderRoute: typeof WikiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/terms': {
       id: '/terms'
       path: '/terms'
@@ -392,6 +434,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/wiki/': {
+      id: '/wiki/'
+      path: '/'
+      fullPath: '/wiki/'
+      preLoaderRoute: typeof WikiIndexRouteImport
+      parentRoute: typeof WikiRoute
+    }
+    '/wiki/$slug': {
+      id: '/wiki/$slug'
+      path: '/$slug'
+      fullPath: '/wiki/$slug'
+      preLoaderRoute: typeof WikiSlugRouteImport
+      parentRoute: typeof WikiRoute
+    }
     '/account/privacy': {
       id: '/account/privacy'
       path: '/account/privacy'
@@ -421,6 +477,18 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
   AuthenticatedRouteChildren,
 )
 
+interface WikiRouteChildren {
+  WikiSlugRoute: typeof WikiSlugRoute
+  WikiIndexRoute: typeof WikiIndexRoute
+}
+
+const WikiRouteChildren: WikiRouteChildren = {
+  WikiSlugRoute: WikiSlugRoute,
+  WikiIndexRoute: WikiIndexRoute,
+}
+
+const WikiRouteWithChildren = WikiRoute._addFileChildren(WikiRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
@@ -439,18 +507,9 @@ const rootRouteChildren: RootRouteChildren = {
   SelecaoRoute: SelecaoRoute,
   SignupRoute: SignupRoute,
   TermsRoute: TermsRoute,
+  WikiRoute: WikiRouteWithChildren,
   AccountPrivacyRoute: AccountPrivacyRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
