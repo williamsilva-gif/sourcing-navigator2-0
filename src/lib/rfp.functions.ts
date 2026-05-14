@@ -147,13 +147,13 @@ export const listRfpsFn = createServerFn({ method: "GET" })
       id: r.id,
       name: r.name,
       client_tenant_id: r.client_tenant_id,
-      client_name: tenantNames.get(r.client_tenant_id),
+      client_name: tenantNames.get(r.client_tenant_id) ?? "",
       status: r.status,
       deadline: r.deadline,
       created_at: r.created_at,
       updated_at: r.updated_at,
       pois: r.pois,
-      metadata: (r.metadata ?? {}) as Record<string, unknown>,
+      metadata: (r.metadata ?? {}) as Json,
       invited_count: invByRfp.get(r.id) ?? 0,
       responded_count: respByRfp.get(r.id) ?? 0,
     }));
@@ -262,13 +262,13 @@ export const getInvitationByTokenFn = createServerFn({ method: "POST" })
         name: rfp.name,
         deadline: rfp.deadline,
         client_name: tenant?.name ?? "",
-        metadata: (rfp.metadata ?? {}) as Record<string, unknown>,
+        metadata: (rfp.metadata ?? {}) as Json,
       },
       hotel: hotel
         ? { id: hotel.id, name: hotel.name, city: hotel.city }
         : null,
       existingResponse: existing
-        ? { rates: (existing.rates ?? {}) as Record<string, unknown>, submitted_at: existing.submitted_at }
+        ? { rates: (existing.rates ?? {}) as Json, submitted_at: existing.submitted_at }
         : null,
     };
   });

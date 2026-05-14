@@ -31,11 +31,13 @@ export function useRfp(id: string | null) {
   });
 }
 
+type CreateRfpInput = Parameters<ReturnType<typeof useServerFn<typeof createRfpFn>>>[0] extends { data: infer D } ? D : never;
+
 export function useCreateRfp() {
   const create = useServerFn(createRfpFn);
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: Parameters<typeof create>[0]["data"]) => create({ data: input }),
+    mutationFn: (input: CreateRfpInput) => create({ data: input } as never),
     onSuccess: () => qc.invalidateQueries({ queryKey: RFP_KEYS.all }),
   });
 }
