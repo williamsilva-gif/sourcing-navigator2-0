@@ -86,6 +86,12 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
+  const { user } = useAuth();
+  const syncClients = useClientsStore((s) => s.syncFromDb);
+  useEffect(() => {
+    if (user) syncClients();
+  }, [user, syncClients]);
+
   return (
     <>
       <Outlet />
