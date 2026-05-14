@@ -5,11 +5,12 @@
  *  - Once promoted, the new TA staff member sees all tenants.
  *  - Public signup with account_type=TA is silently rejected.
  */
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, expect, it } from "vitest";
 import {
   admin,
   cleanup,
   createUser,
+  describeIntegration as describe,
   PASSWORD,
   RUN_ID,
   signIn,
