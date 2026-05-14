@@ -1,10 +1,20 @@
-import { Calendar, Users, MapPin, Send, Copy } from "lucide-react";
+import { useState } from "react";
+import { Calendar, Users, MapPin, Send, Copy, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { useRfp, publicResponseUrl } from "@/lib/rfpRepo";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useRfp, publicResponseUrl, useCancelRfp } from "@/lib/rfpRepo";
 
 interface Props {
   rfpId: string | null;
