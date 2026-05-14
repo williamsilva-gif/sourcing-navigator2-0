@@ -97,8 +97,9 @@ export async function bulkUpsertByCode(
 ): Promise<{ added: number; updated: number; failed: number; firstError?: string }> {
   if (hotels.length === 0) return { added: 0, updated: 0, failed: 0 };
 
-  const BATCH_SIZE = 1000;
-  const batches = Math.ceil(hotels.length / BATCH_SIZE);
+  // Split into exactly 4 batches, capped at 5000/batch (server limit).
+  const batches = 4;
+  const BATCH_SIZE = Math.min(5000, Math.ceil(hotels.length / batches));
   let added = 0;
   let updated = 0;
   let failed = 0;
@@ -106,6 +107,10 @@ export async function bulkUpsertByCode(
 
   for (let i = 0; i < batches; i++) {
     const chunk = hotels.slice(i * BATCH_SIZE, (i + 1) * BATCH_SIZE);
+    if (chunk.length === 0) {
+      onProgress?.({ processed: hotels.length, total: hotels.length, batch: i + 1, batches });
+      continue;
+    }
     try {
       const res = await bulkUpsertHotelsByCodeFn({ data: { hotels: chunk } });
       added += res.added ?? 0;
