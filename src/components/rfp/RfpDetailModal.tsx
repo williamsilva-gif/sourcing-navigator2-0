@@ -1,181 +1,93 @@
+import { Calendar, Users, MapPin, Send, Copy } from "lucide-react";
 import { toast } from "sonner";
-import { Calendar, Users, MapPin, DollarSign, User, Send, Bell } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import type { RfpProgram } from "./rfpProgramData";
+import { useRfp, publicResponseUrl } from "@/lib/rfpRepo";
 
 interface Props {
-  rfp: RfpProgram | null;
+  rfpId: string | null;
   onClose: () => void;
 }
 
-export function RfpDetailModal({ rfp, onClose }: Props) {
-  if (!rfp) return null;
-  const responseRate = rfp.invitedHotels > 0 ? Math.round((rfp.responsesReceived / rfp.invitedHotels) * 100) : 0;
+export function RfpDetailModal({ rfpId, onClose }: Props) {
+  const { data, isLoading } = useRfp(rfpId);
+
+  if (!rfpId) return null;
 
   return (
-    <Dialog open={!!rfp} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-2xl">
+    <Dialog open={!!rfpId} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{rfp.name}</DialogTitle>
-          <DialogDescription>
-            {rfp.client} · Ciclo {rfp.cycle} · Owner {rfp.owner}
-          </DialogDescription>
+          <DialogTitle>{data?.rfp.name ?? "Carregando..."}</DialogTitle>
+          <DialogDescription>{data?.rfp.client_name ?? ""}</DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Badge variant="secondary" className="bg-primary-soft text-primary">
-              {rfp.status}
-            </Badge>
-            <span className="text-xs text-muted-foreground">
-              Criado em {rfp.createdAt} · Prazo {rfp.deadline}
-            </span>
-          </div>
+        {isLoading && <p className="py-6 text-center text-sm text-muted-foreground">Carregando...</p>}
 
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            <Stat icon={Users} label="Convidados" value={String(rfp.invitedHotels)} />
-            <Stat icon={Send} label="Respostas" value={`${rfp.responsesReceived} (${responseRate}%)`} />
-            <Stat icon={MapPin} label="Cidades" value={String(rfp.cities.length)} />
-            <Stat
-              icon={DollarSign}
-              label="Spend estimado"
-              value={`$ ${(rfp.estimatedSpend / 1_000_000).toFixed(1)}M`}
-            />
-          </div>
-
-          <div>
-            <div className="mb-1 flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">Progresso geral do programa</span>
-              <span className="font-medium text-foreground">{rfp.progress}%</span>
+        {data && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="bg-primary-soft text-primary">{data.rfp.status}</Badge>
+              <span className="text-xs text-muted-foreground">Prazo: {data.rfp.deadline ? new Date(data.rfp.deadline).toLocaleDateString() : "—"}</span>
             </div>
-            <Progress value={rfp.progress} className="h-2" />
-          </div>
 
-          <div className="rounded-lg border border-border bg-card p-4">
-            <p className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-foreground">
-              <MapPin className="h-3.5 w-3.5 text-primary" />
-              Cidades cobertas
-            </p>
-            <div className="flex flex-wrap gap-1.5">
-              {rfp.cities.map((c) => (
-                <Badge key={c} variant="outline" className="text-xs">
-                  {c}
-                </Badge>
-              ))}
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+              <Stat icon={Users} label="Convidados" value={String(data.invitations.length)} />
+              <Stat icon={Send} label="Respostas" value={String(data.responses.length)} />
+              <Stat icon={MapPin} label="Cidades" value={String(((data.rfp.metadata as Record<string, unknown>)?.cities as string[] | undefined)?.length ?? 0)} />
+              <Stat icon={Calendar} label="Ciclo" value={String((data.rfp.metadata as Record<string, unknown>)?.cycle ?? "—")} />
             </div>
-          </div>
 
-          <div className="rounded-lg border border-border bg-card p-4">
-            <p className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-foreground">
-              <Calendar className="h-3.5 w-3.5 text-primary" />
-              Linha do tempo
-            </p>
-            <ol className="space-y-2 text-sm">
-              <TimelineItem date={rfp.createdAt} label="RFP criado" done />
-              <TimelineItem
-                date={rfp.createdAt}
-                label="Distribuído para hotéis"
-                done={rfp.status !== "Rascunho"}
-              />
-              <TimelineItem
-                date="Em andamento"
-                label="Coleta de respostas"
-                done={rfp.status === "Em análise" || rfp.status === "Encerrado"}
-                active={rfp.status === "Coletando respostas" || rfp.status === "Em distribuição"}
-              />
-              <TimelineItem
-                date={rfp.deadline}
-                label="Prazo final"
-                done={rfp.status === "Encerrado"}
-                active={rfp.status === "Em análise"}
-              />
-            </ol>
-          </div>
+            <div>
+              <p className="mb-2 text-sm font-semibold text-foreground">Hotéis convidados</p>
+              <div className="max-h-72 overflow-y-auto rounded-md border border-border">
+                <table className="w-full text-xs">
+                  <thead className="bg-muted/40">
+                    <tr><th className="px-3 py-2 text-left">Hotel</th><th className="px-3 py-2 text-left">Status</th><th className="px-3 py-2 text-left">Link</th></tr>
+                  </thead>
+                  <tbody>
+                    {data.invitations.map((inv) => {
+                      const url = publicResponseUrl(inv.id);
+                      return (
+                        <tr key={inv.id} className="border-t border-border">
+                          <td className="px-3 py-2"><p className="font-medium text-foreground">{inv.hotel_name}</p><p className="text-muted-foreground">{inv.hotel_city}</p></td>
+                          <td className="px-3 py-2"><Badge variant="secondary" className={inv.status === "Submetido" ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"}>{inv.status}</Badge></td>
+                          <td className="px-3 py-2"><Button size="sm" variant="ghost" onClick={() => navigator.clipboard.writeText(url).then(() => toast.success("Copiado"))}><Copy className="mr-1 h-3 w-3" />Copiar</Button></td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
 
-          <div className="flex items-center justify-end gap-2 border-t border-border pt-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => toast.info(`Owner ${rfp.owner} notificado`)}
-            >
-              <User className="mr-1.5 h-3.5 w-3.5" />
-              Falar com owner
-            </Button>
-            {rfp.status === "Coletando respostas" && (
-              <Button
-                size="sm"
-                onClick={() =>
-                  toast.success(
-                    `Lembrete enviado para ${rfp.invitedHotels - rfp.responsesReceived} hotéis pendentes`,
-                  )
-                }
-              >
-                <Bell className="mr-1.5 h-3.5 w-3.5" />
-                Enviar lembrete em massa
-              </Button>
+            {data.responses.length > 0 && (
+              <div>
+                <p className="mb-2 text-sm font-semibold text-foreground">Respostas recebidas</p>
+                <div className="space-y-2">
+                  {data.responses.map((r) => (
+                    <details key={r.id} className="rounded-md border border-border bg-card p-3">
+                      <summary className="cursor-pointer text-sm font-medium">Hotel {r.hotel_id.slice(0, 8)} · {new Date(r.submitted_at).toLocaleString()}</summary>
+                      <pre className="mt-2 overflow-x-auto text-[11px] text-muted-foreground">{JSON.stringify(r.rates, null, 2)}</pre>
+                    </details>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
-        </div>
+        )}
       </DialogContent>
     </Dialog>
   );
 }
 
-function Stat({
-  icon: Icon,
-  label,
-  value,
-}: {
-  icon: typeof Calendar;
-  label: string;
-  value: string;
-}) {
+function Stat({ icon: Icon, label, value }: { icon: typeof Calendar; label: string; value: string }) {
   return (
     <div className="rounded-lg border border-border bg-muted/30 p-3">
-      <div className="flex items-center gap-1.5">
-        <Icon className="h-3 w-3 text-muted-foreground" />
-        <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-          {label}
-        </p>
-      </div>
+      <div className="flex items-center gap-1.5"><Icon className="h-3 w-3 text-muted-foreground" /><p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{label}</p></div>
       <p className="mt-1 text-base font-semibold text-foreground">{value}</p>
     </div>
-  );
-}
-
-function TimelineItem({
-  date,
-  label,
-  done = false,
-  active = false,
-}: {
-  date: string;
-  label: string;
-  done?: boolean;
-  active?: boolean;
-}) {
-  return (
-    <li className="flex items-center gap-3">
-      <div
-        className={`h-2.5 w-2.5 rounded-full ${
-          done ? "bg-success" : active ? "bg-primary animate-pulse" : "bg-muted-foreground/40"
-        }`}
-      />
-      <div className="flex-1">
-        <p className={`text-sm ${done || active ? "font-medium text-foreground" : "text-muted-foreground"}`}>
-          {label}
-        </p>
-        <p className="text-xs text-muted-foreground">{date}</p>
-      </div>
-    </li>
   );
 }
