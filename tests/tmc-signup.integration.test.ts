@@ -9,11 +9,12 @@
  *  - TMC_A can insert a child CORP tenant; CorpA cannot.
  *  - TMC_A cannot insert bookings on TMC_B's tenant.
  */
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, expect, it } from "vitest";
 import {
   admin,
   cleanup,
   createUser,
+  describeIntegration as describe,
   RUN_ID,
   signIn,
   tenantIdOf,
