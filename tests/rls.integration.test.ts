@@ -67,6 +67,7 @@ let corpB: { id: string; email: string };
 let taAttempt: { id: string; email: string };
 
 beforeAll(async () => {
+  if (!hasIntegrationEnv) return;
   hotelA = await createUser("hotelA", "HOTEL");
   corpA = await createUser("corpA", "CORP");
   corpB = await createUser("corpB", "CORP");
@@ -74,6 +75,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+  if (!hasIntegrationEnv) return;
   // Delete users — cascades to user_roles via FK; tenants are then orphaned and
   // we remove them by name pattern via the service role.
   for (const u of created) {
