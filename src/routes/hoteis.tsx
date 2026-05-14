@@ -40,6 +40,7 @@ function HotelsPage() {
   const [query, setQuery] = useState("");
   const [importing, setImporting] = useState(false);
   const [migrating, setMigrating] = useState(false);
+  const [migrateProgress, setMigrateProgress] = useState<{ processed: number; total: number; batch: number; batches: number } | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
   const localHotels = useBaselineStore((s) => s.hotels);
