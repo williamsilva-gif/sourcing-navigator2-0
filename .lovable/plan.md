@@ -1,107 +1,73 @@
+# Plano
 
-# Plano — Acessos por Camada (TA → TMC → Corporativo → Hotel)
+## 1. Restaurar visibilidade do menu Admin para o TA
 
-## Visão geral
-Ativar Lovable Cloud, modelar isolamento multi-tenant no PostgreSQL com RLS, migrar tudo que hoje vive em `localStorage` para o banco, e criar UIs específicas por camada — sem perder o que já funciona (RFP, leilão reverso, cadastro de hotéis com Maps, POIs, upload em massa).
+**Sintoma:** Logado como `william.silva@travelacademy.com.br` (TA master), apenas o link "TA Console" aparece — o item "Admin" sumiu da sidebar.
 
-## 1. Backend — Lovable Cloud
+**Causa:** `src/components/layout/Sidebar.tsx` filtra o item Admin por `role === "admin" && enabledModules.admin`, lendo da store legada `appConfigStore` (zustand persistido em localStorage). Como agora o login real popula `useAuth().roles` (não a store legada), TA não passa mais por esse filtro. Além disso, se o módulo `admin` foi desabilitado em alguma sessão anterior, o flag persistido bloqueia o link mesmo com role correto.
 
-Ativar Cloud (Postgres + Auth). Email/senha como método inicial. Magic-link habilitado para convites (hotéis e clientes).
+**Correção (somente UI/presentation):**
+- Em `Sidebar.tsx`, considerar também o papel real vindo de `useAuth()`: mostrar "Admin" quando `primaryRole` é `ta_master`/`ta_staff` (ou quando o legacy `role === "admin"` continuar valendo, para retrocompatibilidade).
+- Não tocar no gating do `enabledModules.admin` por enquanto — apenas garantir que TA não dependa do role legado.
 
-## 2. Modelo de dados (esquema multi-tenant)
+## 2. Pipeline de CI (GitHub Actions)
 
-```text
-tenants               (id, type: 'TA'|'TMC'|'CORP'|'HOTEL', name, parent_tenant_id, billing_status, terms_accepted_at)
-profiles              (id=auth.uid, tenant_id, full_name, email)
-user_roles            (user_id, tenant_id, role: 'ta_master'|'tmc_admin'|'tmc_user'|'corp_admin'|'corp_user'|'hotel_user')
-tenant_modules        (tenant_id, module_key, enabled)        -- App Configuration por tenant
-tenant_thresholds     (tenant_id, key, value)
-hotels                (id, tenant_id_owner=hotel tenant, name, cnpj, address, lat, lng, contacts jsonb, ...)
-hotel_members         (hotel_id, user_id, role)               -- rede com vários hotéis
-bookings              (id, client_tenant_id, ...)             -- baseline atual migrado
-rfps                  (id, client_tenant_id, created_by_tenant_id, deadline, status, pois jsonb, ...)
-rfp_invitations       (rfp_id, hotel_id, status, deadline)
-rfp_responses         (rfp_id, hotel_id, rates jsonb, submitted_at)
-auctions              (id, rfp_id, ...)                       -- leilão reverso preservado
-billing_events        (tmc_tenant_id, client_tenant_id, event_type, occurred_at, terms_version)
-```
+Criar `.github/workflows/test.yml`:
+- Triggers: `push` e `pull_request` em qualquer branch.
+- Runner: `ubuntu-latest`, instala `bun`.
+- Passos: `bun install --frozen-lockfile` → `bun run test`.
+- Envs (lidas de GitHub Secrets do repositório): `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_PUBLISHABLE_KEY`.
+- Falha o job se qualquer teste vitest quebrar (default — `bun run test` retorna não-zero).
+- Documentar os 3 secrets necessários num bloco no `README` ou nota no próprio workflow (comentário no topo).
 
-Função `has_role(_uid, _role, _tenant)` SECURITY DEFINER → usada em todas as policies (evita recursão).
+> Observação: a execução real depende do usuário cadastrar esses secrets no GitHub. Se faltarem, o setup do `tests/rls.integration.test.ts` (que dá `throw` quando ausentes) faz o build falhar — comportamento desejado.
 
-## 3. Regra de isolamento (RLS resumida)
+## 3. Novos testes de integração
 
-- **TA (`ta_master`)**: vê tudo (`bypass via has_role`).
-- **TMC**: vê seu próprio tenant + tenants filhos onde `parent_tenant_id = tmc_id`.
-- **Corp**: vê apenas registros onde `client_tenant_id = seu tenant_id`.
-- **Hotel**: vê apenas RFPs em `rfp_invitations` ligados ao seu `hotel_id` + seu próprio cadastro.
+Criar 3 novos arquivos de teste em `tests/`, todos seguindo o mesmo padrão do `rls.integration.test.ts` existente (service-role admin para setup/teardown, clientes anon autenticados para validar RLS, prefixo `rlstest+` + `RUN_ID` para isolamento e cleanup).
 
-Toda tabela com `client_tenant_id` ganha policy de SELECT/INSERT/UPDATE baseada na função.
+### 3.1 `tests/ta-invite.integration.test.ts`
+Cobre o fluxo de promoção de TA staff feito no `ta.clients.tsx`:
+- Cria um usuário "convidado" via signup público como HOTEL.
+- Autentica como TA master (usa o seed `william.silva@travelacademy.com.br` se existir; caso contrário cria/promove um TA master via service-role no setup) e insere em `user_roles` o par `(invitee.id, root_ta_tenant.id, 'ta_staff')` — exatamente como faz o handler `handleInviteTaStaff`.
+- Verifica:
+  - Insert succeeds quando autor é TA master.
+  - Mesmo insert é bloqueado por RLS quando autor é CORP/HOTEL/TMC qualquer.
+  - Após promoção, o convidado consegue ler todos os tenants (`is_ta_master` retorna true → `visible_tenant_ids` cobre tudo).
+  - `handle_new_user` continua não atribuindo `ta_*` no signup público (já coberto, mas reafirmamos cross-checking).
 
-## 4. Auth e roteamento
+### 3.2 `tests/bookings-cross-tenant.integration.test.ts`
+Foca em UPDATE/DELETE cross-tenant em `bookings` (o teste atual cobre INSERT/SELECT):
+- Setup: cria `corpA`, `corpB`, ambos `corp_admin` do próprio tenant; CorpA insere 1 booking marcado.
+- CorpA UPDATE no próprio booking → sucesso (linha alterada).
+- CorpA UPDATE no booking de CorpB → 0 linhas afetadas (RLS filtra silenciosamente em UPDATE; conferimos via `select count` pós-update via service role).
+- CorpA DELETE no próprio booking → bloqueado (não há policy DELETE para corp; só TA master deleta) — confere `error` ou `count=0`.
+- CorpA DELETE no booking de CorpB → 0 linhas afetadas.
+- TA master DELETE em qualquer booking → sucesso.
 
-- Layout `_authenticated` com `beforeLoad` redirect para `/login`.
-- Sub-layouts por camada: `_ta`, `_tmc`, `_corp`, `_hotel` (cada um valida role via `has_role`).
-- Login único `/login`; após auth, redireciona pelo role principal.
-- Páginas novas:
-  - `/login`, `/signup` (público — só hotéis podem auto-cadastrar)
-  - `/invite/$token` (aceita magic-link de hotel ou cliente)
-  - `/ta/clients` (TA gerencia TMCs e clientes diretos)
-  - `/tmc/clients` (TMC gerencia seus clientes + aceita T&C por cliente novo → grava `billing_events`)
-  - `/hotel/onboarding` (busca hotel existente OU cadastra novo com Maps)
-  - `/hotel/rfps` (lista RFPs ativos com prazo destacado, formulário de submissão de tarifas individual e em massa por rede)
-  - `/hotel/profile` (CNPJ, contatos, edição cadastral — reusa `HotelForm`)
+### 3.3 `tests/tmc-signup.integration.test.ts`
+- Cria usuário via `auth.admin.createUser` com `account_type=TMC` e `org_name`.
+- Verifica:
+  - Existe exatamente 1 row em `tenants` com aquele `name` e `type='TMC'`.
+  - Existe 1 `user_roles` para o usuário com `role='tmc_admin'` apontando para esse tenant.
+  - `profiles.primary_tenant_id` aponta para esse tenant.
+- Cross-isolation:
+  - TMC_A não enxerga `tenants` de TMC_B (`select` retorna 0 rows).
+  - TMC_A não consegue inserir booking no `client_tenant_id` de TMC_B (RLS rejeita).
+  - HOTEL_A não enxerga tenant de TMC_A.
+  - TMC_A pode inserir um child CORP via policy `TMC can insert child tenants` (positivo) e CorpA não consegue (negativo).
 
-Header: dropdown "Tenant ativo" mostra apenas tenants visíveis ao usuário; troca → atualiza contexto e queries.
+## 4. Arquivos afetados
 
-## 5. Migração dos dados demo → Acme real
+- **Editar:** `src/components/layout/Sidebar.tsx` (lógica de visibilidade do item Admin).
+- **Criar:** `.github/workflows/test.yml`.
+- **Criar:** `tests/ta-invite.integration.test.ts`, `tests/bookings-cross-tenant.integration.test.ts`, `tests/tmc-signup.integration.test.ts`.
 
-Server function `seedAcmeDemoData()` (idempotente, só roda 1× por tenant):
-1. Cria tenant `acme` tipo CORP, sem parent (cliente direto da TA).
-2. Importa os 500 bookings já gerados em `demoData.ts` para `bookings` com `client_tenant_id=acme`.
-3. Cria os hotéis demo em `hotels` (tenant_owner = hotel tenants individuais).
-4. Cria 1 RFP demo + invitations + 1 leilão reverso de exemplo.
-5. Marca `tenant_settings.demo_seeded=true`.
+Sem migrações novas — todas as policies necessárias já existem no schema atual.
 
-Stores Zustand viram cache local apenas; fonte da verdade passa a ser Supabase via `createServerFn` + React Query.
+## 5. Validação
 
-## 6. Login master TA
+- Rodar `bun run test` localmente após cada novo arquivo de teste para confirmar que passa antes de commitar.
+- Conferir no preview que o item "Admin" aparece de novo na sidebar quando logado como TA master.
 
-Após Cloud ativo: criar usuário `william.silva@travelacademy.com.br` (você define a senha no primeiro login via "esqueci senha"), atribuir `ta_master`, vinculado ao tenant TA raiz. Toda alteração feita por esse login cascateia (módulos habilitados, thresholds default, T&C vigente).
-
-## 7. Billing — só registro
-
-- Modal de T&C ao TMC criar cliente; grava `billing_events(event_type='client_created', terms_version)`.
-- Painel TA `/ta/billing` lista eventos + export CSV para Financeiro. Sem Stripe agora.
-
-## 8. Preservação do que existe
-
-Tudo continua funcionando, agora com tenant_id:
-- HotelForm + Maps + autocomplete + POIs ✅
-- Upload em massa de hotéis ✅
-- RFP wizard com POIs e raio ✅
-- Leilão reverso ✅
-- Diagnóstico/Dashboard/Análise ✅ (queries filtradas por tenant ativo)
-
-## 9. Segurança
-- Service role só em `*.server.ts`, nunca em loaders/componentes.
-- `requireSupabaseAuth` em toda server function de leitura/escrita.
-- Scan de segurança ao final.
-
-## 10. Entregáveis em ordem
-
-1. Ativar Cloud
-2. Migrations: tabelas + RLS + função `has_role` + seed TA tenant + usuário master
-3. `_authenticated` layout + login/signup/invite + redirect por role
-4. Migração baseline → Acme (server fn idempotente)
-5. UI TA (clientes, billing, app config global)
-6. UI TMC (clientes, T&C, app config delegado, dropdown cliente ativo)
-7. UI Corp (já existe — só plugar nos dados reais com filtro por tenant)
-8. UI Hotel (onboarding, RFPs com prazo destacado, submissão de tarifas individual + rede, perfil)
-9. Conectar RFP/Leilão/Diagnóstico/Análise às queries reais
-10. Security scan + ajustes
-
-## Notas técnicas
-- Stores Zustand persistidos em localStorage viram cache de UI (cliente ativo, filtros), não fonte de verdade.
-- `appConfigStore` e `clientsStore` deixam de ser autoritativos; viram seletores derivados de `tenants`/`tenant_modules` carregados do banco.
-- `routeTree.gen.ts` regenerado automaticamente — não editar.
-- Auto-seed atual em `baselineStore` precisa ser desativado quando o usuário estiver autenticado.
+Confirme para eu implementar (ou ajuste pontos do plano se algo não estiver como esperado).

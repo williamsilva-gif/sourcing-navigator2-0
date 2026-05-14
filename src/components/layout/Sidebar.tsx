@@ -14,6 +14,7 @@ import {
   Settings,
 } from "lucide-react";
 import { useAppConfigStore, useEnabledModules, type ModuleKey } from "@/lib/appConfigStore";
+import { useAuth, getPrimaryRole } from "@/hooks/useAuth";
 
 const modules: { to: string; label: string; icon: typeof LayoutDashboard; key: ModuleKey }[] = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, key: "dashboard" },
@@ -34,8 +35,11 @@ export function Sidebar() {
   const { pathname } = useLocation();
   const enabledModules = useEnabledModules();
   const role = useAppConfigStore((s) => s.user.role);
+  const { roles } = useAuth();
+  const authRole = getPrimaryRole(roles);
+  const isTa = authRole === "ta_master" || authRole === "ta_staff";
   const visible = modules.filter((m) => {
-    if (m.key === "admin") return enabledModules.admin && role === "admin";
+    if (m.key === "admin") return isTa || (enabledModules.admin && role === "admin");
     return enabledModules[m.key];
   });
 
