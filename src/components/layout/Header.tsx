@@ -17,9 +17,9 @@ import { toast } from "sonner";
 
 export function Header() {
   const navigate = useNavigate();
-  const { user, roles } = useAuth();
+  const { user, roles, ready } = useAuth();
   const primaryRole = getPrimaryRole(roles);
-  const isTa = primaryRole === "ta_master" || primaryRole === "ta_staff";
+  const isTa = ready && (primaryRole === "ta_master" || primaryRole === "ta_staff");
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -37,8 +37,11 @@ export function Header() {
   const isLive = bookings.length > 0;
   const last = uploads[0];
   const selected = clients.find((c) => c.id === selectedId) ?? clients[0];
-  const displayName = user?.email?.split("@")[0] ?? localUser.name;
-  const displayRole = primaryRole ?? localUser.role;
+  // Until the Supabase session is hydrated on the client we render a stable
+  // placeholder; otherwise SSR (no user) and client (with user) produce
+  // different initials and React aborts the tree.
+  const displayName = ready ? (user?.email?.split("@")[0] ?? localUser.name) : localUser.name;
+  const displayRole = ready ? (primaryRole ?? localUser.role) : localUser.role;
   const initials = displayName.split(/[.\s_-]+/).map((p: string) => p[0]).filter(Boolean).slice(0, 2).join("").toUpperCase() || "U";
 
   return (
