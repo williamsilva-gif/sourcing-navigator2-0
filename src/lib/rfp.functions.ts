@@ -196,7 +196,7 @@ export const getRfpFn = createServerFn({ method: "POST" })
       rfp: {
         ...rfp,
         client_name: tenant?.name ?? "",
-        metadata: (rfp.metadata ?? {}) as Record<string, unknown>,
+        metadata: (rfp.metadata ?? {}) as Json,
       },
       invitations: (invs ?? []).map((i) => {
         const h = hotelById.get(i.hotel_id);
