@@ -93,7 +93,7 @@ function LoginPage() {
         </form>
 
         <p className="mt-6 text-center text-xs text-muted-foreground">
-          É um hotel?{" "}
+          Novo por aqui?{" "}
           <Link to="/signup" className="font-medium text-primary hover:underline">
             Criar conta
           </Link>

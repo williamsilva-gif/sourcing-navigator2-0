@@ -3,7 +3,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth, getPrimaryRole } from "@/hooks/useAuth";
 import { AppShell } from "@/components/layout/AppShell";
-import { Building2, Plus, Loader2, ShieldAlert, Database } from "lucide-react";
+import { Building2, Plus, Loader2, ShieldAlert, Database, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { generateDemoBookings } from "@/lib/demoData";
 
@@ -34,6 +34,10 @@ function TaClientsPage() {
   const [type, setType] = useState<"TMC" | "CORP">("TMC");
   const [name, setName] = useState("");
   const [parent, setParent] = useState<string>("");
+
+  // TA staff invite
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviting, setInviting] = useState(false);
 
   useEffect(() => {
     if (!isTaMaster) return;
@@ -110,6 +114,41 @@ function TaClientsPage() {
       toast.error(err instanceof Error ? err.message : "Falha no seed");
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function handleInviteTaStaff(e: FormEvent) {
+    e.preventDefault();
+    const email = inviteEmail.trim().toLowerCase();
+    if (!email) return;
+    setInviting(true);
+    try {
+      const taTenant = tenants.find((t) => t.type === "TA");
+      if (!taTenant) throw new Error("Tenant TA raiz não encontrado");
+
+      const { data: profile, error: pErr } = await supabase
+        .from("profiles")
+        .select("id, email")
+        .eq("email", email)
+        .maybeSingle();
+      if (pErr) throw pErr;
+      if (!profile) {
+        throw new Error(
+          "Usuário não encontrado. Peça para a pessoa se cadastrar primeiro (qualquer tipo) e tente novamente.",
+        );
+      }
+
+      const { error: rErr } = await supabase
+        .from("user_roles")
+        .insert({ user_id: profile.id, tenant_id: taTenant.id, role: "ta_staff" });
+      if (rErr && !rErr.message.includes("duplicate")) throw rErr;
+
+      toast.success(`${email} promovido a TA staff`);
+      setInviteEmail("");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha ao conceder acesso");
+    } finally {
+      setInviting(false);
     }
   }
 
@@ -208,6 +247,38 @@ function TaClientsPage() {
               className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
             >
               {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Criar
+            </button>
+          </div>
+        </form>
+
+        {/* TA staff invite */}
+        <form
+          onSubmit={handleInviteTaStaff}
+          className="rounded-lg border border-border bg-card p-5 shadow-[var(--shadow-card)]"
+        >
+          <h2 className="mb-1 flex items-center gap-2 text-sm font-semibold text-foreground">
+            <UserPlus className="h-4 w-4" /> Conceder acesso TA staff
+          </h2>
+          <p className="mb-3 text-xs text-muted-foreground">
+            O cadastro público não permite criar contas Travel Academy. Para adicionar um membro
+            interno, peça para a pessoa se cadastrar como Hotel/TMC/Corporativo (será descartado) e
+            promova abaixo pelo email.
+          </p>
+          <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+            <input
+              type="email"
+              required
+              placeholder="email@travelacademy.com.br"
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+            />
+            <button
+              type="submit"
+              disabled={inviting}
+              className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+            >
+              {inviting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Promover
             </button>
           </div>
         </form>
