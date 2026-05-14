@@ -1,12 +1,18 @@
 /** Shared helpers for RLS integration tests. */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { beforeAll } from "vitest";
 
 export const SUPABASE_URL = process.env.SUPABASE_URL!;
 export const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 export const ANON_KEY = process.env.SUPABASE_PUBLISHABLE_KEY!;
+export const hasIntegrationEnv = Boolean(SUPABASE_URL && SERVICE_KEY && ANON_KEY);
 
-if (!SUPABASE_URL || !SERVICE_KEY || !ANON_KEY) {
-  throw new Error("Missing SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY / SUPABASE_PUBLISHABLE_KEY");
+export function requireIntegrationEnv() {
+  beforeAll(() => {
+    if (!hasIntegrationEnv) {
+      throw new Error("Missing SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY / SUPABASE_PUBLISHABLE_KEY");
+    }
+  });
 }
 
 export const PASSWORD = "Test!12345";
