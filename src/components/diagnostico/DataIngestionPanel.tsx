@@ -15,9 +15,7 @@ import { useBaselineStore } from "@/lib/baselineStore";
 import { SCHEMA_LABELS, SCHEMA_HEADERS, type DatasetType } from "@/lib/baselineSchemas";
 import { downloadTemplate, readSpreadsheet } from "@/lib/xlsxTemplates";
 import { useSnapshotStore } from "@/lib/snapshotStore";
-import { generateDemoBookings } from "@/lib/demoData";
-
-const IS_DEV = import.meta.env.DEV;
+import { generateDemoBookings, generateDemoContracts } from "@/lib/demoData";
 
 const TYPES: DatasetType[] = ["bookings", "hotels", "contracts"];
 
@@ -73,14 +71,17 @@ export function DataIngestionPanel() {
   }
 
   function loadDemoDataset() {
-    const synthetic = generateDemoBookings(500);
-    const rec = ingest("bookings", "demo-dataset-500.synthetic", synthetic);
+    // Bookings 2024 + 2025 (500/ano) + contratos vigentes para os dois anos.
+    const bks = generateDemoBookings(500, [2024, 2025]);
+    const ctrs = generateDemoContracts([2024, 2025]);
+    const recB = ingest("bookings", "demo-bookings-2024-2025.synthetic", bks);
+    const recC = ingest("contracts", "demo-contracts-2024-2025.synthetic", ctrs);
     useSnapshotStore.getState().evaluate();
     const snap = useSnapshotStore.getState().current;
-    toast.success(`Demo dataset injetado · ${rec.rowCount} bookings sintéticos`, {
+    toast.success(`Demo carregado · ${recB.rowCount} bookings · ${recC.rowCount} contratos`, {
       description: snap
-        ? `${snap.alerts.length} alertas · ${snap.opportunities.length} oportunidades geradas`
-        : undefined,
+        ? `${snap.alerts.length} alertas · ${snap.opportunities.length} oportunidades · 2024 vs 2025 disponível`
+        : "2024 vs 2025 disponível para comparação",
     });
   }
 
@@ -108,16 +109,14 @@ export function DataIngestionPanel() {
             />
             Usar dados demo se vazio
           </label>
-          {IS_DEV && (
-            <button
-              onClick={loadDemoDataset}
-              title="Visível apenas em desenvolvimento — injeta ~500 bookings sintéticos"
-              className="inline-flex items-center gap-1.5 rounded-md border border-dashed border-primary/40 bg-primary-soft/40 px-2.5 py-1.5 text-[11px] font-medium text-primary hover:bg-primary-soft"
-            >
-              <Database className="h-3.5 w-3.5" />
-              Carregar dados de demonstração
-            </button>
-          )}
+          <button
+            onClick={loadDemoDataset}
+            title="Injeta bookings 2024 + 2025 e contratos vigentes para comparação YoY"
+            className="inline-flex items-center gap-1.5 rounded-md border border-dashed border-primary/40 bg-primary-soft/40 px-2.5 py-1.5 text-[11px] font-medium text-primary hover:bg-primary-soft"
+          >
+            <Database className="h-3.5 w-3.5" />
+            Carregar demo 2024+2025
+          </button>
           <button
             onClick={recalculate}
             className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90"
