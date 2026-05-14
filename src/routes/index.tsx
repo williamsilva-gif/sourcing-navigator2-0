@@ -15,6 +15,7 @@ import { useDecisionData, type Opportunity } from "@/components/dashboard/decisi
 import { useSnapshotStore, timeAgo, daysUntilNextEval } from "@/lib/snapshotStore";
 import { useAuth, getPrimaryRole, landingForRole } from "@/hooks/useAuth";
 import { PeriodSelector } from "@/components/common/PeriodSelector";
+import { Rfp2026Plan } from "@/components/dashboard/Rfp2026Plan";
 import { useBaselineStore, selectKpis } from "@/lib/baselineStore";
 import {
   defaultPeriod,
@@ -54,6 +55,7 @@ function DashboardPage() {
   const search = Route.useSearch();
   const { ready, user, roles } = useAuth();
   const allBookings = useBaselineStore((s) => s.bookings);
+  const contracts = useBaselineStore((s) => s.contracts);
 
   // Resolve period: search params take priority, otherwise default from data.
   const fallbackPeriod = useMemo(() => defaultPeriod(allBookings), [allBookings]);
@@ -66,8 +68,8 @@ function DashboardPage() {
   const currentBookings = useMemo(() => filterByWindow(allBookings, currentWindow), [allBookings, currentWindow]);
   const previousBookings = useMemo(() => filterByWindow(allBookings, prevWindow), [allBookings, prevWindow]);
 
-  const currentKpis = useMemo(() => selectKpis(currentBookings), [currentBookings]);
-  const previousKpis = useMemo(() => selectKpis(previousBookings), [previousBookings]);
+  const currentKpis = useMemo(() => selectKpis(currentBookings, contracts), [currentBookings, contracts]);
+  const previousKpis = useMemo(() => selectKpis(previousBookings, contracts), [previousBookings, contracts]);
   const previousHasData = previousBookings.length > 0;
 
   const availableYears = useMemo(() => {
