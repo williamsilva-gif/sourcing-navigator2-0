@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 import { toast } from "sonner";
-import { Search, Calendar, Users, MapPin, Eye, Send, FileDown, Plus } from "lucide-react";
+import { Search, Calendar, Users, MapPin, Eye, Send, FileDown, Plus, XCircle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useRfps } from "@/lib/rfpRepo";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useRfps, useCancelRfp } from "@/lib/rfpRepo";
 
 const STATUS_TONE: Record<string, string> = {
   "Rascunho": "bg-muted text-muted-foreground",
