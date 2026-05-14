@@ -579,6 +579,56 @@ export type Database = {
           },
         ]
       }
+      wiki_pages: {
+        Row: {
+          content_md: string
+          created_at: string
+          created_by: string | null
+          id: string
+          module_key: string | null
+          parent_id: string | null
+          position: number
+          slug: string
+          title: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          content_md?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          module_key?: string | null
+          parent_id?: string | null
+          position?: number
+          slug: string
+          title: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          content_md?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          module_key?: string | null
+          parent_id?: string | null
+          position?: number
+          slug?: string
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wiki_pages_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "wiki_pages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
