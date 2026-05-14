@@ -3,6 +3,7 @@ import { useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Hotel, Building2, Briefcase, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { getPrimaryRole, landingForRole, type AppRole } from "@/hooks/useAuth";
 
 export const Route = createFileRoute("/signup")({
   head: () => ({ meta: [{ title: "Cadastro — Navigator Sourcing CoPilot" }] }),
@@ -37,7 +38,7 @@ function SignupPage() {
     e.preventDefault();
     setBusy(true);
     const redirectUrl = `${window.location.origin}/`;
-    const { error } = await supabase.auth.signUp({
+    const { data: signUpData, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -54,8 +55,23 @@ function SignupPage() {
       setBusy(false);
       return;
     }
-    toast.success("Conta criada! Verifique seu email para confirmar.");
-    navigate({ to: "/login" });
+    // If email confirmation is required, no session is returned. Send to login.
+    if (!signUpData.session) {
+      toast.success("Conta criada! Verifique seu email para confirmar e entrar.");
+      navigate({ to: "/login" });
+      return;
+    }
+    // Auto-confirmed: load roles (the trigger created them) and route by role.
+    const userId = signUpData.user!.id;
+    // Small delay to let the handle_new_user trigger insert into user_roles
+    await new Promise((r) => setTimeout(r, 400));
+    const { data: roles } = await supabase
+      .from("user_roles")
+      .select("tenant_id, role")
+      .eq("user_id", userId);
+    const primary = getPrimaryRole((roles ?? []) as { tenant_id: string; role: AppRole }[]);
+    toast.success("Conta criada!");
+    window.location.assign(landingForRole(primary));
   }
 
   return (

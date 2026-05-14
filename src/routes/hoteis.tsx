@@ -58,6 +58,17 @@ function HotelsPage() {
   const localHotels = useBaselineStore((s) => s.hotels);
   const clearLocalHotels = useBaselineStore((s) => s.deleteHotel);
 
+  // Migration is complete in production (15.035 hotels in DB). Auto-clear any
+  // leftover local copies once we confirm the DB has data, so the legacy
+  // "Migrar para o banco" banner never shows again.
+  useEffect(() => {
+    if (!loading && hotels.length > 0 && localHotels.length > 0) {
+      for (const h of localHotels) {
+        if (h.code) clearLocalHotels(h.code);
+      }
+    }
+  }, [loading, hotels.length, localHotels, clearLocalHotels]);
+
   async function refresh() {
     setLoading(true);
     try {

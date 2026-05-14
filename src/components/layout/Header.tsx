@@ -17,9 +17,9 @@ import { toast } from "sonner";
 
 export function Header() {
   const navigate = useNavigate();
-  const { user, roles } = useAuth();
+  const { user, roles, ready } = useAuth();
   const primaryRole = getPrimaryRole(roles);
-  const isTa = primaryRole === "ta_master" || primaryRole === "ta_staff";
+  const isTa = ready && (primaryRole === "ta_master" || primaryRole === "ta_staff");
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -37,8 +37,11 @@ export function Header() {
   const isLive = bookings.length > 0;
   const last = uploads[0];
   const selected = clients.find((c) => c.id === selectedId) ?? clients[0];
-  const displayName = user?.email?.split("@")[0] ?? localUser.name;
-  const displayRole = primaryRole ?? localUser.role;
+  // Until the Supabase session is hydrated on the client we render a stable
+  // placeholder; otherwise SSR (no user) and client (with user) produce
+  // different initials and React aborts the tree.
+  const displayName = ready ? (user?.email?.split("@")[0] ?? localUser.name) : localUser.name;
+  const displayRole = ready ? (primaryRole ?? localUser.role) : localUser.role;
   const initials = displayName.split(/[.\s_-]+/).map((p: string) => p[0]).filter(Boolean).slice(0, 2).join("").toUpperCase() || "U";
 
   return (
@@ -106,15 +109,15 @@ export function Header() {
         <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-destructive ring-2 ring-card" />
       </button>
 
-      <div className="flex items-center gap-2.5 border-l border-border pl-4">
-        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
+      <div className="flex items-center gap-2.5 border-l border-border pl-4" suppressHydrationWarning>
+        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground" suppressHydrationWarning>
           {initials}
         </div>
-        <div className="hidden leading-tight sm:block">
+        <div className="hidden leading-tight sm:block" suppressHydrationWarning>
           <p className="text-sm font-semibold text-foreground">{displayName}</p>
           <p className="text-[11px] text-muted-foreground capitalize">{displayRole}</p>
         </div>
-        {user ? (
+        {ready && user ? (
           <button
             onClick={handleLogout}
             title="Sair"
@@ -122,7 +125,7 @@ export function Header() {
           >
             <LogOut className="h-4 w-4" />
           </button>
-        ) : (
+        ) : ready ? (
           <Link
             to="/login"
             title="Entrar"
@@ -130,6 +133,8 @@ export function Header() {
           >
             <LogIn className="h-4 w-4" />
           </Link>
+        ) : (
+          <span className="ml-1 h-9 w-9" />
         )}
       </div>
     </header>

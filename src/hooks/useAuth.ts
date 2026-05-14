@@ -17,6 +17,8 @@ export interface AuthState {
   session: Session | null;
   user: User | null;
   loading: boolean;
+  /** True once `supabase.auth.getSession()` has resolved at least once on the client. */
+  ready: boolean;
   roles: UserRoleRow[];
 }
 
@@ -24,7 +26,7 @@ export interface AuthState {
 // Keeps auth state stable across component remounts so UI elements that depend
 // on `roles` (e.g. the "TA Console" link) don't flicker every time a route
 // re-mounts the Header.
-let cached: AuthState = { session: null, user: null, loading: true, roles: [] };
+let cached: AuthState = { session: null, user: null, loading: true, ready: false, roles: [] };
 const listeners = new Set<(s: AuthState) => void>();
 let initialized = false;
 
@@ -56,7 +58,7 @@ function ensureInit() {
   });
 
   supabase.auth.getSession().then(({ data }) => {
-    setCached({ session: data.session, user: data.session?.user ?? null, loading: false });
+    setCached({ session: data.session, user: data.session?.user ?? null, loading: false, ready: true });
     if (data.session?.user) loadRolesFor(data.session.user.id);
   });
 }
@@ -92,10 +94,8 @@ export function getPrimaryRole(roles: UserRoleRow[]): AppRole | null {
 }
 
 export function landingForRole(role: AppRole | null): string {
-  if (!role) return "/onboarding";
-  if (role.startsWith("ta_")) return "/";
-  if (role.startsWith("tmc_")) return "/";
-  if (role.startsWith("corp_")) return "/";
-  if (role.startsWith("hotel_")) return "/hotel/rfps";
+  if (!role) return "/login";
+  if (role.startsWith("hotel_")) return "/rfp";
+  // TA / TMC / Corp share the dashboard for now
   return "/";
 }
