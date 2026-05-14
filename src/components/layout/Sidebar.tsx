@@ -14,6 +14,7 @@ import {
   Settings,
 } from "lucide-react";
 import { useAppConfigStore, useEnabledModules, type ModuleKey } from "@/lib/appConfigStore";
+import { useAuth, getPrimaryRole } from "@/hooks/useAuth";
 
 const modules: { to: string; label: string; icon: typeof LayoutDashboard; key: ModuleKey }[] = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, key: "dashboard" },
