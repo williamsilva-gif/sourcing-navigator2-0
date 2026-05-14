@@ -30,7 +30,6 @@ export const Route = createFileRoute("/diagnostico")({
 function DiagnosticoPage() {
   const [period, setPeriod] = useState<"30D" | "Trim" | "12M" | "YTD">("12M");
   const bookings = useBaselineStore((s) => s.bookings);
-  const useDemo = useBaselineStore((s) => s.useDemo);
   const isLive = bookings.length > 0;
   const live = selectKpis(bookings);
 
