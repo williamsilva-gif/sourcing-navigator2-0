@@ -29,6 +29,7 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as WikiIndexRouteImport } from './routes/wiki.index'
 import { Route as WikiSlugRouteImport } from './routes/wiki.$slug'
+import { Route as RTokenRouteImport } from './routes/r.$token'
 import { Route as AccountPrivacyRouteImport } from './routes/account.privacy'
 import { Route as AuthenticatedTaClientsRouteImport } from './routes/_authenticated/ta.clients'
 
@@ -131,6 +132,11 @@ const WikiSlugRoute = WikiSlugRouteImport.update({
   path: '/$slug',
   getParentRoute: () => WikiRoute,
 } as any)
+const RTokenRoute = RTokenRouteImport.update({
+  id: '/r/$token',
+  path: '/r/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AccountPrivacyRoute = AccountPrivacyRouteImport.update({
   id: '/account/privacy',
   path: '/account/privacy',
@@ -161,6 +167,7 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/wiki': typeof WikiRouteWithChildren
   '/account/privacy': typeof AccountPrivacyRoute
+  '/r/$token': typeof RTokenRoute
   '/wiki/$slug': typeof WikiSlugRoute
   '/wiki/': typeof WikiIndexRoute
   '/ta/clients': typeof AuthenticatedTaClientsRoute
@@ -183,6 +190,7 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
   '/account/privacy': typeof AccountPrivacyRoute
+  '/r/$token': typeof RTokenRoute
   '/wiki/$slug': typeof WikiSlugRoute
   '/wiki': typeof WikiIndexRoute
   '/ta/clients': typeof AuthenticatedTaClientsRoute
@@ -208,6 +216,7 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/wiki': typeof WikiRouteWithChildren
   '/account/privacy': typeof AccountPrivacyRoute
+  '/r/$token': typeof RTokenRoute
   '/wiki/$slug': typeof WikiSlugRoute
   '/wiki/': typeof WikiIndexRoute
   '/_authenticated/ta/clients': typeof AuthenticatedTaClientsRoute
@@ -233,6 +242,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/wiki'
     | '/account/privacy'
+    | '/r/$token'
     | '/wiki/$slug'
     | '/wiki/'
     | '/ta/clients'
@@ -255,6 +265,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/terms'
     | '/account/privacy'
+    | '/r/$token'
     | '/wiki/$slug'
     | '/wiki'
     | '/ta/clients'
@@ -279,6 +290,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/wiki'
     | '/account/privacy'
+    | '/r/$token'
     | '/wiki/$slug'
     | '/wiki/'
     | '/_authenticated/ta/clients'
@@ -304,6 +316,7 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   WikiRoute: typeof WikiRouteWithChildren
   AccountPrivacyRoute: typeof AccountPrivacyRoute
+  RTokenRoute: typeof RTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -448,6 +461,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WikiSlugRouteImport
       parentRoute: typeof WikiRoute
     }
+    '/r/$token': {
+      id: '/r/$token'
+      path: '/r/$token'
+      fullPath: '/r/$token'
+      preLoaderRoute: typeof RTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/account/privacy': {
       id: '/account/privacy'
       path: '/account/privacy'
@@ -509,6 +529,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   WikiRoute: WikiRouteWithChildren,
   AccountPrivacyRoute: AccountPrivacyRoute,
+  RTokenRoute: RTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

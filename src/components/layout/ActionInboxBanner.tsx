@@ -7,9 +7,11 @@ interface Props {
   // Filter to only actions of these kinds (e.g., for /negociacao show only renegotiations)
   kinds: ActionKind[];
   title: string;
+  actionLabel?: string;
+  onItemClick?: (actionId: string) => void;
 }
 
-export function ActionInboxBanner({ kinds, title }: Props) {
+export function ActionInboxBanner({ kinds, title, actionLabel, onItemClick }: Props) {
   const navigate = useNavigate();
   const allActions = useActionStore((s) => s.actions);
   const actions = useMemo(
@@ -50,9 +52,19 @@ export function ActionInboxBanner({ kinds, title }: Props) {
             <span className="truncate text-foreground">
               <strong>{a.city}</strong> · {a.label}
             </span>
-            <span className="ml-3 shrink-0 rounded-full bg-info-soft px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-info">
-              {a.status === "initiated" ? "Iniciada" : "Em andamento"}
-            </span>
+            <div className="ml-3 flex shrink-0 items-center gap-2">
+              <span className="rounded-full bg-info-soft px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-info">
+                {a.status === "initiated" ? "Iniciada" : "Em andamento"}
+              </span>
+              {onItemClick && (
+                <button
+                  onClick={() => onItemClick(a.id)}
+                  className="rounded-md border border-primary/40 bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground hover:bg-primary-hover"
+                >
+                  {actionLabel ?? "Abrir"}
+                </button>
+              )}
+            </div>
           </li>
         ))}
         {actions.length > 3 && (
