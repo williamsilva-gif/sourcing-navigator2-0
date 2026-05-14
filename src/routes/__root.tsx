@@ -109,6 +109,7 @@ function RootComponent() {
   return (
     <>
       <Outlet />
+      <CookieBanner />
       <Toaster richColors position="bottom-right" />
     </>
   );
