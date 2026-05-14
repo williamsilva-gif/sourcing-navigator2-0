@@ -7,11 +7,18 @@ import { getPrimaryRole, landingForRole } from "@/hooks/useAuth";
 
 export const Route = createFileRoute("/login")({
   validateSearch: (search: Record<string, unknown>) => ({
-    redirect: typeof search.redirect === "string" ? search.redirect : "",
+    redirect: normalizeRedirect(typeof search.redirect === "string" ? search.redirect : ""),
   }),
   head: () => ({ meta: [{ title: "Entrar — Navigator Sourcing CoPilot" }] }),
   component: LoginPage,
 });
+
+function normalizeRedirect(value: string) {
+  if (!value || value === "." || value.startsWith("//")) return "";
+  if (!value.startsWith("/")) return "";
+  if (value.startsWith("/login")) return "";
+  return value;
+}
 
 function LoginPage() {
   const navigate = useNavigate();
@@ -41,7 +48,7 @@ function LoginPage() {
         .select("tenant_id, role")
         .eq("user_id", data.user.id);
       const primary = getPrimaryRole((roles ?? []) as { tenant_id: string; role: import("@/hooks/useAuth").AppRole }[]);
-      const dest = search.redirect || landingForRole(primary);
+      const dest = normalizeRedirect(search.redirect) || landingForRole(primary);
       toast.success("Bem-vindo!");
       // Hard redirect — escapa de iframes da preview onde router.navigate
       // às vezes não troca de rota antes da sessão propagar.

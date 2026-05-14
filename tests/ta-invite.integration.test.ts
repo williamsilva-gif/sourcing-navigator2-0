@@ -5,11 +5,13 @@
  *  - Once promoted, the new TA staff member sees all tenants.
  *  - Public signup with account_type=TA is silently rejected.
  */
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, expect, it } from "vitest";
 import {
   admin,
   cleanup,
   createUser,
+  describeIntegration as describe,
+  hasIntegrationEnv,
   PASSWORD,
   RUN_ID,
   signIn,
@@ -25,6 +27,7 @@ let invitee: CreatedUser;
 let corpUser: CreatedUser;
 
 beforeAll(async () => {
+  if (!hasIntegrationEnv) return;
   // Resolve the root TA tenant (must already exist in seed data).
   const { data: ta, error: taErr } = await admin
     .from("tenants")
@@ -48,6 +51,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+  if (!hasIntegrationEnv) return;
   await cleanup(created, PREFIX);
 });
 

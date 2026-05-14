@@ -5,7 +5,7 @@
 #   - SUPABASE_PUBLISHABLE_KEY      anon/publishable key (safe in client)
 #   - SUPABASE_SERVICE_ROLE_KEY     service role key (server only — DO NOT log)
 #
-# Without these the test setup throws and the job fails fast — by design.
+# Without these, backend integration tests are skipped so normal CI doesn't fail.
 
 name: tests
 

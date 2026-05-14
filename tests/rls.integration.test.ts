@@ -12,18 +12,16 @@
  * by Lovable Cloud at runtime). Tests create temporary users prefixed with
  * `rlstest+` and clean them (and their cascading tenants/roles) at the end.
  */
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe as vitestDescribe, expect, it } from "vitest";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 const SUPABASE_URL = process.env.SUPABASE_URL!;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const ANON_KEY = process.env.SUPABASE_PUBLISHABLE_KEY!;
+const hasIntegrationEnv = Boolean(SUPABASE_URL && SERVICE_KEY && ANON_KEY);
+const describe = hasIntegrationEnv ? vitestDescribe : vitestDescribe.skip;
 
-if (!SUPABASE_URL || !SERVICE_KEY || !ANON_KEY) {
-  throw new Error("Missing SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY / SUPABASE_PUBLISHABLE_KEY");
-}
-
-const admin = createClient(SUPABASE_URL, SERVICE_KEY, {
+const admin = createClient(SUPABASE_URL || "http://127.0.0.1:54321", SERVICE_KEY || "missing-service-role-key", {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 
@@ -51,7 +49,7 @@ async function createUser(label: string, accountType: AccountType) {
 }
 
 function userClient(): SupabaseClient {
-  return createClient(SUPABASE_URL, ANON_KEY, {
+  return createClient(SUPABASE_URL || "http://127.0.0.1:54321", ANON_KEY || "missing-publishable-key", {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 }
@@ -69,6 +67,7 @@ let corpB: { id: string; email: string };
 let taAttempt: { id: string; email: string };
 
 beforeAll(async () => {
+  if (!hasIntegrationEnv) return;
   hotelA = await createUser("hotelA", "HOTEL");
   corpA = await createUser("corpA", "CORP");
   corpB = await createUser("corpB", "CORP");
@@ -76,6 +75,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+  if (!hasIntegrationEnv) return;
   // Delete users — cascades to user_roles via FK; tenants are then orphaned and
   // we remove them by name pattern via the service role.
   for (const u of created) {

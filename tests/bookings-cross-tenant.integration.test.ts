@@ -11,11 +11,13 @@
  *  - CorpA cannot DELETE any booking (no DELETE policy for corp role).
  *  - TA master can DELETE bookings.
  */
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, expect, it } from "vitest";
 import {
   admin,
   cleanup,
   createUser,
+  describeIntegration as describe,
+  hasIntegrationEnv,
   RUN_ID,
   signIn,
   tenantIdOf,
@@ -32,6 +34,7 @@ let bookingA: string;
 let bookingB: string;
 
 beforeAll(async () => {
+  if (!hasIntegrationEnv) return;
   corpA = await createUser(PREFIX, "corpA", "CORP", created);
   corpB = await createUser(PREFIX, "corpB", "CORP", created);
 
@@ -80,6 +83,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+  if (!hasIntegrationEnv) return;
   await admin.from("bookings").delete().in("id", [bookingA, bookingB]);
   await cleanup(created, PREFIX);
 });
