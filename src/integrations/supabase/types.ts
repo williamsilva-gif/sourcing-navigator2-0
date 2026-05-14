@@ -59,6 +59,165 @@ export type Database = {
           },
         ]
       }
+      bookings: {
+        Row: {
+          adr: number
+          booking_external_id: string | null
+          channel: string | null
+          checkin: string | null
+          city: string
+          client_tenant_id: string
+          created_at: string
+          hotel_name: string
+          id: string
+          raw: Json
+          room_nights: number
+          state: string | null
+        }
+        Insert: {
+          adr?: number
+          booking_external_id?: string | null
+          channel?: string | null
+          checkin?: string | null
+          city: string
+          client_tenant_id: string
+          created_at?: string
+          hotel_name: string
+          id?: string
+          raw?: Json
+          room_nights?: number
+          state?: string | null
+        }
+        Update: {
+          adr?: number
+          booking_external_id?: string | null
+          channel?: string | null
+          checkin?: string | null
+          city?: string
+          client_tenant_id?: string
+          created_at?: string
+          hotel_name?: string
+          id?: string
+          raw?: Json
+          room_nights?: number
+          state?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_client_tenant_id_fkey"
+            columns: ["client_tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hotel_members: {
+        Row: {
+          created_at: string
+          hotel_id: string
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          hotel_id: string
+          id?: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          hotel_id?: string
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hotel_members_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hotels: {
+        Row: {
+          address: string | null
+          city: string
+          cnpj: string | null
+          code: string | null
+          contact_email: string | null
+          contact_name: string | null
+          country_code: string | null
+          created_at: string
+          id: string
+          latitude: number | null
+          longitude: number | null
+          metadata: Json
+          name: string
+          phone: string | null
+          postal_code: string | null
+          star_rating: number | null
+          state: string | null
+          tenant_id_owner: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          city: string
+          cnpj?: string | null
+          code?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          country_code?: string | null
+          created_at?: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          metadata?: Json
+          name: string
+          phone?: string | null
+          postal_code?: string | null
+          star_rating?: number | null
+          state?: string | null
+          tenant_id_owner?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          city?: string
+          cnpj?: string | null
+          code?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          country_code?: string | null
+          created_at?: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          metadata?: Json
+          name?: string
+          phone?: string | null
+          postal_code?: string | null
+          star_rating?: number | null
+          state?: string | null
+          tenant_id_owner?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hotels_tenant_id_owner_fkey"
+            columns: ["tenant_id_owner"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -88,6 +247,141 @@ export type Database = {
           {
             foreignKeyName: "profiles_primary_tenant_id_fkey"
             columns: ["primary_tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rfp_invitations: {
+        Row: {
+          created_at: string
+          deadline: string | null
+          hotel_id: string
+          id: string
+          rfp_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          deadline?: string | null
+          hotel_id: string
+          id?: string
+          rfp_id: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          deadline?: string | null
+          hotel_id?: string
+          id?: string
+          rfp_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rfp_invitations_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rfp_invitations_rfp_id_fkey"
+            columns: ["rfp_id"]
+            isOneToOne: false
+            referencedRelation: "rfps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rfp_responses: {
+        Row: {
+          hotel_id: string
+          id: string
+          rates: Json
+          rfp_id: string
+          submitted_at: string
+        }
+        Insert: {
+          hotel_id: string
+          id?: string
+          rates?: Json
+          rfp_id: string
+          submitted_at?: string
+        }
+        Update: {
+          hotel_id?: string
+          id?: string
+          rates?: Json
+          rfp_id?: string
+          submitted_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rfp_responses_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rfp_responses_rfp_id_fkey"
+            columns: ["rfp_id"]
+            isOneToOne: false
+            referencedRelation: "rfps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rfps: {
+        Row: {
+          client_tenant_id: string
+          created_at: string
+          created_by_tenant_id: string | null
+          deadline: string | null
+          id: string
+          metadata: Json
+          name: string
+          pois: Json
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          client_tenant_id: string
+          created_at?: string
+          created_by_tenant_id?: string | null
+          deadline?: string | null
+          id?: string
+          metadata?: Json
+          name: string
+          pois?: Json
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          client_tenant_id?: string
+          created_at?: string
+          created_by_tenant_id?: string | null
+          deadline?: string | null
+          id?: string
+          metadata?: Json
+          name?: string
+          pois?: Json
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rfps_client_tenant_id_fkey"
+            columns: ["client_tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rfps_created_by_tenant_id_fkey"
+            columns: ["created_by_tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
@@ -244,6 +538,10 @@ export type Database = {
           _tenant_id: string
           _user_id: string
         }
+        Returns: boolean
+      }
+      is_hotel_member: {
+        Args: { _hotel_id: string; _user_id: string }
         Returns: boolean
       }
       is_ta_master: { Args: { _user_id: string }; Returns: boolean }
