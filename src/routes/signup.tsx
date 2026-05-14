@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Hotel, Building2, Briefcase, GraduationCap, Loader2 } from "lucide-react";
+import { Hotel, Building2, Briefcase, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/signup")({
@@ -9,14 +9,12 @@ export const Route = createFileRoute("/signup")({
   component: SignupPage,
 });
 
-type AccountType = "HOTEL" | "TMC" | "CORP" | "TA";
+type AccountType = "HOTEL" | "TMC" | "CORP";
 
 const ACCOUNT_OPTIONS: { value: AccountType; label: string; desc: string; icon: typeof Hotel }[] = [
   { value: "HOTEL", label: "Hotel", desc: "Receber RFPs e participar de leilões", icon: Hotel },
   { value: "TMC", label: "TMC", desc: "Travel Management Company", icon: Briefcase },
   { value: "CORP", label: "Cliente Corporativo", desc: "Empresa que viaja", icon: Building2 },
-  // TODO: remover após confirmação do master TA
-  { value: "TA", label: "Travel Academy", desc: "Equipe interna TA", icon: GraduationCap },
 ];
 
 function SignupPage() {
@@ -33,9 +31,7 @@ function SignupPage() {
       ? "Nome do hotel"
       : accountType === "TMC"
       ? "Nome da TMC"
-      : accountType === "CORP"
-      ? "Nome da empresa"
-      : "Equipe / área (opcional)";
+      : "Nome da empresa";
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -118,7 +114,7 @@ function SignupPage() {
             <label className="block text-xs font-medium text-foreground">{orgLabel}</label>
             <input
               type="text"
-              required={accountType !== "TA"}
+              required
               value={orgName}
               onChange={(e) => setOrgName(e.target.value)}
               className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
