@@ -276,6 +276,24 @@ function HotelsPage() {
               {migrating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <DatabaseZap className="h-3.5 w-3.5" />}
               {migrating ? "Migrando…" : "Migrar para o banco"}
             </button>
+            {migrating && migrateProgress && (
+              <div className="w-full">
+                <div className="mb-1 flex items-center justify-between text-[11px] font-medium text-muted-foreground">
+                  <span>
+                    Lote {migrateProgress.batch}/{migrateProgress.batches} · {migrateProgress.processed.toLocaleString("pt-BR")} de {migrateProgress.total.toLocaleString("pt-BR")} hotéis
+                  </span>
+                  <span className="font-mono text-foreground">
+                    {Math.round((migrateProgress.processed / Math.max(1, migrateProgress.total)) * 100)}%
+                  </span>
+                </div>
+                <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full bg-primary transition-[width] duration-300 ease-out"
+                    style={{ width: `${Math.min(100, (migrateProgress.processed / Math.max(1, migrateProgress.total)) * 100)}%` }}
+                  />
+                </div>
+              </div>
+            )}
           </div>
         )}
 
