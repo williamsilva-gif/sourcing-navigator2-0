@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 import { toast } from "sonner";
-import { Search, Calendar, Users, MapPin, Eye, Send, FileDown, Plus } from "lucide-react";
+import { Search, Calendar, Users, MapPin, Eye, Send, FileDown, Plus, XCircle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useRfps } from "@/lib/rfpRepo";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useRfps, useCancelRfp } from "@/lib/rfpRepo";
 
 const STATUS_TONE: Record<string, string> = {
   "Rascunho": "bg-muted text-muted-foreground",
@@ -31,7 +41,9 @@ interface Props {
 export function RfpProgramList({ onView, onCreate }: Props) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [cancelId, setCancelId] = useState<string | null>(null);
   const { data: rfps = [], isLoading, refetch } = useRfps();
+  const cancelMut = useCancelRfp();
 
   // Refetch when remounted to pick up freshly created
   useEffect(() => { refetch(); }, [refetch]);
@@ -102,9 +114,16 @@ export function RfpProgramList({ onView, onCreate }: Props) {
                     <Progress value={responseRate} className="h-1.5" />
                   </div>
                 </div>
-                <Button size="sm" variant="outline" onClick={() => onView(rfp.id)}>
-                  <Eye className="mr-1.5 h-3.5 w-3.5" />Detalhes
-                </Button>
+                <div className="flex flex-col gap-2">
+                  <Button size="sm" variant="outline" onClick={() => onView(rfp.id)}>
+                    <Eye className="mr-1.5 h-3.5 w-3.5" />Detalhes
+                  </Button>
+                  {rfp.status !== "Encerrado" && (
+                    <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => setCancelId(rfp.id)}>
+                      <XCircle className="mr-1.5 h-3.5 w-3.5" />Cancelar
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           );
@@ -116,6 +135,34 @@ export function RfpProgramList({ onView, onCreate }: Props) {
           </div>
         )}
       </div>
+
+      <AlertDialog open={!!cancelId} onOpenChange={(o) => !o && setCancelId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancelar RFP?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O RFP será encerrado e os convites pendentes serão marcados como cancelados.
+              Respostas já submetidas serão preservadas. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Voltar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={cancelMut.isPending}
+              onClick={() => {
+                if (!cancelId) return;
+                cancelMut.mutate(cancelId, {
+                  onSuccess: () => { toast.success("RFP cancelado."); setCancelId(null); },
+                  onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Falha ao cancelar"),
+                });
+              }}
+            >
+              {cancelMut.isPending ? "Cancelando..." : "Cancelar RFP"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }

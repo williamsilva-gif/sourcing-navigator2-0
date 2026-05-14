@@ -5,6 +5,7 @@ import {
   createRfpFn,
   listRfpsFn,
   getRfpFn,
+  cancelRfpFn,
   type RfpRecord,
 } from "./rfp.functions";
 
@@ -52,6 +53,15 @@ export function useCreateRfp() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (input: CreateRfpInput) => create({ data: input as never }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: RFP_KEYS.all }),
+  });
+}
+
+export function useCancelRfp() {
+  const cancel = useServerFn(cancelRfpFn);
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => cancel({ data: { id } }),
     onSuccess: () => qc.invalidateQueries({ queryKey: RFP_KEYS.all }),
   });
 }

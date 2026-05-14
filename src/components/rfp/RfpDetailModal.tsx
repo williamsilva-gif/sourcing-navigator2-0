@@ -1,10 +1,20 @@
-import { Calendar, Users, MapPin, Send, Copy } from "lucide-react";
+import { useState } from "react";
+import { Calendar, Users, MapPin, Send, Copy, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { useRfp, publicResponseUrl } from "@/lib/rfpRepo";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useRfp, publicResponseUrl, useCancelRfp } from "@/lib/rfpRepo";
 
 interface Props {
   rfpId: string | null;
@@ -13,6 +23,8 @@ interface Props {
 
 export function RfpDetailModal({ rfpId, onClose }: Props) {
   const { data, isLoading } = useRfp(rfpId);
+  const [confirmCancel, setConfirmCancel] = useState(false);
+  const cancelMut = useCancelRfp();
 
   if (!rfpId) return null;
 
@@ -28,9 +40,16 @@ export function RfpDetailModal({ rfpId, onClose }: Props) {
 
         {data && (
           <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <Badge variant="secondary" className="bg-primary-soft text-primary">{data.rfp.status}</Badge>
-              <span className="text-xs text-muted-foreground">Prazo: {data.rfp.deadline ? new Date(data.rfp.deadline).toLocaleDateString() : "—"}</span>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="bg-primary-soft text-primary">{data.rfp.status}</Badge>
+                <span className="text-xs text-muted-foreground">Prazo: {data.rfp.deadline ? new Date(data.rfp.deadline).toLocaleDateString() : "—"}</span>
+              </div>
+              {data.rfp.status !== "Encerrado" && (
+                <Button size="sm" variant="outline" className="text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => setConfirmCancel(true)}>
+                  <XCircle className="mr-1.5 h-3.5 w-3.5" />Cancelar RFP
+                </Button>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -79,6 +98,34 @@ export function RfpDetailModal({ rfpId, onClose }: Props) {
           </div>
         )}
       </DialogContent>
+
+      <AlertDialog open={confirmCancel} onOpenChange={setConfirmCancel}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancelar RFP?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O RFP será encerrado e os convites pendentes serão marcados como cancelados.
+              Respostas já submetidas serão preservadas. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Voltar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={cancelMut.isPending}
+              onClick={() => {
+                if (!rfpId) return;
+                cancelMut.mutate(rfpId, {
+                  onSuccess: () => { toast.success("RFP cancelado."); setConfirmCancel(false); onClose(); },
+                  onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Falha ao cancelar"),
+                });
+              }}
+            >
+              {cancelMut.isPending ? "Cancelando..." : "Cancelar RFP"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }

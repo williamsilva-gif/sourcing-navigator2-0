@@ -111,6 +111,25 @@ export const createRfpFn = createServerFn({ method: "POST" })
     return { rfpId: rfp.id, invitations: invRows ?? [] };
   });
 
+export const cancelRfpFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { error } = await supabase
+      .from("rfps")
+      .update({ status: "Encerrado" })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    // Also close pending invitations
+    await supabase
+      .from("rfp_invitations")
+      .update({ status: "Cancelado" })
+      .eq("rfp_id", data.id)
+      .neq("status", "Submetido");
+    return { ok: true };
+  });
+
 export const listRfpsFn = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<RfpRecord[]> => {
