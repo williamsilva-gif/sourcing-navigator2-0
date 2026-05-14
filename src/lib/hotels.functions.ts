@@ -1,35 +1,32 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { hotelSchema, type Hotel } from "./baselineSchemas";
+import { hotelSchema } from "./baselineSchemas";
 
 const bulkHotelsSchema = z.object({
   hotels: z.array(hotelSchema).min(1).max(5000),
 });
 
-function toDb(h: Hotel) {
-  return {
-    code: h.code || null,
-    name: h.name,
-    address: h.address || null,
-    postal_code: h.postal_code || null,
-    city: h.city,
-    state: h.state_province || null,
-    country_code: h.country_code || null,
-    phone: h.phone_number || null,
-    contact_name: h.Contact || null,
-    contact_email: null,
-    latitude: typeof h.latitude === "number" ? h.latitude : null,
-    longitude: typeof h.longitude === "number" ? h.longitude : null,
-    star_rating: typeof h.star_rating === "number" ? h.star_rating : null,
-    metadata: h.category_id ? { category_id: h.category_id } : {},
-  };
-}
-
 export const bulkUpsertHotelsByCodeFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => bulkHotelsSchema.parse(input))
   .handler(async ({ data, context }): Promise<{ added: number; updated: number; failed: number; firstError?: string }> => {
+    const toDb = (h: (typeof data.hotels)[number]) => ({
+      code: h.code || null,
+      name: h.name,
+      address: h.address || null,
+      postal_code: h.postal_code || null,
+      city: h.city,
+      state: h.state_province || null,
+      country_code: h.country_code || null,
+      phone: h.phone_number || null,
+      contact_name: h.Contact || null,
+      contact_email: null,
+      latitude: typeof h.latitude === "number" ? h.latitude : null,
+      longitude: typeof h.longitude === "number" ? h.longitude : null,
+      star_rating: typeof h.star_rating === "number" ? h.star_rating : null,
+      metadata: h.category_id ? { category_id: h.category_id } : {},
+    });
     const hotels = data.hotels;
     const codes = hotels.map((h) => h.code).filter((c): c is string => Boolean(c));
     let existing: { id: string; code: string | null }[] = [];
