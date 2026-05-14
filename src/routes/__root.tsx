@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useClientsStore } from "@/lib/clientsStore";
+import { CookieBanner } from "@/components/privacy/CookieBanner";
 
 // One-time purge of legacy persisted local data (demo bookings, seed clients,
 // pending hotel uploads). Bumps the flag whenever we want to wipe again.
