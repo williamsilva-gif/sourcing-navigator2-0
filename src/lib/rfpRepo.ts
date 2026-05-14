@@ -57,6 +57,15 @@ export function useCreateRfp() {
   });
 }
 
+export function useCancelRfp() {
+  const cancel = useServerFn(cancelRfpFn);
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => cancel({ data: { id } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: RFP_KEYS.all }),
+  });
+}
+
 export function publicResponseUrl(invitationId: string): string {
   if (typeof window === "undefined") return `/r/${invitationId}`;
   return `${window.location.origin}/r/${invitationId}`;
