@@ -42,7 +42,7 @@ function fromDb(row: HotelRow): HotelWithLocal {
   };
 }
 
-function toDb(h: Hotel): Omit<HotelRow, "id" | "created_at" | "updated_at" | "tenant_id_owner"> {
+function toDb(h: Hotel) {
   return {
     code: h.code || null,
     name: h.name,
@@ -57,7 +57,7 @@ function toDb(h: Hotel): Omit<HotelRow, "id" | "created_at" | "updated_at" | "te
     latitude: typeof h.latitude === "number" ? h.latitude : null,
     longitude: typeof h.longitude === "number" ? h.longitude : null,
     star_rating: typeof h.star_rating === "number" ? h.star_rating : null,
-    metadata: h.category_id ? { category_id: h.category_id } : {},
+    metadata: (h.category_id ? { category_id: h.category_id } : {}) as never,
   };
 }
 
