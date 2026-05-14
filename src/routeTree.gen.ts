@@ -22,7 +22,9 @@ import { Route as EstrategiaRouteImport } from './routes/estrategia'
 import { Route as DiagnosticoRouteImport } from './routes/diagnostico'
 import { Route as AnaliseRouteImport } from './routes/analise'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedTaClientsRouteImport } from './routes/_authenticated/ta.clients'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -89,10 +91,19 @@ const AdminRoute = AdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedRoute = AuthenticatedRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedTaClientsRoute = AuthenticatedTaClientsRouteImport.update({
+  id: '/ta/clients',
+  path: '/ta/clients',
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -110,6 +121,7 @@ export interface FileRoutesByFullPath {
   '/rfp': typeof RfpRoute
   '/selecao': typeof SelecaoRoute
   '/signup': typeof SignupRoute
+  '/ta/clients': typeof AuthenticatedTaClientsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -126,10 +138,12 @@ export interface FileRoutesByTo {
   '/rfp': typeof RfpRoute
   '/selecao': typeof SelecaoRoute
   '/signup': typeof SignupRoute
+  '/ta/clients': typeof AuthenticatedTaClientsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/admin': typeof AdminRoute
   '/analise': typeof AnaliseRoute
   '/diagnostico': typeof DiagnosticoRoute
@@ -143,6 +157,7 @@ export interface FileRoutesById {
   '/rfp': typeof RfpRoute
   '/selecao': typeof SelecaoRoute
   '/signup': typeof SignupRoute
+  '/_authenticated/ta/clients': typeof AuthenticatedTaClientsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -161,6 +176,7 @@ export interface FileRouteTypes {
     | '/rfp'
     | '/selecao'
     | '/signup'
+    | '/ta/clients'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -177,9 +193,11 @@ export interface FileRouteTypes {
     | '/rfp'
     | '/selecao'
     | '/signup'
+    | '/ta/clients'
   id:
     | '__root__'
     | '/'
+    | '/_authenticated'
     | '/admin'
     | '/analise'
     | '/diagnostico'
@@ -193,10 +211,12 @@ export interface FileRouteTypes {
     | '/rfp'
     | '/selecao'
     | '/signup'
+    | '/_authenticated/ta/clients'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AdminRoute: typeof AdminRoute
   AnaliseRoute: typeof AnaliseRoute
   DiagnosticoRoute: typeof DiagnosticoRoute
@@ -305,6 +325,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -312,11 +339,31 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/ta/clients': {
+      id: '/_authenticated/ta/clients'
+      path: '/ta/clients'
+      fullPath: '/ta/clients'
+      preLoaderRoute: typeof AuthenticatedTaClientsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
   }
 }
 
+interface AuthenticatedRouteChildren {
+  AuthenticatedTaClientsRoute: typeof AuthenticatedTaClientsRoute
+}
+
+const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedTaClientsRoute: AuthenticatedTaClientsRoute,
+}
+
+const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
+  AuthenticatedRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AdminRoute: AdminRoute,
   AnaliseRoute: AnaliseRoute,
   DiagnosticoRoute: DiagnosticoRoute,
