@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Hotel } from "./baselineSchemas";
+import { bulkUpsertHotelsByCodeFn } from "./hotels.functions";
 
 // DB row shape — matches the `hotels` table in Supabase.
 export interface HotelRow {
@@ -92,45 +93,5 @@ export async function deleteHotelById(id: string): Promise<void> {
 // Returns count of inserts vs updates so the UI can confirm what happened.
 export async function bulkUpsertByCode(hotels: Hotel[]): Promise<{ added: number; updated: number; failed: number; firstError?: string }> {
   if (hotels.length === 0) return { added: 0, updated: 0, failed: 0 };
-
-  const codes = hotels.map((h) => h.code).filter((c): c is string => Boolean(c));
-  let existing: { id: string; code: string | null }[] = [];
-  if (codes.length > 0) {
-    const { data, error } = await supabase.from("hotels").select("id, code").in("code", codes);
-    if (error) throw error;
-    existing = (data ?? []) as { id: string; code: string | null }[];
-  }
-  const existingByCode = new Map(existing.filter((e) => e.code).map((e) => [e.code as string, e.id]));
-
-  let added = 0;
-  let updated = 0;
-  let failed = 0;
-  let firstError: string | undefined;
-
-  // Inserts in a single batch (RLS allows any authenticated user to insert)
-  const toInsert = hotels.filter((h) => !h.code || !existingByCode.has(h.code)).map(toDb);
-  if (toInsert.length > 0) {
-    const { error, count } = await supabase.from("hotels").insert(toInsert, { count: "exact" });
-    if (error) {
-      failed += toInsert.length;
-      firstError ??= error.message;
-    } else {
-      added += count ?? toInsert.length;
-    }
-  }
-
-  // Updates one by one — RLS only lets TA / hotel_member update existing rows.
-  for (const h of hotels) {
-    if (!h.code || !existingByCode.has(h.code)) continue;
-    const id = existingByCode.get(h.code)!;
-    const { error } = await supabase.from("hotels").update(toDb(h)).eq("id", id);
-    if (error) {
-      failed++;
-      firstError ??= error.message;
-    } else {
-      updated++;
-    }
-  }
-
-  return { added, updated, failed, firstError };
+  return bulkUpsertHotelsByCodeFn({ data: { hotels } });
 }
