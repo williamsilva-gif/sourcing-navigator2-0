@@ -155,7 +155,7 @@ function HotelsPage() {
         if (error) {
           toast.warning("Não foi possível verificar consistência", { description: error.message });
         } else {
-          const foundSet = new Set((data ?? []).map((r) => r.code).filter(Boolean) as string[]);
+          const foundSet = new Set((data ?? []).map((r: { code: string | null }) => r.code).filter(Boolean) as string[]);
           dbFound = foundSet.size;
           missingCodes = codes.filter((c) => !foundSet.has(c));
         }
