@@ -14,6 +14,22 @@ export const RFP_KEYS = {
   detail: (id: string) => ["rfps", "detail", id] as const,
 };
 
+export interface CreateRfpInput {
+  name: string;
+  clientTenantId: string;
+  cycle: string;
+  briefing?: string;
+  cities: string[];
+  pois?: unknown[];
+  hotelStrategy?: "preferred" | "open" | "curated";
+  requirements?: string[];
+  questions?: Record<string, boolean>;
+  openDate: string;
+  deadline: string;
+  hotelIds: string[];
+  suggestedCap?: number;
+}
+
 export function useRfps() {
   const list = useServerFn(listRfpsFn);
   return useQuery({
@@ -31,13 +47,11 @@ export function useRfp(id: string | null) {
   });
 }
 
-type CreateRfpInput = Parameters<ReturnType<typeof useServerFn<typeof createRfpFn>>>[0] extends { data: infer D } ? D : never;
-
 export function useCreateRfp() {
   const create = useServerFn(createRfpFn);
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: CreateRfpInput) => create({ data: input } as never),
+    mutationFn: (input: CreateRfpInput) => create({ data: input as never }),
     onSuccess: () => qc.invalidateQueries({ queryKey: RFP_KEYS.all }),
   });
 }
