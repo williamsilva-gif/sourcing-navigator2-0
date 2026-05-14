@@ -368,7 +368,7 @@ function HotelsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filtered.map((h) => (
+                    {pageRows.map((h) => (
                       <tr key={h.id} className="border-t border-border">
                         <td className="px-3 py-2 font-mono text-xs text-muted-foreground">{h.code ?? "—"}</td>
                         <td className="px-3 py-2 font-medium text-foreground">{h.name}</td>
