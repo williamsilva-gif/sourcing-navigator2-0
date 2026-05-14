@@ -23,6 +23,8 @@ interface Props {
 
 export function RfpDetailModal({ rfpId, onClose }: Props) {
   const { data, isLoading } = useRfp(rfpId);
+  const [confirmCancel, setConfirmCancel] = useState(false);
+  const cancelMut = useCancelRfp();
 
   if (!rfpId) return null;
 
