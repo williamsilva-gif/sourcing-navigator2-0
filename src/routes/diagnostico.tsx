@@ -135,27 +135,3 @@ function DiagnosticoPage() {
     </AppShell>
   );
 }
-
-function InsightCard({
-  tone,
-  title,
-  body,
-}: {
-  tone: "destructive" | "warning" | "info";
-  title: string;
-  body: string;
-}) {
-  const map = {
-    destructive: "border-l-destructive bg-destructive-soft/40",
-    warning: "border-l-warning bg-warning-soft/40",
-    info: "border-l-info bg-info-soft/40",
-  } as const;
-  return (
-    <div
-      className={`rounded-lg border border-border border-l-4 bg-card p-5 shadow-[var(--shadow-card)] ${map[tone]}`}
-    >
-      <h4 className="text-sm font-semibold text-foreground">{title}</h4>
-      <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{body}</p>
-    </div>
-  );
-}
