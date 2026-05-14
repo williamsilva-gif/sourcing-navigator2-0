@@ -88,41 +88,41 @@ function DiagnosticoPage() {
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <KpiCard
           label="Room nights"
-          value={isLive ? fmtN(live.totalRn) : "53.6k"}
-          delta={4.2}
-          deltaLabel="vs ano anterior"
+          value={isLive ? fmtN(live.totalRn) : "0"}
+          delta={isLive ? 4.2 : null}
+          deltaLabel={isLive ? "vs ano anterior" : "sem dados"}
           icon={BedDouble}
           tone="primary"
         />
         <KpiCard
           label="Spend total"
-          value={isLive ? fmtBRLFull(live.totalSpend) : "R$ 15.700.000,00"}
-          delta={6.8}
-          deltaLabel="vs ano anterior"
+          value={fmtBRLFull(isLive ? live.totalSpend : 0)}
+          delta={isLive ? 6.8 : null}
+          deltaLabel={isLive ? "vs ano anterior" : "sem dados"}
           icon={DollarSign}
           tone="info"
         />
         <KpiCard
           label="ADR médio"
-          value={isLive ? fmtBRLFull(live.adr) : "R$ 293,00"}
-          delta={2.1}
-          deltaLabel="vs ano anterior"
+          value={fmtBRLFull(isLive ? live.adr : 0)}
+          delta={isLive ? 2.1 : null}
+          deltaLabel={isLive ? "vs ano anterior" : "sem dados"}
           icon={TrendingDown}
           tone="warning"
         />
         <KpiCard
           label="Hotéis ativos"
-          value={isLive ? String(live.hotels) : "156"}
-          delta={-3.4}
-          deltaLabel="consolidação de cauda"
+          value={isLive ? String(live.hotels) : "0"}
+          delta={isLive ? -3.4 : null}
+          deltaLabel={isLive ? "consolidação de cauda" : "sem dados"}
           icon={Building2}
           tone="success"
         />
         <KpiCard
           label="Leakage estimado"
-          value={isLive ? `${live.leakagePct.toFixed(1)}%` : "18.4%"}
-          delta={-1.6}
-          deltaLabel="vs trimestre anterior"
+          value={`${(isLive ? live.leakagePct : 0).toFixed(1)}%`}
+          delta={isLive ? -1.6 : null}
+          deltaLabel={isLive ? "vs trimestre anterior" : "sem dados"}
           icon={AlertTriangle}
           tone="warning"
         />
@@ -131,24 +131,6 @@ function DiagnosticoPage() {
       <CityHeatmap />
 
       <AdrHistogram />
-
-      <section className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <InsightCard
-          tone="destructive"
-          title="Concentração geográfica elevada"
-          body="São Paulo e Rio concentram 53% do room nights. Considere diversificar fornecedores secundários para reduzir dependência."
-        />
-        <InsightCard
-          tone="warning"
-          title="34% das reservas acima do cap"
-          body="Faixas R$ 300+ representam leakage potencial de R$ 1,9 mi/ano. Revisão de city caps recomendada para Q2."
-        />
-        <InsightCard
-          tone="info"
-          title="Cauda longa de fornecedores"
-          body="42 hotéis representam menos de 0.5% do volume cada. Oportunidade de consolidação para ganhar volume em parceiros estratégicos."
-        />
-      </section>
       </div>
     </AppShell>
   );
