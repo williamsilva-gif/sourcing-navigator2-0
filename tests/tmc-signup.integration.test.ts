@@ -15,6 +15,7 @@ import {
   cleanup,
   createUser,
   describeIntegration as describe,
+  hasIntegrationEnv,
   RUN_ID,
   signIn,
   tenantIdOf,
@@ -30,6 +31,7 @@ let hotelA: CreatedUser;
 let corpA: CreatedUser;
 
 beforeAll(async () => {
+  if (!hasIntegrationEnv) return;
   tmcA = await createUser(PREFIX, "tmcA", "TMC", created);
   tmcB = await createUser(PREFIX, "tmcB", "TMC", created);
   hotelA = await createUser(PREFIX, "hotelA", "HOTEL", created);
@@ -37,6 +39,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+  if (!hasIntegrationEnv) return;
   // Drop child CORP tenants created during the test
   await admin.from("tenants").delete().like("name", `Child CORP%${RUN_ID}`);
   await cleanup(created, PREFIX);
