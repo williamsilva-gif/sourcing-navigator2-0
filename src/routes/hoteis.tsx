@@ -143,8 +143,17 @@ function HotelsPage() {
           : "Você pode limpar a cópia local agora.",
       });
       if (result.failed === 0) {
-        // Clear local copy so we don't reupload accidentally next time.
-        for (const h of localHotels) clearLocalHotels(h.code);
+        const ok = confirm(
+          `Migração concluída: ${result.added} novos · ${result.updated} atualizados.\n\n` +
+            `Deseja limpar a cópia local do navegador agora?\n\n` +
+            `Recomendado apenas após revisar a lista no banco. Cancele se quiser conferir antes.`,
+        );
+        if (ok) {
+          for (const h of localHotels) clearLocalHotels(h.code);
+          toast.info("Cópia local removida");
+        } else {
+          toast.message("Cópia local mantida — limpe manualmente quando quiser");
+        }
       }
       refresh();
     } catch (e) {
