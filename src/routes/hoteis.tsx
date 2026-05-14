@@ -137,8 +137,9 @@ function HotelsPage() {
   async function handleMigrateLocal() {
     if (localHotels.length === 0) return;
     setMigrating(true);
+    setMigrateProgress({ processed: 0, total: localHotels.length, batch: 0, batches: Math.max(1, Math.ceil(localHotels.length / 1000)) });
     try {
-      const result = await bulkUpsertByCode(localHotels);
+      const result = await bulkUpsertByCode(localHotels, (info) => setMigrateProgress(info));
       toast.success(`Migrados: ${result.added} novos · ${result.updated} atualizados`, {
         description: result.failed
           ? `${result.failed} falharam — ${result.firstError ?? "verifique permissões"}`
