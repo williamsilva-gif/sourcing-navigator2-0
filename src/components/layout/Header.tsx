@@ -109,15 +109,15 @@ export function Header() {
         <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-destructive ring-2 ring-card" />
       </button>
 
-      <div className="flex items-center gap-2.5 border-l border-border pl-4">
-        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
+      <div className="flex items-center gap-2.5 border-l border-border pl-4" suppressHydrationWarning>
+        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground" suppressHydrationWarning>
           {initials}
         </div>
-        <div className="hidden leading-tight sm:block">
+        <div className="hidden leading-tight sm:block" suppressHydrationWarning>
           <p className="text-sm font-semibold text-foreground">{displayName}</p>
           <p className="text-[11px] text-muted-foreground capitalize">{displayRole}</p>
         </div>
-        {user ? (
+        {ready && user ? (
           <button
             onClick={handleLogout}
             title="Sair"
@@ -125,7 +125,7 @@ export function Header() {
           >
             <LogOut className="h-4 w-4" />
           </button>
-        ) : (
+        ) : ready ? (
           <Link
             to="/login"
             title="Entrar"
@@ -133,6 +133,8 @@ export function Header() {
           >
             <LogIn className="h-4 w-4" />
           </Link>
+        ) : (
+          <span className="ml-1 h-9 w-9" />
         )}
       </div>
     </header>
