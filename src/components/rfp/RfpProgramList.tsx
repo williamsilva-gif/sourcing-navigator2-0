@@ -135,6 +135,34 @@ export function RfpProgramList({ onView, onCreate }: Props) {
           </div>
         )}
       </div>
+
+      <AlertDialog open={!!cancelId} onOpenChange={(o) => !o && setCancelId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancelar RFP?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O RFP será encerrado e os convites pendentes serão marcados como cancelados.
+              Respostas já submetidas serão preservadas. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Voltar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={cancelMut.isPending}
+              onClick={() => {
+                if (!cancelId) return;
+                cancelMut.mutate(cancelId, {
+                  onSuccess: () => { toast.success("RFP cancelado."); setCancelId(null); },
+                  onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Falha ao cancelar"),
+                });
+              }}
+            >
+              {cancelMut.isPending ? "Cancelando..." : "Cancelar RFP"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }
