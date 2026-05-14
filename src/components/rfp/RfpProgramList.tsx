@@ -41,7 +41,9 @@ interface Props {
 export function RfpProgramList({ onView, onCreate }: Props) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [cancelId, setCancelId] = useState<string | null>(null);
   const { data: rfps = [], isLoading, refetch } = useRfps();
+  const cancelMut = useCancelRfp();
 
   // Refetch when remounted to pick up freshly created
   useEffect(() => { refetch(); }, [refetch]);
