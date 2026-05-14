@@ -1,73 +1,66 @@
-# Plano
+# Migração completa: localStorage → banco
 
-## 1. Restaurar visibilidade do menu Admin para o TA
+Hotéis já está no banco. Vou migrar o resto em **4 fases**, cada uma testável isoladamente. Faço uma fase por vez para você validar antes de seguir.
 
-**Sintoma:** Logado como `william.silva@travelacademy.com.br` (TA master), apenas o link "TA Console" aparece — o item "Admin" sumiu da sidebar.
+## Estado atual (o que ainda vive só no navegador)
 
-**Causa:** `src/components/layout/Sidebar.tsx` filtra o item Admin por `role === "admin" && enabledModules.admin`, lendo da store legada `appConfigStore` (zustand persistido em localStorage). Como agora o login real popula `useAuth().roles` (não a store legada), TA não passa mais por esse filtro. Além disso, se o módulo `admin` foi desabilitado em alguma sessão anterior, o flag persistido bloqueia o link mesmo com role correto.
+| Store | Conteúdo | Tabela destino |
+|---|---|---|
+| `clientsStore` | Lista de clientes/empresas selecionáveis no header | nova `clients` (ou reusar `tenants`) |
+| `baselineStore` | 500 bookings importados via XLSX, uploads | `bookings` (já existe) + nova `baseline_uploads` |
+| `snapshotStore` | Versões salvas para comparação de cenários | nova `snapshots` |
+| `appConfigStore` | Ambiente, módulos habilitados, user local | já há `tenant_modules`; resto fica local (preferência de UI) |
+| Convites de usuários (TMC/CORP/HOTEL) | criados via UI hoje só localmente | usar `auth.admin.inviteUserByEmail` via server fn |
 
-**Correção (somente UI/presentation):**
-- Em `Sidebar.tsx`, considerar também o papel real vindo de `useAuth()`: mostrar "Admin" quando `primaryRole` é `ta_master`/`ta_staff` (ou quando o legacy `role === "admin"` continuar valendo, para retrocompatibilidade).
-- Não tocar no gating do `enabledModules.admin` por enquanto — apenas garantir que TA não dependa do role legado.
+## Fase 1 — Clientes / TMCs / CORPs / Hotéis (entidades)
 
-## 2. Pipeline de CI (GitHub Actions)
+A tabela `tenants` já modela isso (TA / TMC / CORP / HOTEL com `parent_tenant_id`). Em vez de criar `clients`, **uso `tenants` como fonte da verdade** e aposento o `clientsStore`.
 
-Criar `.github/workflows/test.yml`:
-- Triggers: `push` e `pull_request` em qualquer branch.
-- Runner: `ubuntu-latest`, instala `bun`.
-- Passos: `bun install --frozen-lockfile` → `bun run test`.
-- Envs (lidas de GitHub Secrets do repositório): `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_PUBLISHABLE_KEY`.
-- Falha o job se qualquer teste vitest quebrar (default — `bun run test` retorna não-zero).
-- Documentar os 3 secrets necessários num bloco no `README` ou nota no próprio workflow (comentário no topo).
+- Migration: nada novo (tabela existe). Verifico RLS de SELECT/INSERT.
+- Repo `tenantsRepo.ts` com `listVisibleTenants()`, `createTenant()`, `updateTenant()`.
+- Header passa a ler clientes de `tenants` via React Query.
+- Banner de migração one-shot em `/admin` para subir os clientes do `clientsStore` antigo.
+- Página `/ta/clients` (TA Console) já existe — conecto ao banco.
 
-> Observação: a execução real depende do usuário cadastrar esses secrets no GitHub. Se faltarem, o setup do `tests/rls.integration.test.ts` (que dá `throw` quando ausentes) faz o build falhar — comportamento desejado.
+## Fase 2 — Bookings (baseline)
 
-## 3. Novos testes de integração
+A tabela `bookings` já existe com RLS por `client_tenant_id`.
 
-Criar 3 novos arquivos de teste em `tests/`, todos seguindo o mesmo padrão do `rls.integration.test.ts` existente (service-role admin para setup/teardown, clientes anon autenticados para validar RLS, prefixo `rlstest+` + `RUN_ID` para isolamento e cleanup).
+- Repo `bookingsRepo.ts` com `bulkInsert(rows, tenantId)` e `listByTenant`.
+- Diagnóstico: ao importar XLSX, salvar direto em `bookings` (e não no zustand).
+- Banner de migração no Diagnóstico para subir o baseline atual (500 linhas) ao tenant selecionado.
+- Componentes do dashboard (`AdrHistogram`, `CityHeatmap`, etc.) passam a buscar via React Query do banco, com fallback para o store enquanto migração não roda.
 
-### 3.1 `tests/ta-invite.integration.test.ts`
-Cobre o fluxo de promoção de TA staff feito no `ta.clients.tsx`:
-- Cria um usuário "convidado" via signup público como HOTEL.
-- Autentica como TA master (usa o seed `william.silva@travelacademy.com.br` se existir; caso contrário cria/promove um TA master via service-role no setup) e insere em `user_roles` o par `(invitee.id, root_ta_tenant.id, 'ta_staff')` — exatamente como faz o handler `handleInviteTaStaff`.
-- Verifica:
-  - Insert succeeds quando autor é TA master.
-  - Mesmo insert é bloqueado por RLS quando autor é CORP/HOTEL/TMC qualquer.
-  - Após promoção, o convidado consegue ler todos os tenants (`is_ta_master` retorna true → `visible_tenant_ids` cobre tudo).
-  - `handle_new_user` continua não atribuindo `ta_*` no signup público (já coberto, mas reafirmamos cross-checking).
+## Fase 3 — Snapshots
 
-### 3.2 `tests/bookings-cross-tenant.integration.test.ts`
-Foca em UPDATE/DELETE cross-tenant em `bookings` (o teste atual cobre INSERT/SELECT):
-- Setup: cria `corpA`, `corpB`, ambos `corp_admin` do próprio tenant; CorpA insere 1 booking marcado.
-- CorpA UPDATE no próprio booking → sucesso (linha alterada).
-- CorpA UPDATE no booking de CorpB → 0 linhas afetadas (RLS filtra silenciosamente em UPDATE; conferimos via `select count` pós-update via service role).
-- CorpA DELETE no próprio booking → bloqueado (não há policy DELETE para corp; só TA master deleta) — confere `error` ou `count=0`.
-- CorpA DELETE no booking de CorpB → 0 linhas afetadas.
-- TA master DELETE em qualquer booking → sucesso.
+- Migration: nova tabela `snapshots(id, tenant_id, name, payload jsonb, created_by, created_at)` com RLS `can_see_tenant`.
+- Repo `snapshotsRepo.ts`.
+- UI de Análise: salvar/listar snapshots vai ao banco.
 
-### 3.3 `tests/tmc-signup.integration.test.ts`
-- Cria usuário via `auth.admin.createUser` com `account_type=TMC` e `org_name`.
-- Verifica:
-  - Existe exatamente 1 row em `tenants` com aquele `name` e `type='TMC'`.
-  - Existe 1 `user_roles` para o usuário com `role='tmc_admin'` apontando para esse tenant.
-  - `profiles.primary_tenant_id` aponta para esse tenant.
-- Cross-isolation:
-  - TMC_A não enxerga `tenants` de TMC_B (`select` retorna 0 rows).
-  - TMC_A não consegue inserir booking no `client_tenant_id` de TMC_B (RLS rejeita).
-  - HOTEL_A não enxerga tenant de TMC_A.
-  - TMC_A pode inserir um child CORP via policy `TMC can insert child tenants` (positivo) e CorpA não consegue (negativo).
+## Fase 4 — Convite de usuários
 
-## 4. Arquivos afetados
+- Server function `inviteUser({email, role, tenantId})` usando `supabaseAdmin.auth.admin.inviteUserByEmail` + `INSERT user_roles`.
+- Restrita por `requireSupabaseAuth` + checagem de papel: `ta_master`/`ta_staff` pode convidar qualquer; `tmc_admin` só CORP/TMC_user no próprio tenant; `corp_admin` só CORP_user no próprio.
+- UI em `/admin` (aba "Usuários") com formulário de convite.
+- Testes de integração no padrão dos atuais (`tests/*.integration.test.ts`).
 
-- **Editar:** `src/components/layout/Sidebar.tsx` (lógica de visibilidade do item Admin).
-- **Criar:** `.github/workflows/test.yml`.
-- **Criar:** `tests/ta-invite.integration.test.ts`, `tests/bookings-cross-tenant.integration.test.ts`, `tests/tmc-signup.integration.test.ts`.
+## Detalhes técnicos
 
-Sem migrações novas — todas as policies necessárias já existem no schema atual.
+- Padrão de migração one-shot já validado em `/hoteis` (banner amarelo + verificação de consistência) — replicado em cada fase.
+- Onde RLS bloqueia `INSERT` (ex.: `tenants` só TA pode inserir), convites usam server fn com `supabaseAdmin`.
+- React Query com `staleTime: 30s` para evitar refetch agressivo nos selects de cliente.
+- Tipos vêm de `src/integrations/supabase/types.ts` (regenerado após cada migration).
 
-## 5. Validação
+## O que NÃO migra
 
-- Rodar `bun run test` localmente após cada novo arquivo de teste para confirmar que passa antes de commitar.
-- Conferir no preview que o item "Admin" aparece de novo na sidebar quando logado como TA master.
+- `appConfigStore.environment` (toggle dev/staging/prod) — preferência de UI, fica no navegador.
+- `appConfigStore.user` (avatar/iniciais demo) — substituído pelo `useAuth().user` real.
 
-Confirme para eu implementar (ou ajuste pontos do plano se algo não estiver como esperado).
+## Ordem de entrega
+
+1. Fase 1 (Clientes via `tenants`) — entrego, você valida.
+2. Fase 2 (Bookings) — entrego, você valida.
+3. Fase 3 (Snapshots) — entrego.
+4. Fase 4 (Convites de usuários + testes) — entrego.
+
+Confirma essa sequência? Posso começar pela Fase 1 imediatamente, ou prefere outra ordem (ex.: Convites primeiro porque você precisa criar usuários internos)?
