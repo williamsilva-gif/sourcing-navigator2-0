@@ -204,45 +204,22 @@ function HotelsPage() {
           )}
         </header>
 
-        {localHotels.length > 0 && editing === null && (
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning/40 bg-warning-soft/50 p-4">
-            <div className="flex items-start gap-3">
-              <DatabaseZap className="mt-0.5 h-5 w-5 text-warning-foreground" />
-              <div>
-                <p className="text-sm font-semibold text-foreground">
-                  {localHotels.length} hotéis salvos apenas no navegador
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Detectamos um upload anterior que não foi para o banco. Migre agora para não perder os dados.
-                </p>
-              </div>
+        {importing && importProgress && (
+          <div className="rounded-lg border border-border bg-card p-4">
+            <div className="mb-1 flex items-center justify-between text-[11px] font-medium text-muted-foreground">
+              <span>
+                Lote {importProgress.batch}/{importProgress.batches} · {importProgress.processed.toLocaleString("pt-BR")} de {importProgress.total.toLocaleString("pt-BR")} hotéis
+              </span>
+              <span className="font-mono text-foreground">
+                {Math.round((importProgress.processed / Math.max(1, importProgress.total)) * 100)}%
+              </span>
             </div>
-            <button
-              onClick={handleMigrateLocal}
-              disabled={migrating}
-              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
-            >
-              {migrating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <DatabaseZap className="h-3.5 w-3.5" />}
-              {migrating ? "Migrando…" : "Migrar para o banco"}
-            </button>
-            {migrating && migrateProgress && (
-              <div className="w-full">
-                <div className="mb-1 flex items-center justify-between text-[11px] font-medium text-muted-foreground">
-                  <span>
-                    Lote {migrateProgress.batch}/{migrateProgress.batches} · {migrateProgress.processed.toLocaleString("pt-BR")} de {migrateProgress.total.toLocaleString("pt-BR")} hotéis
-                  </span>
-                  <span className="font-mono text-foreground">
-                    {Math.round((migrateProgress.processed / Math.max(1, migrateProgress.total)) * 100)}%
-                  </span>
-                </div>
-                <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                  <div
-                    className="h-full bg-primary transition-[width] duration-300 ease-out"
-                    style={{ width: `${Math.min(100, (migrateProgress.processed / Math.max(1, migrateProgress.total)) * 100)}%` }}
-                  />
-                </div>
-              </div>
-            )}
+            <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full bg-primary transition-[width] duration-300 ease-out"
+                style={{ width: `${Math.min(100, (importProgress.processed / Math.max(1, importProgress.total)) * 100)}%` }}
+              />
+            </div>
           </div>
         )}
 
