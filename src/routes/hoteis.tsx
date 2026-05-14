@@ -38,6 +38,18 @@ function HotelsPage() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<HotelWithLocal | "new" | null>(null);
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQuery(query), 200);
+    return () => clearTimeout(t);
+  }, [query]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedQuery, pageSize]);
   const [importing, setImporting] = useState(false);
   const [migrating, setMigrating] = useState(false);
   const [migrateProgress, setMigrateProgress] = useState<{ processed: number; total: number; batch: number; batches: number } | null>(null);
@@ -63,14 +75,22 @@ function HotelsPage() {
   }, []);
 
   const filtered = useMemo(() => {
-    const q = query.toLowerCase().trim();
+    const q = debouncedQuery.toLowerCase().trim();
     if (!q) return hotels;
     return hotels.filter((h) =>
       [h.code, h.name, h.city, h.state, h.country_code, h.address]
         .filter(Boolean)
         .some((v) => String(v).toLowerCase().includes(q)),
     );
-  }, [hotels, query]);
+  }, [hotels, debouncedQuery]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const pageStart = (currentPage - 1) * pageSize;
+  const pageRows = useMemo(
+    () => filtered.slice(pageStart, pageStart + pageSize),
+    [filtered, pageStart, pageSize],
+  );
 
   async function handleSave(h: Hotel) {
     try {
@@ -348,7 +368,7 @@ function HotelsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filtered.map((h) => (
+                    {pageRows.map((h) => (
                       <tr key={h.id} className="border-t border-border">
                         <td className="px-3 py-2 font-mono text-xs text-muted-foreground">{h.code ?? "—"}</td>
                         <td className="px-3 py-2 font-medium text-foreground">{h.name}</td>
@@ -407,6 +427,48 @@ function HotelsPage() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            )}
+            {!loading && !authLoading && filtered.length > 0 && (
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-2 text-xs text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <span>Linhas por página:</span>
+                  <select
+                    value={pageSize}
+                    onChange={(e) => setPageSize(Number(e.target.value))}
+                    className="rounded border border-border bg-card px-1.5 py-0.5 text-xs text-foreground focus:outline-none"
+                  >
+                    {[25, 50, 100, 200, 500].map((n) => (
+                      <option key={n} value={n}>{n}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  {(pageStart + 1).toLocaleString("pt-BR")}–{Math.min(pageStart + pageSize, filtered.length).toLocaleString("pt-BR")} de {filtered.length.toLocaleString("pt-BR")}
+                </div>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setPage(1)}
+                    disabled={currentPage === 1}
+                    className="rounded border border-border px-2 py-1 hover:bg-secondary disabled:opacity-40"
+                  >«</button>
+                  <button
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="rounded border border-border px-2 py-1 hover:bg-secondary disabled:opacity-40"
+                  >‹</button>
+                  <span className="px-2 font-mono text-foreground">{currentPage}/{totalPages}</span>
+                  <button
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="rounded border border-border px-2 py-1 hover:bg-secondary disabled:opacity-40"
+                  >›</button>
+                  <button
+                    onClick={() => setPage(totalPages)}
+                    disabled={currentPage === totalPages}
+                    className="rounded border border-border px-2 py-1 hover:bg-secondary disabled:opacity-40"
+                  >»</button>
+                </div>
               </div>
             )}
           </section>
