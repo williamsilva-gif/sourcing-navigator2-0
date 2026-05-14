@@ -1,66 +1,52 @@
-# Migração completa: localStorage → banco
 
-Hotéis já está no banco. Vou migrar o resto em **4 fases**, cada uma testável isoladamente. Faço uma fase por vez para você validar antes de seguir.
+## Resposta curta
 
-## Estado atual (o que ainda vive só no navegador)
+**Não recomende o começar do zero.** A base (TanStack Start + Lovable Cloud, schema, RLS, rotas) está sólida. Os bugs que você descreve são todos sintomas do **mesmo punhado de causas raiz** — uma vez corrigidos, o app para de "piscar" e os dados passam a salvar. Recomeçar custaria os 15 mil hotéis já migrados e o esquema multi-tenant com RLS que já funciona.
 
-| Store | Conteúdo | Tabela destino |
-|---|---|---|
-| `clientsStore` | Lista de clientes/empresas selecionáveis no header | nova `clients` (ou reusar `tenants`) |
-| `baselineStore` | 500 bookings importados via XLSX, uploads | `bookings` (já existe) + nova `baseline_uploads` |
-| `snapshotStore` | Versões salvas para comparação de cenários | nova `snapshots` |
-| `appConfigStore` | Ambiente, módulos habilitados, user local | já há `tenant_modules`; resto fica local (preferência de UI) |
-| Convites de usuários (TMC/CORP/HOTEL) | criados via UI hoje só localmente | usar `auth.admin.inviteUserByEmail` via server fn |
+## Causas raiz identificadas
 
-## Fase 1 — Clientes / TMCs / CORPs / Hotéis (entidades)
+1. **Não há roteamento por papel após login.** `landingForRole()` existe em `useAuth.ts` mas não é chamado em lugar nenhum no fluxo de login/signup. Resultado: hotel cai no dashboard da TA (`/` mostra "Bom dia, Marina" e o KPI da TA para qualquer usuário).
+2. **Index `/` é o dashboard da TA, sem guarda de papel.** Precisa redirecionar (ou renderizar variantes) conforme `getPrimaryRole(roles)`.
+3. **Race condition de sessão Supabase em chamadas server-fn.** O `attachSupabaseAuth` já está em `src/start.ts`, mas server functions são chamadas antes de `supabase.auth.getSession()` resolver no cliente — daí o famoso `Unauthorized: No authorization header provided` na migração e em outras chamadas. Não há um `useAuthReady` gating.
+4. **Dados aparentam "sumir/aparecer" e "não atualizar"** porque o app mistura **state local (Zustand: baselineStore, snapshotStore, clientsStore)** com **dados reais do Supabase**. Componentes leem de stores que nunca foram hidratados a partir do banco — então conforme rotas remontam, ora mostram local, ora vazio, ora DB.
+5. **Erro de hidratação SSR** (visível no console): o avatar do Header renderiza iniciais "MR" no servidor e "WS" no cliente porque o componente lê `auth.user` (que no SSR é `null`). Isso causa o "tree will be regenerated" — visualmente parece "funcionalidades somem e aparecem".
+6. **Migração de hotéis já está concluída no banco** (15.035 registros confirmados). O botão "Migrar para o banco" só falha porque a cópia local (`baselineStore`) ainda existe — basta limpar.
 
-A tabela `tenants` já modela isso (TA / TMC / CORP / HOTEL com `parent_tenant_id`). Em vez de criar `clients`, **uso `tenants` como fonte da verdade** e aposento o `clientsStore`.
+## Plano de correção (em ordem, sem recomeçar)
 
-- Migration: nada novo (tabela existe). Verifico RLS de SELECT/INSERT.
-- Repo `tenantsRepo.ts` com `listVisibleTenants()`, `createTenant()`, `updateTenant()`.
-- Header passa a ler clientes de `tenants` via React Query.
-- Banner de migração one-shot em `/admin` para subir os clientes do `clientsStore` antigo.
-- Página `/ta/clients` (TA Console) já existe — conecto ao banco.
+### Etapa 1 — Auth & roteamento por papel (resolve bugs 1, 2, 5)
+- Adicionar `useAuthReady` com flag `ready` (sessão restaurada do storage).
+- Em `routes/login.tsx` e `routes/signup.tsx`, após sucesso, aguardar `roles` e navegar via `landingForRole(getPrimaryRole(roles))`.
+- Criar `_authenticated/index.tsx` (ou guarda em `routes/index.tsx`) que redireciona hotel→`/hotel/rfps`, TA/TMC/Corp→dashboard correspondente.
+- Renderizar Header/Sidebar somente quando `ready === true` (eliminando o mismatch de iniciais SSR↔client).
 
-## Fase 2 — Bookings (baseline)
+### Etapa 2 — Anexar bearer ANTES da chamada (resolve bug 3)
+- Em todo serverFn protegido (incluindo `bulkUpsertHotelsByCodeFn`), o cliente deve aguardar `supabase.auth.getSession()` resolver. Adicionar `await` explícito no `auth-attacher` já está OK; o problema é a chamada disparada de loaders/efeitos antes do `ready`. Solução: gate todas as chamadas server-fn por `useAuthReady`.
 
-A tabela `bookings` já existe com RLS por `client_tenant_id`.
+### Etapa 3 — Eliminar stores locais conflitantes (resolve bug 4)
+- `baselineStore` (hotéis locais), `clientsStore` (clientes locais) e `snapshotStore` devem virar **read-through do Supabase** ou serem removidos.
+- Para hotéis: já lemos do DB via `listHotels` — basta apagar `baselineStore.hotels` e o banner de migração.
+- Para clientes: idem, ler de `tenants` (filtrado por `visible_tenant_ids`).
+- Snapshot/decision data: pode continuar local se for derivado, mas precisa ser recomputado a partir do DB e não de cópia local.
 
-- Repo `bookingsRepo.ts` com `bulkInsert(rows, tenantId)` e `listByTenant`.
-- Diagnóstico: ao importar XLSX, salvar direto em `bookings` (e não no zustand).
-- Banner de migração no Diagnóstico para subir o baseline atual (500 linhas) ao tenant selecionado.
-- Componentes do dashboard (`AdrHistogram`, `CityHeatmap`, etc.) passam a buscar via React Query do banco, com fallback para o store enquanto migração não roda.
+### Etapa 4 — Limpeza pós-migração de hotéis
+- Remover botão "Migrar para o banco" e o banner amarelo.
+- Adicionar um único botão "Limpar cópia local" para usuários que ainda têm `baselineStore.hotels` no navegador.
 
-## Fase 3 — Snapshots
+### Etapa 5 — Verificação
+- Testar 4 fluxos: signup como hotel → cai em `/hotel/rfps`; signup como corp → cai em `/`; login como TA master (você) → dashboard TA; refresh em `/hoteis` → 15.035 listados sem "piscar".
+- Confirmar zero erros `Unauthorized` e zero hydration mismatch no console.
 
-- Migration: nova tabela `snapshots(id, tenant_id, name, payload jsonb, created_by, created_at)` com RLS `can_see_tenant`.
-- Repo `snapshotsRepo.ts`.
-- UI de Análise: salvar/listar snapshots vai ao banco.
+## O que NÃO vou mexer
+- Schema do banco (tabelas, RLS, triggers — todos corretos).
+- Os 15.035 hotéis já no DB.
+- A integração Lovable Cloud / TanStack Start em si.
 
-## Fase 4 — Convite de usuários
+## Esforço estimado
+- Etapas 1-2: ~1 iteração (núcleo do problema, resolve ~70% dos sintomas).
+- Etapas 3-4: ~1-2 iterações (remoção de código morto e dual-source-of-truth).
+- Etapa 5: validação rápida.
 
-- Server function `inviteUser({email, role, tenantId})` usando `supabaseAdmin.auth.admin.inviteUserByEmail` + `INSERT user_roles`.
-- Restrita por `requireSupabaseAuth` + checagem de papel: `ta_master`/`ta_staff` pode convidar qualquer; `tmc_admin` só CORP/TMC_user no próprio tenant; `corp_admin` só CORP_user no próprio.
-- UI em `/admin` (aba "Usuários") com formulário de convite.
-- Testes de integração no padrão dos atuais (`tests/*.integration.test.ts`).
+Total: 2-3 mensagens, **sem custo de recomeçar do zero** (que seria refazer schema, RLS, upload de hotéis, etc.).
 
-## Detalhes técnicos
-
-- Padrão de migração one-shot já validado em `/hoteis` (banner amarelo + verificação de consistência) — replicado em cada fase.
-- Onde RLS bloqueia `INSERT` (ex.: `tenants` só TA pode inserir), convites usam server fn com `supabaseAdmin`.
-- React Query com `staleTime: 30s` para evitar refetch agressivo nos selects de cliente.
-- Tipos vêm de `src/integrations/supabase/types.ts` (regenerado após cada migration).
-
-## O que NÃO migra
-
-- `appConfigStore.environment` (toggle dev/staging/prod) — preferência de UI, fica no navegador.
-- `appConfigStore.user` (avatar/iniciais demo) — substituído pelo `useAuth().user` real.
-
-## Ordem de entrega
-
-1. Fase 1 (Clientes via `tenants`) — entrego, você valida.
-2. Fase 2 (Bookings) — entrego, você valida.
-3. Fase 3 (Snapshots) — entrego.
-4. Fase 4 (Convites de usuários + testes) — entrego.
-
-Confirma essa sequência? Posso começar pela Fase 1 imediatamente, ou prefere outra ordem (ex.: Convites primeiro porque você precisa criar usuários internos)?
+Confirma que quer seguir por esse caminho? Se sim, começo pela Etapa 1 (auth ready + roteamento por papel) que sozinha já resolve o bug de "hotel virou TA" e o flicker.
