@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
-import { DollarSign, TrendingUp, Activity, AlertTriangle, Calendar, RefreshCw } from "lucide-react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { DollarSign, TrendingUp, Activity, AlertTriangle, Calendar, RefreshCw, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/AppShell";
 import { KpiCard } from "@/components/dashboard/KpiCard";
@@ -11,6 +11,7 @@ import { ActiveActions } from "@/components/dashboard/ActiveActions";
 import { ImpactTracking } from "@/components/dashboard/ImpactTracking";
 import { useDecisionData, type Opportunity } from "@/components/dashboard/decisionData";
 import { useSnapshotStore, timeAgo, daysUntilNextEval } from "@/lib/snapshotStore";
+import { useAuth, getPrimaryRole, landingForRole } from "@/hooks/useAuth";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -27,12 +28,27 @@ export const Route = createFileRoute("/")({
 });
 
 function DashboardPage() {
+  const navigate = useNavigate();
+  const { ready, user, roles } = useAuth();
   const [selectedOpp, setSelectedOpp] = useState<Opportunity | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const { opportunities, source } = useDecisionData();
   const evaluate = useSnapshotStore((s) => s.evaluate);
   const evaluatedAt = useSnapshotStore((s) => s.evaluatedAt);
   const current = useSnapshotStore((s) => s.current);
+
+  // Route guard: redirect by role once session is restored.
+  useEffect(() => {
+    if (!ready) return;
+    if (!user) {
+      navigate({ to: "/login" });
+      return;
+    }
+    const primary = getPrimaryRole(roles);
+    if (primary && primary.startsWith("hotel_")) {
+      navigate({ to: landingForRole(primary) });
+    }
+  }, [ready, user, roles, navigate]);
 
   // Initial evaluation on mount so deltas have a baseline to compare against.
   const didInit = useRef(false);
@@ -42,6 +58,14 @@ function DashboardPage() {
       evaluate();
     }
   }, [current, evaluate]);
+
+  if (!ready || !user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   const openOpportunity = (opp: Opportunity) => {
     setSelectedOpp(opp);
