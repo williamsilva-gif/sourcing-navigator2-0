@@ -107,6 +107,10 @@ export async function bulkUpsertByCode(
 
   for (let i = 0; i < batches; i++) {
     const chunk = hotels.slice(i * BATCH_SIZE, (i + 1) * BATCH_SIZE);
+    if (chunk.length === 0) {
+      onProgress?.({ processed: hotels.length, total: hotels.length, batch: i + 1, batches });
+      continue;
+    }
     try {
       const res = await bulkUpsertHotelsByCodeFn({ data: { hotels: chunk } });
       added += res.added ?? 0;
