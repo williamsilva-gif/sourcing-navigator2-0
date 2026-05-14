@@ -1,9 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Hotel as HotelIcon, Plus, Pencil, Trash2, MapPin, Search, Upload, Download, DatabaseZap, Loader2 } from "lucide-react";
+import { Hotel as HotelIcon, Plus, Pencil, Trash2, MapPin, Search, Upload, Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/AppShell";
-import { useBaselineStore } from "@/lib/baselineStore";
 import { hotelSchema, type Hotel } from "@/lib/baselineSchemas";
 import { HotelForm } from "@/components/hotels/HotelForm";
 import { downloadTemplate, readSpreadsheet } from "@/lib/xlsxTemplates";
@@ -16,7 +15,6 @@ import {
   type HotelWithLocal,
 } from "@/lib/hotelsRepo";
 import { useAuth, getPrimaryRole } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/hoteis")({
   head: () => ({
@@ -51,23 +49,8 @@ function HotelsPage() {
     setPage(1);
   }, [debouncedQuery, pageSize]);
   const [importing, setImporting] = useState(false);
-  const [migrating, setMigrating] = useState(false);
-  const [migrateProgress, setMigrateProgress] = useState<{ processed: number; total: number; batch: number; batches: number } | null>(null);
+  const [importProgress, setImportProgress] = useState<{ processed: number; total: number; batch: number; batches: number } | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
-
-  const localHotels = useBaselineStore((s) => s.hotels);
-  const clearLocalHotels = useBaselineStore((s) => s.deleteHotel);
-
-  // Migration is complete in production (15.035 hotels in DB). Auto-clear any
-  // leftover local copies once we confirm the DB has data, so the legacy
-  // "Migrar para o banco" banner never shows again.
-  useEffect(() => {
-    if (!loading && hotels.length > 0 && localHotels.length > 0) {
-      for (const h of localHotels) {
-        if (h.code) clearLocalHotels(h.code);
-      }
-    }
-  }, [loading, hotels.length, localHotels, clearLocalHotels]);
 
   async function refresh() {
     setLoading(true);
@@ -150,7 +133,8 @@ function HotelsPage() {
           }
         });
       }
-      const result = await bulkUpsertByCode(allValid);
+      setImportProgress({ processed: 0, total: allValid.length, batch: 0, batches: Math.max(1, Math.ceil(allValid.length / 1000)) });
+      const result = await bulkUpsertByCode(allValid, (info) => setImportProgress(info));
       const desc =
         (totalErrors > 0 ? `${totalErrors} linhas com erro · ex: ${errorSamples[0]}` : undefined) ??
         result.firstError;
@@ -162,73 +146,7 @@ function HotelsPage() {
       toast.error(`Falha na importação: ${(e as Error).message}`);
     } finally {
       setImporting(false);
-    }
-  }
-
-  async function handleMigrateLocal() {
-    if (localHotels.length === 0) return;
-    setMigrating(true);
-    setMigrateProgress({ processed: 0, total: localHotels.length, batch: 0, batches: Math.max(1, Math.ceil(localHotels.length / 1000)) });
-    try {
-      const result = await bulkUpsertByCode(localHotels, (info) => setMigrateProgress(info));
-      toast.success(`Migrados: ${result.added} novos · ${result.updated} atualizados`, {
-        description: result.failed
-          ? `${result.failed} falharam — ${result.firstError ?? "verifique permissões"}`
-          : "Verificando consistência com o banco…",
-      });
-
-      // Consistency check: re-query the DB by the codes we tried to migrate and
-      // make sure every local hotel is now present.
-      const codes = localHotels.map((h) => h.code).filter((c): c is string => Boolean(c));
-      const withoutCode = localHotels.length - codes.length;
-      let dbFound = 0;
-      let missingCodes: string[] = [];
-      if (codes.length > 0) {
-        const { data, error } = await supabase.from("hotels").select("code").in("code", codes);
-        if (error) {
-          toast.warning("Não foi possível verificar consistência", { description: error.message });
-        } else {
-          const foundSet = new Set((data ?? []).map((r: { code: string | null }) => r.code).filter(Boolean) as string[]);
-          dbFound = foundSet.size;
-          missingCodes = codes.filter((c) => !foundSet.has(c));
-        }
-      }
-      const expected = localHotels.length;
-      const accounted = dbFound + withoutCode; // hotéis sem código não dá pra reconciliar
-      const discrepancy = expected - accounted;
-
-      if (discrepancy > 0 || result.failed > 0) {
-        toast.warning(`Discrepância detectada: ${discrepancy} hotel(is) faltando no banco`, {
-          description:
-            (missingCodes.length > 0
-              ? `Códigos ausentes (até 5): ${missingCodes.slice(0, 5).join(", ")}${missingCodes.length > 5 ? "…" : ""}. `
-              : "") +
-            (withoutCode > 0
-              ? `${withoutCode} hotel(is) sem código não puderam ser reconciliados automaticamente. `
-              : "") +
-            "Cópia local preservada para revisão.",
-          duration: 10000,
-        });
-      } else if (result.failed === 0) {
-        toast.success(`Consistência OK: ${accounted}/${expected} hotéis confirmados no banco`);
-        const ok = confirm(
-          `Migração e verificação concluídas: ${accounted}/${expected} hotéis confirmados no banco.\n\n` +
-            `Deseja limpar a cópia local do navegador agora?\n\n` +
-            `Recomendado apenas após revisar a lista no banco. Cancele se quiser conferir antes.`,
-        );
-        if (ok) {
-          for (const h of localHotels) clearLocalHotels(h.code);
-          toast.info("Cópia local removida");
-        } else {
-          toast.message("Cópia local mantida — limpe manualmente quando quiser");
-        }
-      }
-      refresh();
-    } catch (e) {
-      toast.error(`Falha ao migrar: ${(e as Error).message}`);
-    } finally {
-      setMigrating(false);
-      setMigrateProgress(null);
+      setImportProgress(null);
     }
   }
 
@@ -286,45 +204,22 @@ function HotelsPage() {
           )}
         </header>
 
-        {localHotels.length > 0 && editing === null && (
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning/40 bg-warning-soft/50 p-4">
-            <div className="flex items-start gap-3">
-              <DatabaseZap className="mt-0.5 h-5 w-5 text-warning-foreground" />
-              <div>
-                <p className="text-sm font-semibold text-foreground">
-                  {localHotels.length} hotéis salvos apenas no navegador
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Detectamos um upload anterior que não foi para o banco. Migre agora para não perder os dados.
-                </p>
-              </div>
+        {importing && importProgress && (
+          <div className="rounded-lg border border-border bg-card p-4">
+            <div className="mb-1 flex items-center justify-between text-[11px] font-medium text-muted-foreground">
+              <span>
+                Lote {importProgress.batch}/{importProgress.batches} · {importProgress.processed.toLocaleString("pt-BR")} de {importProgress.total.toLocaleString("pt-BR")} hotéis
+              </span>
+              <span className="font-mono text-foreground">
+                {Math.round((importProgress.processed / Math.max(1, importProgress.total)) * 100)}%
+              </span>
             </div>
-            <button
-              onClick={handleMigrateLocal}
-              disabled={migrating}
-              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
-            >
-              {migrating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <DatabaseZap className="h-3.5 w-3.5" />}
-              {migrating ? "Migrando…" : "Migrar para o banco"}
-            </button>
-            {migrating && migrateProgress && (
-              <div className="w-full">
-                <div className="mb-1 flex items-center justify-between text-[11px] font-medium text-muted-foreground">
-                  <span>
-                    Lote {migrateProgress.batch}/{migrateProgress.batches} · {migrateProgress.processed.toLocaleString("pt-BR")} de {migrateProgress.total.toLocaleString("pt-BR")} hotéis
-                  </span>
-                  <span className="font-mono text-foreground">
-                    {Math.round((migrateProgress.processed / Math.max(1, migrateProgress.total)) * 100)}%
-                  </span>
-                </div>
-                <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                  <div
-                    className="h-full bg-primary transition-[width] duration-300 ease-out"
-                    style={{ width: `${Math.min(100, (migrateProgress.processed / Math.max(1, migrateProgress.total)) * 100)}%` }}
-                  />
-                </div>
-              </div>
-            )}
+            <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full bg-primary transition-[width] duration-300 ease-out"
+                style={{ width: `${Math.min(100, (importProgress.processed / Math.max(1, importProgress.total)) * 100)}%` }}
+              />
+            </div>
           </div>
         )}
 

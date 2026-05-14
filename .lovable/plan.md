@@ -1,52 +1,59 @@
+# Reset completo + remoção da migração
 
-## Resposta curta
+Confirmei seu admin no banco: **William Silva (william.silva@travelacademy.com.br)** com role `ta_master`. Hoje o banco tem 15.034 hotéis, 500 bookings, 5 tenants e 0 RFPs.
 
-**Não recomende o começar do zero.** A base (TanStack Start + Lovable Cloud, schema, RLS, rotas) está sólida. Os bugs que você descreve são todos sintomas do **mesmo punhado de causas raiz** — uma vez corrigidos, o app para de "piscar" e os dados passam a salvar. Recomeçar custaria os 15 mil hotéis já migrados e o esquema multi-tenant com RLS que já funciona.
+## 1. Zerar o banco (mantendo só você)
 
-## Causas raiz identificadas
+Apago **todos os dados** das tabelas, preservando apenas:
+- Seu usuário em `auth.users` (intocado)
+- Seu `profiles` (William Silva)
+- Seu `user_roles` como `ta_master`
+- O tenant TA (Travel Academy) ao qual você pertence
 
-1. **Não há roteamento por papel após login.** `landingForRole()` existe em `useAuth.ts` mas não é chamado em lugar nenhum no fluxo de login/signup. Resultado: hotel cai no dashboard da TA (`/` mostra "Bom dia, Marina" e o KPI da TA para qualquer usuário).
-2. **Index `/` é o dashboard da TA, sem guarda de papel.** Precisa redirecionar (ou renderizar variantes) conforme `getPrimaryRole(roles)`.
-3. **Race condition de sessão Supabase em chamadas server-fn.** O `attachSupabaseAuth` já está em `src/start.ts`, mas server functions são chamadas antes de `supabase.auth.getSession()` resolver no cliente — daí o famoso `Unauthorized: No authorization header provided` na migração e em outras chamadas. Não há um `useAuthReady` gating.
-4. **Dados aparentam "sumir/aparecer" e "não atualizar"** porque o app mistura **state local (Zustand: baselineStore, snapshotStore, clientsStore)** com **dados reais do Supabase**. Componentes leem de stores que nunca foram hidratados a partir do banco — então conforme rotas remontam, ora mostram local, ora vazio, ora DB.
-5. **Erro de hidratação SSR** (visível no console): o avatar do Header renderiza iniciais "MR" no servidor e "WS" no cliente porque o componente lê `auth.user` (que no SSR é `null`). Isso causa o "tree will be regenerated" — visualmente parece "funcionalidades somem e aparecem".
-6. **Migração de hotéis já está concluída no banco** (15.035 registros confirmados). O botão "Migrar para o banco" só falha porque a cópia local (`baselineStore`) ainda existe — basta limpar.
+Vou apagar nesta ordem (respeitando dependências):
+- `rfp_responses`, `rfp_invitations`, `rfps`
+- `bookings`
+- `billing_events`
+- `hotel_members`, `hotels` (todos os 15.034)
+- `tenant_modules`, `tenant_thresholds`
+- `profiles` (exceto o seu)
+- `user_roles` (exceto o seu)
+- `tenants` (exceto o tenant TA)
 
-## Plano de correção (em ordem, sem recomeçar)
+Resultado: app como se fosse o primeiro uso, com apenas você logado como Admin Master.
 
-### Etapa 1 — Auth & roteamento por papel (resolve bugs 1, 2, 5)
-- Adicionar `useAuthReady` com flag `ready` (sessão restaurada do storage).
-- Em `routes/login.tsx` e `routes/signup.tsx`, após sucesso, aguardar `roles` e navegar via `landingForRole(getPrimaryRole(roles))`.
-- Criar `_authenticated/index.tsx` (ou guarda em `routes/index.tsx`) que redireciona hotel→`/hotel/rfps`, TA/TMC/Corp→dashboard correspondente.
-- Renderizar Header/Sidebar somente quando `ready === true` (eliminando o mismatch de iniciais SSR↔client).
+## 2. Remover a migração para o banco
 
-### Etapa 2 — Anexar bearer ANTES da chamada (resolve bug 3)
-- Em todo serverFn protegido (incluindo `bulkUpsertHotelsByCodeFn`), o cliente deve aguardar `supabase.auth.getSession()` resolver. Adicionar `await` explícito no `auth-attacher` já está OK; o problema é a chamada disparada de loaders/efeitos antes do `ready`. Solução: gate todas as chamadas server-fn por `useAuthReady`.
+Apago tudo que envolve "migrar dados locais para o banco":
+- Botão/banner "Migrar para o banco" em `src/routes/hoteis.tsx`
+- `bulkUpsertHotelsByCodeFn` em `src/lib/hotels.functions.ts` e chamadas
+- Stores locais que duplicavam o banco: `baselineStore`, `clientsStore`, `snapshotStore`, dados demo em `decisionData.ts`
+- Limpeza de `localStorage` no boot para remover restos de demo/baseline antigos do seu navegador
 
-### Etapa 3 — Eliminar stores locais conflitantes (resolve bug 4)
-- `baselineStore` (hotéis locais), `clientsStore` (clientes locais) e `snapshotStore` devem virar **read-through do Supabase** ou serem removidos.
-- Para hotéis: já lemos do DB via `listHotels` — basta apagar `baselineStore.hotels` e o banner de migração.
-- Para clientes: idem, ler de `tenants` (filtrado por `visible_tenant_ids`).
-- Snapshot/decision data: pode continuar local se for derivado, mas precisa ser recomputado a partir do DB e não de cópia local.
+Mantenho o **upload de planilha de hotéis** (CSV/XLSX) em `/hoteis`, mas direto para o banco — sem etapa de "local primeiro, depois migrar". É essa via que você vai usar para subir hotéis daqui para frente.
 
-### Etapa 4 — Limpeza pós-migração de hotéis
-- Remover botão "Migrar para o banco" e o banner amarelo.
-- Adicionar um único botão "Limpar cópia local" para usuários que ainda têm `baselineStore.hotels` no navegador.
+## 3. Quantos hotéis por lote no upload?
 
-### Etapa 5 — Verificação
-- Testar 4 fluxos: signup como hotel → cai em `/hotel/rfps`; signup como corp → cai em `/`; login como TA master (você) → dashboard TA; refresh em `/hoteis` → 15.035 listados sem "piscar".
-- Confirmar zero erros `Unauthorized` e zero hydration mismatch no console.
+Recomendo **1.000 por lote**, não 5.000. Motivos práticos:
+- Cada `upsert` no Supabase via PostgREST tem limite seguro em torno de 1.000–2.000 linhas por requisição antes de começar a dar timeout/erro de payload.
+- Com 1.000/lote e 15.000 hotéis = 15 requisições, ~30–60s no total, com barra de progresso e retry por lote.
+- Se um lote falhar, você reenvia só aquele, não os 5.000.
+- 5.000/lote tende a estourar timeout do worker (que foi exatamente o sintoma do "Unauthorized / falharam" anterior — a função demorava demais e perdia a sessão).
 
-## O que NÃO vou mexer
-- Schema do banco (tabelas, RLS, triggers — todos corretos).
-- Os 15.035 hotéis já no DB.
-- A integração Lovable Cloud / TanStack Start em si.
+Implementação: o uploader divide automaticamente o arquivo em lotes de 1.000, mostra progresso "lote 3 de 15", e qualquer lote que falhar fica marcado para reenvio individual.
 
-## Esforço estimado
-- Etapas 1-2: ~1 iteração (núcleo do problema, resolve ~70% dos sintomas).
-- Etapas 3-4: ~1-2 iterações (remoção de código morto e dual-source-of-truth).
-- Etapa 5: validação rápida.
+## 4. Detalhes técnicos
 
-Total: 2-3 mensagens, **sem custo de recomeçar do zero** (que seria refazer schema, RLS, upload de hotéis, etc.).
+- Uso `supabase--insert` com `DELETE` em massa preservando seu `user_id` e tenant TA.
+- Removo arquivos `baselineStore.ts`, `snapshotStore.ts` e dados demo embutidos; ajusto telas de Estratégia/Diagnóstico/Dashboard para lerem do banco (vazio = "nenhum dado ainda, importe hotéis para começar").
+- O upload de hotéis passa a chamar uma server function única `uploadHotelsBatchFn({ rows })` com Zod validando até 1.000 linhas, gated por `useAuthReady` (corrige o `Unauthorized` definitivamente).
+- `src/routes/index.tsx`, `Header.tsx` continuam com a correção de role/ready do Stage 1 anterior.
 
-Confirma que quer seguir por esse caminho? Se sim, começo pela Etapa 1 (auth ready + roteamento por papel) que sozinha já resolve o bug de "hotel virou TA" e o flicker.
+## 5. Ordem de execução
+
+1. Migration de DELETE (você aprova).
+2. Remover código de migração + stores locais + demos.
+3. Trocar uploader de hotéis para chamada direta em lotes de 1.000.
+4. Você loga, vê app vazio, sobe a planilha, e os hotéis aparecem.
+
+Posso prosseguir?

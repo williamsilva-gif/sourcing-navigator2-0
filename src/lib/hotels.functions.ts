@@ -4,7 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { hotelSchema } from "./baselineSchemas";
 
 const bulkHotelsSchema = z.object({
-  hotels: z.array(hotelSchema).min(1).max(5000),
+  hotels: z.array(hotelSchema).min(1).max(1000),
 });
 
 export const bulkUpsertHotelsByCodeFn = createServerFn({ method: "POST" })

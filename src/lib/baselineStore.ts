@@ -142,21 +142,8 @@ export const useBaselineStore = create<BaselineState>()(
   ),
 );
 
-// Auto-seed demo data on the client when nothing has been loaded yet.
-if (typeof window !== "undefined") {
-  const seed = () => {
-    const s = useBaselineStore.getState();
-    if (s.bookings.length === 0 && s.uploads.length === 0) {
-      // Lazy import to avoid bundling demo data on the server entry path.
-      import("./demoData").then(({ generateDemoBookings }) => {
-        s.ingest("bookings", "demo-dataset-500.synthetic", generateDemoBookings(500));
-        useBaselineStore.setState({ useDemo: true });
-      });
-    }
-  };
-  // Wait for persist to finish hydrating, then seed if still empty.
-  setTimeout(seed, 50);
-}
+// Demo auto-seed disabled — app starts empty by design. Data comes from the
+// database (uploads via /hoteis) or stays empty until the user adds it.
 
 // Per-city ADR distribution + cap (cap = ceil of city ADR rounded to 5)
 export function selectAdrDistributionByCity(bookings: Booking[], city: string): { buckets: AdrBucket[]; cap: number; total: number } {
