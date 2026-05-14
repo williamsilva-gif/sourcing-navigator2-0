@@ -15,7 +15,7 @@ import {
 } from "@/lib/rfpPlanModel";
 import { useActionStore } from "@/lib/actionStore";
 import { Button } from "@/components/ui/button";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 function fmtBrl(n: number) {
