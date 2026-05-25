@@ -76,12 +76,15 @@ export function DataIngestionPanel() {
     );
   }
 
-  function loadDemoDataset() {
-    // Bookings 2024 + 2025 (500/ano) + contratos vigentes para os dois anos.
+  async function loadDemoDataset() {
+    if (!selectedClientId) {
+      toast.error("Selecione um cliente antes de carregar a demo.");
+      return;
+    }
     const bks = generateDemoBookings(500, [2024, 2025]);
     const ctrs = generateDemoContracts([2024, 2025]);
-    const recB = ingest("bookings", "demo-bookings-2024-2025.synthetic", bks);
-    const recC = ingest("contracts", "demo-contracts-2024-2025.synthetic", ctrs);
+    const recB = await ingest("bookings", "demo-bookings-2024-2025.synthetic", bks, selectedClientId);
+    const recC = await ingest("contracts", "demo-contracts-2024-2025.synthetic", ctrs, selectedClientId);
     useSnapshotStore.getState().evaluate();
     const snap = useSnapshotStore.getState().current;
     toast.success(`Demo carregado · ${recB.rowCount} bookings · ${recC.rowCount} contratos`, {
