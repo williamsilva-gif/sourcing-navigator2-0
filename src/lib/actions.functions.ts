@@ -7,6 +7,7 @@ const statusSchema = z.enum(["initiated", "in_progress", "completed"]);
 const effortSchema = z.enum(["low", "medium", "high"]);
 
 const createSchema = z.object({
+  id: z.string().uuid().optional(),
   clientTenantId: z.string().uuid(),
   opportunityId: z.string().max(200).optional().nullable(),
   label: z.string().min(1).max(200),
@@ -14,9 +15,11 @@ const createSchema = z.object({
   module: z.string().min(1).max(50),
   city: z.string().max(100).optional().nullable(),
   effort: effortSchema,
+  status: statusSchema.optional(),
   payload: z.record(z.string(), z.unknown()),
   kpis: z.record(z.string(), z.unknown()),
 });
+
 
 export const createActionFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
