@@ -167,6 +167,102 @@ export const useActionStore = create<ActionStoreState>()(
   negotiationBatches: [],
   miniRfps: [],
 
+  hydratedForTenant: null,
+
+  hydrateFromDb: async (clientTenantId: string) => {
+    try {
+      const rows = await listActionsFn({ data: { clientTenantId } });
+      // Replay rows oldest → newest so derived overrides reflect final state
+      const ordered = [...rows].sort((a, b) =>
+        (a.created_at as string).localeCompare(b.created_at as string),
+      );
+      const actions: ExecutedAction[] = [];
+      const capOverrides: Record<string, number> = {};
+      const adrAdjustments: Record<string, number> = {};
+      const portfolioOverrides: Record<string, PortfolioOverride> = {};
+      const marketExpansion: Record<string, boolean> = {};
+      const executedOpportunityIds: string[] = [];
+      const clusterMoves: ActionStoreState["clusterMoves"] = [];
+      const negotiationBatches: ActionStoreState["negotiationBatches"] = [];
+      const miniRfps: ActionStoreState["miniRfps"] = [];
+
+      for (const r of ordered) {
+        const payload = r.payload as unknown as ActionPayload;
+        const kpis = r.kpis as unknown as ActionKpis;
+        const action: ExecutedAction = {
+          id: r.id as string,
+          opportunityId: (r.opportunity_id as string) ?? "",
+          label: r.label as string,
+          kind: r.kind as ActionKind,
+          payload,
+          status: r.status as ActionStatus,
+          effort: r.effort as Effort,
+          city: (r.city as string) ?? payload?.data?.city ?? "",
+          module: r.module as ExecutedAction["module"],
+          createdAt: r.created_at as string,
+          updatedAt: r.updated_at as string,
+          kpis,
+        };
+        actions.unshift(action); // newest first in store
+        if (action.opportunityId && !executedOpportunityIds.includes(action.opportunityId)) {
+          executedOpportunityIds.push(action.opportunityId);
+        }
+        if (payload?.kind === "cap_adjustment") {
+          capOverrides[payload.data.city] = payload.data.toCap;
+        } else if (payload?.kind === "cluster_change") {
+          const prev = portfolioOverrides[payload.data.city];
+          portfolioOverrides[payload.data.city] = {
+            addedHotels: (prev?.addedHotels ?? 0) + payload.data.hotelsToAdd,
+            cluster: payload.data.toCluster,
+          };
+          clusterMoves.push({
+            city: payload.data.city,
+            hotels: payload.data.hotelsToAdd,
+            toCluster: payload.data.toCluster,
+            actionId: action.id,
+          });
+        } else if (payload?.kind === "renegotiation") {
+          const existing = adrAdjustments[payload.data.city] ?? 0;
+          adrAdjustments[payload.data.city] = Math.max(
+            -40,
+            existing - payload.data.targetAdrReduction,
+          );
+          negotiationBatches.push({
+            id: uid("batch"),
+            city: payload.data.city,
+            hotels: payload.data.hotels,
+            targetAdrReduction: payload.data.targetAdrReduction,
+            actionId: action.id,
+            createdAt: action.createdAt,
+          });
+        } else if (payload?.kind === "mini_rfp") {
+          marketExpansion[payload.data.city] = true;
+          miniRfps.push({
+            id: uid("rfp"),
+            city: payload.data.city,
+            hotels: payload.data.hotels,
+            actionId: action.id,
+          });
+        }
+      }
+
+      set({
+        actions,
+        capOverrides,
+        adrAdjustments,
+        portfolioOverrides,
+        marketExpansion,
+        executedOpportunityIds,
+        clusterMoves,
+        negotiationBatches,
+        miniRfps,
+        hydratedForTenant: clientTenantId,
+      });
+    } catch (err) {
+      console.error("[actionStore] hydrateFromDb failed", err);
+    }
+  },
+
   executeAction: ({ opportunityId, label, payload, effort, savingsExpected, adrBefore, complianceBefore }) => {
     const kind = payload.kind;
     const id = uid("act");
@@ -252,6 +348,26 @@ export const useActionStore = create<ActionStoreState>()(
       return next as ActionStoreState;
     });
 
+    // Persist to DB (best-effort) using the currently selected tenant
+    const tenantId = useClientsStore.getState().selectedClientId;
+    if (tenantId) {
+      createActionFn({
+        data: {
+          id,
+          clientTenantId: tenantId,
+          opportunityId,
+          label,
+          kind,
+          module: action.module,
+          city,
+          effort,
+          status: "initiated",
+          payload: payload as unknown as Record<string, unknown>,
+          kpis: action.kpis as unknown as Record<string, unknown>,
+        },
+      }).catch((e) => console.error("[actionStore] createActionFn failed", e));
+    }
+
     // Auto-advance: initiated → in_progress after 600ms (simulates async dispatch)
     setTimeout(() => get().advanceStatus(id), 600);
 
@@ -259,6 +375,7 @@ export const useActionStore = create<ActionStoreState>()(
   },
 
   advanceStatus: (id) => {
+    let updated: ExecutedAction | undefined;
     set((s) => ({
       actions: s.actions.map((a) => {
         if (a.id !== id) return a;
@@ -287,7 +404,7 @@ export const useActionStore = create<ActionStoreState>()(
 
         const complianceLift = a.payload.kind === "communication" ? 12 : 6;
 
-        return {
+        const next: ExecutedAction = {
           ...a,
           status: nextStatus,
           updatedAt: new Date().toISOString(),
@@ -298,11 +415,25 @@ export const useActionStore = create<ActionStoreState>()(
             savingsRealized: Math.round(a.kpis.savingsExpected * factor),
           },
         };
+        updated = next;
+        return next;
       }),
     }));
+
+    // Persist status/kpis update (only for proper UUID ids that round-trip to DB)
+    if (updated && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+      updateActionFn({
+        data: {
+          id,
+          status: updated.status,
+          kpis: updated.kpis as unknown as Record<string, unknown>,
+        },
+      }).catch((e) => console.error("[actionStore] updateActionFn failed", e));
+    }
   },
 
-  resetAll: () =>
+  resetAll: () => {
+    const ids = get().actions.map((a) => a.id);
     set({
       actions: [],
       capOverrides: {},
@@ -313,8 +444,16 @@ export const useActionStore = create<ActionStoreState>()(
       clusterMoves: [],
       negotiationBatches: [],
       miniRfps: [],
-    }),
+    });
+    // Best-effort delete from DB
+    for (const id of ids) {
+      if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+        deleteActionFn({ data: { id } }).catch(() => {});
+      }
+    }
+  },
 }),
+
     {
       name: "sourcinghub.actions.v1",
       storage: createJSONStorage(() =>
