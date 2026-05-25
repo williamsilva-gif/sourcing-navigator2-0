@@ -123,14 +123,22 @@ interface ActionStoreState {
 
   advanceStatus: (id: string) => void;
   resetAll: () => void;
+  hydratedForTenant: string | null;
+  hydrateFromDb: (clientTenantId: string) => Promise<void>;
 }
 
 function uid(prefix: string) {
-  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+  // Use uuid v4 so the same id round-trips to the DB
+  const u =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+  return prefix === "act" ? u : `${prefix}-${u.slice(0, 8)}`;
 }
 
 function moduleForKind(kind: ActionKind): ExecutedAction["module"] {
   switch (kind) {
+
     case "renegotiation":
       return "negociacao";
     case "cap_adjustment":
