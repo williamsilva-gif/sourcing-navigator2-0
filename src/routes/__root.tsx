@@ -5,23 +5,27 @@ import { Toaster } from "@/components/ui/sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useClientsStore } from "@/lib/clientsStore";
 import { useBaselineStore } from "@/lib/baselineStore";
+import { useActionStore } from "@/lib/actionStore";
 import { CookieBanner } from "@/components/privacy/CookieBanner";
+
 
 // One-time purge of legacy persisted local data (demo bookings, seed clients,
 // pending hotel uploads). Bumps the flag whenever we want to wipe again.
-const PURGE_FLAG = "sourcinghub.localPurge.v2";
+const PURGE_FLAG = "sourcinghub.localPurge.v3";
 if (typeof window !== "undefined") {
   try {
     if (localStorage.getItem(PURGE_FLAG) !== "1") {
       localStorage.removeItem("sourcinghub.baseline.v1");
       localStorage.removeItem("sourcinghub.clients.v1");
       localStorage.removeItem("sourcinghub.snapshot.v1");
+      localStorage.removeItem("sourcinghub.actions.v1");
       localStorage.setItem(PURGE_FLAG, "1");
     }
   } catch {
     /* ignore */
   }
 }
+
 
 import appCss from "../styles.css?url";
 
@@ -106,13 +110,18 @@ function RootComponent() {
   const syncClients = useClientsStore((s) => s.syncFromDb);
   const selectedClientId = useClientsStore((s) => s.selectedClientId);
   const hydrateBaseline = useBaselineStore((s) => s.hydrateFromDb);
+  const hydrateActions = useActionStore((s) => s.hydrateFromDb);
   const [queryClient] = useState(() => new QueryClient());
   useEffect(() => {
     if (user) syncClients();
   }, [user, syncClients]);
   useEffect(() => {
-    if (user && selectedClientId) hydrateBaseline(selectedClientId);
-  }, [user, selectedClientId, hydrateBaseline]);
+    if (user && selectedClientId) {
+      hydrateBaseline(selectedClientId);
+      hydrateActions(selectedClientId);
+    }
+  }, [user, selectedClientId, hydrateBaseline, hydrateActions]);
+
 
   return (
     <QueryClientProvider client={queryClient}>
