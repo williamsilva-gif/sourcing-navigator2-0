@@ -44,6 +44,98 @@ export type Database = {
         }
         Relationships: []
       }
+      baseline_contracts: {
+        Row: {
+          cap: number
+          city: string | null
+          client_tenant_id: string
+          created_at: string
+          currency: string
+          hotel_code: string | null
+          hotel_name: string
+          id: string
+          raw: Json
+          upload_id: string | null
+          valid_from: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          cap?: number
+          city?: string | null
+          client_tenant_id: string
+          created_at?: string
+          currency?: string
+          hotel_code?: string | null
+          hotel_name: string
+          id?: string
+          raw?: Json
+          upload_id?: string | null
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          cap?: number
+          city?: string | null
+          client_tenant_id?: string
+          created_at?: string
+          currency?: string
+          hotel_code?: string | null
+          hotel_name?: string
+          id?: string
+          raw?: Json
+          upload_id?: string | null
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "baseline_contracts_upload_id_fkey"
+            columns: ["upload_id"]
+            isOneToOne: false
+            referencedRelation: "baseline_uploads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      baseline_uploads: {
+        Row: {
+          client_tenant_id: string
+          dataset_type: string
+          error_count: number
+          errors: Json
+          filename: string
+          id: string
+          row_count: number
+          status: string
+          uploaded_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          client_tenant_id: string
+          dataset_type: string
+          error_count?: number
+          errors?: Json
+          filename: string
+          id?: string
+          row_count?: number
+          status?: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          client_tenant_id?: string
+          dataset_type?: string
+          error_count?: number
+          errors?: Json
+          filename?: string
+          id?: string
+          row_count?: number
+          status?: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: []
+      }
       billing_events: {
         Row: {
           client_tenant_id: string | null
@@ -103,6 +195,7 @@ export type Database = {
           raw: Json
           room_nights: number
           state: string | null
+          upload_id: string | null
         }
         Insert: {
           adr?: number
@@ -117,6 +210,7 @@ export type Database = {
           raw?: Json
           room_nights?: number
           state?: string | null
+          upload_id?: string | null
         }
         Update: {
           adr?: number
@@ -131,6 +225,7 @@ export type Database = {
           raw?: Json
           room_nights?: number
           state?: string | null
+          upload_id?: string | null
         }
         Relationships: [
           {
@@ -141,6 +236,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      client_actions: {
+        Row: {
+          city: string | null
+          client_tenant_id: string
+          created_at: string
+          created_by: string | null
+          effort: string
+          id: string
+          kind: string
+          kpis: Json
+          label: string
+          module: string
+          opportunity_id: string | null
+          payload: Json
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          city?: string | null
+          client_tenant_id: string
+          created_at?: string
+          created_by?: string | null
+          effort?: string
+          id?: string
+          kind: string
+          kpis?: Json
+          label: string
+          module: string
+          opportunity_id?: string | null
+          payload?: Json
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          city?: string | null
+          client_tenant_id?: string
+          created_at?: string
+          created_by?: string | null
+          effort?: string
+          id?: string
+          kind?: string
+          kpis?: Json
+          label?: string
+          module?: string
+          opportunity_id?: string | null
+          payload?: Json
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       consent_logs: {
         Row: {
