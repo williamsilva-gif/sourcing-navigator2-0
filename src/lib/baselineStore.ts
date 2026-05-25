@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
 import {
   bookingSchema,
   hotelSchema,
@@ -9,6 +8,13 @@ import {
   type Contract,
   type DatasetType,
 } from "./baselineSchemas";
+import {
+  ingestBaselineFn,
+  listUploadsFn,
+  listBookingsFn,
+  listContractsFn,
+  deleteUploadFn,
+} from "./baseline.functions";
 
 export interface UploadRecord {
   id: string;
@@ -27,18 +33,30 @@ interface BaselineState {
   contracts: Contract[];
   uploads: UploadRecord[];
   useDemo: boolean;
-  ingest: (type: DatasetType, filename: string, rows: unknown[]) => UploadRecord;
-  removeUpload: (id: string) => void;
+  hydratedForTenant: string | null;
+  hydrating: boolean;
+  ingest: (
+    type: DatasetType,
+    filename: string,
+    rows: unknown[],
+    clientTenantId?: string,
+  ) => Promise<UploadRecord>;
+  removeUpload: (id: string) => Promise<void>;
   reset: () => void;
   setUseDemo: (v: boolean) => void;
   upsertHotel: (hotel: Hotel) => void;
   upsertHotelsBulk: (hotels: Hotel[]) => { added: number; updated: number };
   deleteHotel: (code: string) => void;
+  hydrateFromDb: (clientTenantId: string) => Promise<void>;
 }
 
 function parseRows<T>(
   rows: unknown[],
-  schema: { safeParse: (v: unknown) => { success: true; data: T } | { success: false; error: { issues: { path: (string | number)[]; message: string }[] } } }
+  schema: {
+    safeParse: (v: unknown) =>
+      | { success: true; data: T }
+      | { success: false; error: { issues: { path: (string | number)[]; message: string }[] } };
+  },
 ) {
   const ok: T[] = [];
   const errors: string[] = [];
@@ -46,29 +64,29 @@ function parseRows<T>(
     const res = schema.safeParse(r);
     if (res.success) ok.push(res.data);
     else {
-      const msg = res.error.issues
-        .map((iss) => `${iss.path.join(".")}: ${iss.message}`)
-        .join("; ");
+      const msg = res.error.issues.map((iss) => `${iss.path.join(".")}: ${iss.message}`).join("; ");
       errors.push(`Linha ${i + 2}: ${msg}`);
     }
   });
   return { ok, errors };
 }
 
-export const useBaselineStore = create<BaselineState>()(
-  persist(
-    (set, get) => ({
+export const useBaselineStore = create<BaselineState>()((set, get) => ({
   bookings: [],
   hotels: [],
   contracts: [],
   uploads: [],
   useDemo: false,
-  ingest: (type, filename, rows) => {
+  hydratedForTenant: null,
+  hydrating: false,
+
+  ingest: async (type, filename, rows, clientTenantId) => {
     const schema = type === "bookings" ? bookingSchema : type === "hotels" ? hotelSchema : contractSchema;
     const { ok, errors } = parseRows(rows, schema as never);
     const status: UploadRecord["status"] = errors.length === 0 ? "ok" : ok.length === 0 ? "error" : "partial";
-    const record: UploadRecord = {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+
+    let record: UploadRecord = {
+      id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       type,
       filename,
       uploadedAt: new Date().toISOString(),
@@ -77,6 +95,41 @@ export const useBaselineStore = create<BaselineState>()(
       status,
       errors: errors.slice(0, 20),
     };
+
+    // Persist to DB if we have a tenant
+    if (clientTenantId && ok.length > 0) {
+      try {
+        const payload: {
+          clientTenantId: string;
+          datasetType: DatasetType;
+          filename: string;
+          status: UploadRecord["status"];
+          rowCount: number;
+          errorCount: number;
+          errors: string[];
+          bookings?: unknown[];
+          contracts?: unknown[];
+        } = {
+          clientTenantId,
+          datasetType: type,
+          filename,
+          status,
+          rowCount: ok.length,
+          errorCount: errors.length,
+          errors: errors.slice(0, 100),
+        };
+        if (type === "bookings") payload.bookings = ok as Booking[];
+        if (type === "contracts") payload.contracts = ok as Contract[];
+
+        const result = await ingestBaselineFn({ data: payload as never });
+        record = { ...record, id: result.uploadId };
+      } catch (e) {
+        console.error("ingestBaselineFn failed", e);
+        // Keep in-memory copy; user sees toast from caller via "partial" status
+        record = { ...record, status: "error", errors: [...record.errors, `DB: ${(e as Error).message}`] };
+      }
+    }
+
     set((s) => {
       const next: Partial<BaselineState> = { uploads: [record, ...s.uploads], useDemo: false };
       if (type === "bookings") next.bookings = [...s.bookings, ...(ok as Booking[])];
@@ -86,18 +139,26 @@ export const useBaselineStore = create<BaselineState>()(
     });
     return record;
   },
-  removeUpload: (id) => {
+
+  removeUpload: async (id) => {
     const upload = get().uploads.find((u) => u.id === id);
     if (!upload) return;
+    if (!id.startsWith("local-")) {
+      try {
+        await deleteUploadFn({ data: { id } });
+      } catch (e) {
+        console.error("deleteUploadFn failed", e);
+      }
+    }
     set((s) => ({
       uploads: s.uploads.filter((u) => u.id !== id),
-      // Simplified: clear all rows of that type if upload removed.
       ...(upload.type === "bookings" ? { bookings: [] } : {}),
       ...(upload.type === "hotels" ? { hotels: [] } : {}),
       ...(upload.type === "contracts" ? { contracts: [] } : {}),
     }));
   },
-  reset: () => set({ bookings: [], hotels: [], contracts: [], uploads: [], useDemo: false }),
+
+  reset: () => set({ bookings: [], hotels: [], contracts: [], uploads: [], useDemo: false, hydratedForTenant: null }),
   setUseDemo: (v) => set({ useDemo: v }),
   upsertHotel: (hotel) =>
     set((s) => {
@@ -123,24 +184,74 @@ export const useBaselineStore = create<BaselineState>()(
   },
   deleteHotel: (code) =>
     set((s) => ({ hotels: s.hotels.filter((h) => h.code !== code) }) as Partial<BaselineState> as BaselineState),
-}),
-    {
-      name: "sourcinghub.baseline.v1",
-      storage: createJSONStorage(() =>
-        typeof window === "undefined"
-          ? (({ getItem: () => null, setItem: () => {}, removeItem: () => {} } as unknown) as Storage)
-          : localStorage,
-      ),
-      partialize: (s) => ({
-        bookings: s.bookings,
-        hotels: s.hotels,
-        contracts: s.contracts,
-        uploads: s.uploads,
-        useDemo: s.useDemo,
-      }),
-    },
-  ),
-);
+
+  hydrateFromDb: async (clientTenantId) => {
+    if (!clientTenantId) return;
+    if (get().hydrating) return;
+    if (get().hydratedForTenant === clientTenantId) return;
+    set({ hydrating: true });
+    try {
+      const [uploads, bookings, contracts] = await Promise.all([
+        listUploadsFn({ data: { clientTenantId } }),
+        listBookingsFn({ data: { clientTenantId } }),
+        listContractsFn({ data: { clientTenantId } }),
+      ]);
+
+      const mappedUploads: UploadRecord[] = (uploads as unknown as Array<{
+        id: string;
+        dataset_type: DatasetType;
+        filename: string;
+        uploaded_at: string;
+        row_count: number;
+        error_count: number;
+        status: UploadRecord["status"];
+        errors: string[];
+      }>).map((u) => ({
+        id: u.id,
+        type: u.dataset_type,
+        filename: u.filename,
+        uploadedAt: u.uploaded_at,
+        rowCount: u.row_count,
+        errorCount: u.error_count,
+        status: u.status,
+        errors: Array.isArray(u.errors) ? u.errors : [],
+      }));
+
+      const mappedBookings: Booking[] = bookings.map((b) => ({
+        booking_id: b.booking_external_id ?? b.id,
+        hotel: b.hotel_name,
+        city: b.city,
+        state: b.state ?? "",
+        checkin: b.checkin ?? "",
+        room_nights: Number(b.room_nights),
+        adr: Number(b.adr),
+        channel: b.channel ?? "Direct",
+      }));
+
+      const mappedContracts: Contract[] = (contracts as unknown as Array<{
+        hotel_name: string;
+        cap: number;
+        valid_until: string | null;
+      }>).map((c) => ({
+        hotel: c.hotel_name,
+        negotiated_adr: 0,
+        cap: Number(c.cap),
+        valid_until: c.valid_until ?? "",
+      }));
+
+      set({
+        uploads: mappedUploads,
+        bookings: mappedBookings,
+        contracts: mappedContracts,
+        hydratedForTenant: clientTenantId,
+        hydrating: false,
+      });
+    } catch (e) {
+      console.error("hydrateFromDb failed", e);
+      set({ hydrating: false });
+    }
+  },
+}));
 
 // Demo auto-seed disabled — app starts empty by design. Data comes from the
 // database (uploads via /hoteis) or stays empty until the user adds it.
