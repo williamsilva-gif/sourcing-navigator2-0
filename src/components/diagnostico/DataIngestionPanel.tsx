@@ -12,6 +12,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { useBaselineStore } from "@/lib/baselineStore";
+import { useClientsStore } from "@/lib/clientsStore";
 import { SCHEMA_LABELS, SCHEMA_HEADERS, type DatasetType } from "@/lib/baselineSchemas";
 import { downloadTemplate, readSpreadsheet } from "@/lib/xlsxTemplates";
 import { useSnapshotStore } from "@/lib/snapshotStore";
@@ -21,12 +22,17 @@ const TYPES: DatasetType[] = ["bookings", "hotels", "contracts"];
 
 export function DataIngestionPanel() {
   const { uploads, ingest, removeUpload, bookings, hotels, contracts, setUseDemo, useDemo } = useBaselineStore();
+  const selectedClientId = useClientsStore((s) => s.selectedClientId);
   const [activeType, setActiveType] = useState<DatasetType>("bookings");
   const [isDragging, setIsDragging] = useState(false);
   const [errorOpenId, setErrorOpenId] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
   async function handleFiles(files: FileList | File[]) {
+    if (!selectedClientId) {
+      toast.error("Selecione um cliente antes de carregar arquivos.");
+      return;
+    }
     const arr = Array.from(files);
     let ingestedAny = false;
     for (const file of arr) {
@@ -36,7 +42,7 @@ export function DataIngestionPanel() {
           toast.error(`${file.name}: arquivo vazio ou ilegível`);
           continue;
         }
-        const rec = ingest(activeType, file.name, rows);
+        const rec = await ingest(activeType, file.name, rows, selectedClientId);
         if (rec.status === "ok") {
           toast.success(`${file.name}: ${rec.rowCount} linhas importadas`);
           ingestedAny = true;
@@ -70,12 +76,15 @@ export function DataIngestionPanel() {
     );
   }
 
-  function loadDemoDataset() {
-    // Bookings 2024 + 2025 (500/ano) + contratos vigentes para os dois anos.
+  async function loadDemoDataset() {
+    if (!selectedClientId) {
+      toast.error("Selecione um cliente antes de carregar a demo.");
+      return;
+    }
     const bks = generateDemoBookings(500, [2024, 2025]);
     const ctrs = generateDemoContracts([2024, 2025]);
-    const recB = ingest("bookings", "demo-bookings-2024-2025.synthetic", bks);
-    const recC = ingest("contracts", "demo-contracts-2024-2025.synthetic", ctrs);
+    const recB = await ingest("bookings", "demo-bookings-2024-2025.synthetic", bks, selectedClientId);
+    const recC = await ingest("contracts", "demo-contracts-2024-2025.synthetic", ctrs, selectedClientId);
     useSnapshotStore.getState().evaluate();
     const snap = useSnapshotStore.getState().current;
     toast.success(`Demo carregado · ${recB.rowCount} bookings · ${recC.rowCount} contratos`, {

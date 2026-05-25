@@ -1,92 +1,72 @@
+## Diagnóstico
 
-# Fluxo RFP end-to-end com persistência real
+Verifiquei o banco e os stores. Resumo objetivo do que está acontecendo:
 
-## Diagnóstico dos bugs atuais
+### ✅ O que ESTÁ salvo no banco
+- **RFPs**: 3 registros existem no banco (`rfps`), 11 convites (`rfp_invitations`). O fluxo de criação grava corretamente via `createRfpFn`. Quando o usuário "criou e não viu nada", o problema é de UX (modal não fecha / não navega), não perda de dados.
+- **Hotéis**: 15.032 registros.
+- **Tenants/Clientes**: 4 registros.
+- **Convites e respostas de RFP**: salvos no banco.
 
-1. **"Abrir RFP"/"Abrir mini-RFP" não faz nada** — o botão da `ActionInboxBanner` (em `/rfp`) não abre nada porque o Wizard só é aberto pelo botão "Novo RFP" do header. Vamos torná-lo clicável e pré-preencher com os dados da ação (cidade, cap sugerido).
-2. **Concluir o Wizard só dispara `toast.success` e fecha** — nada vai para o banco. Por isso a lista "Programas de RFP", "Respostas dos hotéis" e KPIs ficam vazios e tudo se perde ao deslogar (estão em memória, `RFP_PROGRAMS = []`).
-3. As tabelas `rfps`, `rfp_invitations`, `rfp_responses` já existem no banco com RLS adequada — basta usá-las.
+### ❌ O que NÃO está no banco (mora só no localStorage do navegador)
+Quatro stores Zustand persistem em `localStorage`. Ao deslogar, trocar de navegador ou limpar cache, **tudo se perde**:
 
-## O que vamos construir
+| Store | Chave localStorage | O que guarda |
+|---|---|---|
+| `baselineStore` | `sourcinghub.baseline.v1` | **Bookings, hotéis ingeridos, contratos, histórico de uploads** (Diagnóstico mostra 0 no banco) |
+| `actionStore` | `sourcinghub.actions.v1` | **Ações realizadas pelos clientes** (renegociação, ajuste de cap, mini-RFP, comunicações) |
+| `appConfigStore` | `sourcinghub.appconfig.v1` | Thresholds, módulos habilitados, configs por cliente |
+| `clientsStore` | `sourcinghub.clients.v1` | Cache local de tenants (tenants já estão no DB; só o cache é local) |
 
-### 1. Persistência (Supabase, sem novas migrations)
+Bookings no banco hoje: **0**. Tudo que foi carregado em Diagnóstico está só no navegador atual.
 
-`src/lib/rfpRepo.ts` (novo) — server functions + client helpers:
-- `createRfp({ name, clientTenantId, cycle, briefing, cities, pois, hotelStrategy, requirements, openDate, deadline })` → insere em `rfps` (metadata guarda cycle, briefing, requirements, openDate, hotelStrategy, status visual).
-- `listRfps(clientTenantId?)` → lê `rfps` (RLS já filtra por `can_see_tenant`).
-- `getRfp(id)` → rfp + invitations + responses.
-- `createInvitations(rfpId, hotelIds[])` → insere em `rfp_invitations` (gera token único em `metadata.token` para link público).
-- `updateInvitationStatus`, `addResponse`.
+---
 
-`src/lib/rfpProgramData.ts` deixa de ser fonte de verdade — vira só os tipos + `RFP_REQUIREMENT_TEMPLATES`. As listas viram queries via React Query.
+## Plano de correção
 
-### 2. Wizard: nova etapa "Hotéis convidados" + envio real
+Vou migrar os 3 stores críticos para o banco (Cloud) com persistência real, mantendo a UX atual (Zustand fica como cache de leitura, mas a fonte da verdade passa a ser o banco). Vou dividir em fases para não quebrar nada.
 
-Em `CreateRfpWizard.tsx`:
-- **Nova etapa 4 "Hotéis convidados"** substitui a atual genérica:
-  - Carrega hotéis automaticamente de `hotels` (filtrando por `city ∈ selectedCities` + estratégia: `preferred` usa `metadata.tier ∈ {Strategic, Preferred}`, `open` traz todos da cidade, `curated` começa vazio).
-  - Tabela com checkbox por hotel, busca por nome/cidade/marca, contador "X hotéis selecionados".
-  - Botão "Adicionar hotel" abre busca global em `hotels` (debounced) para incluir hotéis fora do filtro automático.
-  - Permite remover qualquer hotel da lista antes de distribuir.
-- **Etapa final "Distribuir RFP"**:
-  - Salva `rfps` row + N `rfp_invitations` (uma por hotel selecionado, com token).
-  - Dispara e-mail para cada `contact_email` do hotel via server function (ver §4).
-  - Toast com link "Ver RFP" que abre o `RfpDetailModal` real.
-- Pré-preenchimento: se `?city=...&suggestedCap=...&actionId=...` (vindo da ActionInboxBanner / Decision Center), abre o wizard automaticamente, marca a cidade e guarda o cap sugerido em `metadata.suggested_cap`.
+### Fase 1 — Persistir bookings, hotéis ingeridos e contratos (baseline)
+Criar tabelas:
+- `baseline_uploads` (id, tenant_id, type, filename, uploaded_at, row_count, error_count, status, errors[])
+- `baseline_hotels_raw` (id, tenant_id, code, name, city, …, upload_id)
+- `baseline_contracts` (id, tenant_id, hotel_code, city, adr_cap, …, upload_id)
+- A tabela `bookings` já existe — usar ela direto, ligada ao `client_tenant_id`.
 
-### 3. Conteúdo mínimo de uma RFP de hotéis
+Server functions: `ingestBookingsFn`, `ingestHotelsFn`, `ingestContractsFn`, `listBookingsFn`, `listUploadsFn`, `deleteUploadFn`.
+`baselineStore` passa a chamar essas funções; localStorage vira só cache curto. Sem migração de dados antigos do localStorage (o usuário re-faz o upload).
 
-Estendemos `RFP_REQUIREMENT_TEMPLATES` e adicionamos uma seção fixa "Dados solicitados ao hotel" salva em `rfps.metadata.questions`:
+### Fase 2 — Persistir ações dos clientes
+Criar tabela `client_actions` (id, tenant_id, kind, status, effort, payload jsonb, created_by, created_at, updated_at, completed_at) com RLS por `client_tenant_id`.
+Server functions: `createActionFn`, `updateActionStatusFn`, `listActionsFn`, `deleteActionFn`.
+`actionStore` migra para chamadas async; componentes que hoje chamam `useActionStore` continuam funcionando via wrapper.
 
-- **Tarifas**: ADR LRA / não-LRA, dynamic discount %, BAR-linked %, moeda, validade.
-- **Inclusões**: café, Wi-Fi, parking, late checkout, upgrade.
-- **Políticas**: cancelamento (h), no-show, garantia, GDS code, comissão %, central billing.
-- **Sustentabilidade**: certificação (GSTC, EarthCheck, etc.), relatório CO₂.
-- **Capacidade**: nº quartos, salas de reunião, restaurante 24h.
-- **Comercial**: contato comercial, telefone, e-mail, prazo de proposta.
+### Fase 3 — Persistir thresholds e módulos por cliente
+Já existem `tenant_thresholds` e `tenant_modules`. Substituir leitura/escrita do `appConfigStore` pelas tabelas existentes (server functions + React Query). Mantém UI igual.
 
-Tudo isso vira o formulário que o hotel preenche no link público (§5).
+### Fase 4 — Corrigir UX da criação de RFP
+Garantir que ao concluir o wizard:
+- toast de sucesso explícito;
+- modal fecha;
+- lista de RFPs é invalidada e re-aparece com a nova RFP;
+- redireciona para a tela de detalhe da RFP criada.
+(O dado já salva; é só fechar o loop visual.)
 
-### 4. E-mail de convite (Lovable Emails)
+### Fase 5 — Avisos de segurança
+- Adicionar mensagem clara nos uploads: "Os dados são salvos no servidor".
+- Remover/avisar sobre o estado antigo em localStorage (limpar `sourcinghub.*.v1` na próxima carga após login para evitar mostrar dados desatualizados misturados com o do banco).
 
-- Verificar se já existe domínio de e-mail (`email_domain--check_email_domain_status`).
-- Se não houver, mostrar uma vez o `<presentation-open-email-setup>` para o usuário configurar; o resto do fluxo já cria invitations e mostra os links manualmente até o domínio ficar pronto.
-- Quando o domínio estiver ok: scaffold de e-mail transacional + server function `sendRfpInvitationEmail({ invitationId })` que enfileira o template:
-  - Assunto: `Convite RFP {cycle} — {clientName}`.
-  - Corpo: nome da RFP, briefing curto, cidades, prazo, link `https://<projeto>.lovable.app/rfp/responder/{token}`.
-- Botão "Reenviar convite" e "Enviar lembrete em massa" passam a chamar essa server function (hoje só fazem toast).
+---
 
-### 5. Página pública de resposta do hotel
+## Detalhes técnicos
 
-Nova rota `src/routes/api/public/rfp-token/$token.tsx` (server route) + página `src/routes/r.$token.tsx`:
-- Resolve token → `rfp_invitations` (via `supabaseAdmin` em server fn pública), retorna RFP + perguntas.
-- Formulário com as seções da §3, salva em `rfp_responses` (status `Submetido`) e atualiza invitation para `Submetido`.
-- Não exige login do hotel (token é o credential). Token é UUID em `metadata.token`.
+- Tabelas novas usam RLS via `can_see_tenant(auth.uid(), tenant_id)` (mesmo padrão das tabelas existentes).
+- Stores Zustand mantidos como camada de cache opcional; fonte da verdade = banco.
+- Bookings de Diagnóstico passam a ser carregados via `useQuery` server fn, com paginação (já temos 1000 row limit do Supabase — implementar `range()` se necessário).
+- Sem alteração nas tabelas existentes; só adição.
 
-### 6. Hidratação das telas existentes
+## Ordem de aprovação
 
-- `RfpProgramList`, `HotelResponseTracker`, `RfpDetailModal`, KPIs do header de `/rfp` passam a usar `useQuery` em cima de `listRfps`/`getRfp`.
-- `RfpDetailModal` ganha:
-  - Aba "Hotéis convidados" (lista com status, último contato, botão reenviar).
-  - Aba "Respostas" (preview das respostas submetidas).
-  - Botão "Copiar link público" por hotel.
+Posso executar tudo numa sequência, mas se preferir aprovar uma fase por vez (Fase 1 é a mais urgente — é onde realmente há perda de dados de upload), só me dizer.
 
-### 7. Auditoria do que mais já está só em memória
-
-Como o usuário pediu "revise o que já foi criado" — fazer um varredura rápida de `src/lib/*Store.ts` (`actionStore`, `appConfigStore`, `baselineStore`, `snapshotStore`, `wikiStore`) e listar (não migrar agora) o que ainda é Zustand/localStorage. Hotéis fica de fora (já está no banco). O resultado vira uma seção no fim do toast/relatório, e proponho num próximo passo migrar um a um — não dá para fazer tudo em uma rodada sem inflar este PR.
-
-## Esforço / ordem de implementação
-
-1. `rfpRepo.ts` + server functions + hooks React Query (base).
-2. Wizard: nova etapa de seleção de hotéis + persistência ao distribuir.
-3. Hidratar `RfpProgramList`, KPIs, `HotelResponseTracker`, `RfpDetailModal` com dados reais.
-4. Página pública `/r/$token` + server route resolvendo o token.
-5. E-mail (depende de domínio configurado).
-6. Wire da `ActionInboxBanner` → abrir wizard pré-preenchido.
-7. Lista/relatório do que ainda está em memória (sem migrar).
-
-## Perguntas antes de implementar
-
-1. **E-mail real agora?** Você já tem domínio de e-mail configurado em Lovable Cloud? Se não, posso (a) abrir o setup de domínio agora e seguir o fluxo, ou (b) entregar tudo persistido + link público copiável e deixar o e-mail para depois do domínio. Qual prefere?
-2. **Cliente da RFP**: o wizard hoje tem um Select fixo com "Acme Holdings / Globex / Initech". Devo trocar por um Select que lista os tenants `CORP` reais do banco visíveis ao usuário (recomendado), ou manter os fictícios por enquanto?
-3. **Página pública de resposta**: ok criar em `/r/{token}` (curto, sem login) ou prefere outro caminho (`/rfp/responder/{token}`)?
+Quer que eu vá com tudo (Fases 1 → 5) ou começo só pela Fase 1 (baseline/uploads)?

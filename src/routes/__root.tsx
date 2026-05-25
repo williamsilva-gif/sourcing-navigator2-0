@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useClientsStore } from "@/lib/clientsStore";
+import { useBaselineStore } from "@/lib/baselineStore";
 import { CookieBanner } from "@/components/privacy/CookieBanner";
 
 // One-time purge of legacy persisted local data (demo bookings, seed clients,
@@ -103,10 +104,15 @@ function RootShell({ children }: { children: React.ReactNode }) {
 function RootComponent() {
   const { user } = useAuth();
   const syncClients = useClientsStore((s) => s.syncFromDb);
+  const selectedClientId = useClientsStore((s) => s.selectedClientId);
+  const hydrateBaseline = useBaselineStore((s) => s.hydrateFromDb);
   const [queryClient] = useState(() => new QueryClient());
   useEffect(() => {
     if (user) syncClients();
   }, [user, syncClients]);
+  useEffect(() => {
+    if (user && selectedClientId) hydrateBaseline(selectedClientId);
+  }, [user, selectedClientId, hydrateBaseline]);
 
   return (
     <QueryClientProvider client={queryClient}>
