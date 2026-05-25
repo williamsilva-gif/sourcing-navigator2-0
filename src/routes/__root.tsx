@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useClientsStore } from "@/lib/clientsStore";
+import { useBaselineStore } from "@/lib/baselineStore";
 import { CookieBanner } from "@/components/privacy/CookieBanner";
 
 // One-time purge of legacy persisted local data (demo bookings, seed clients,
