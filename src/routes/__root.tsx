@@ -110,13 +110,18 @@ function RootComponent() {
   const syncClients = useClientsStore((s) => s.syncFromDb);
   const selectedClientId = useClientsStore((s) => s.selectedClientId);
   const hydrateBaseline = useBaselineStore((s) => s.hydrateFromDb);
+  const hydrateActions = useActionStore((s) => s.hydrateFromDb);
   const [queryClient] = useState(() => new QueryClient());
   useEffect(() => {
     if (user) syncClients();
   }, [user, syncClients]);
   useEffect(() => {
-    if (user && selectedClientId) hydrateBaseline(selectedClientId);
-  }, [user, selectedClientId, hydrateBaseline]);
+    if (user && selectedClientId) {
+      hydrateBaseline(selectedClientId);
+      hydrateActions(selectedClientId);
+    }
+  }, [user, selectedClientId, hydrateBaseline, hydrateActions]);
+
 
   return (
     <QueryClientProvider client={queryClient}>
