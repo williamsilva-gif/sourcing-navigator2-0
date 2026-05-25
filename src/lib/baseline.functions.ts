@@ -129,24 +129,37 @@ export const deleteUploadFn = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export interface BookingRow {
+  id: string;
+  client_tenant_id: string;
+  booking_external_id: string | null;
+  hotel_name: string;
+  city: string;
+  state: string | null;
+  checkin: string | null;
+  room_nights: number;
+  adr: number;
+  channel: string | null;
+  upload_id: string | null;
+}
+
 export const listBookingsFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ clientTenantId: z.string().uuid() }).parse(input))
-  .handler(async ({ data, context }) => {
+  .handler(async ({ data, context }): Promise<BookingRow[]> => {
     const { supabase } = context;
-    // Paginate (RLS + Supabase 1k default)
-    const all: Array<Record<string, unknown>> = [];
+    const all: BookingRow[] = [];
     const PAGE = 1000;
     for (let from = 0; ; from += PAGE) {
       const { data: rows, error } = await supabase
         .from("bookings")
-        .select("*")
+        .select("id, client_tenant_id, booking_external_id, hotel_name, city, state, checkin, room_nights, adr, channel, upload_id")
         .eq("client_tenant_id", data.clientTenantId)
         .order("checkin", { ascending: true })
         .range(from, from + PAGE - 1);
       if (error) throw new Error(error.message);
       if (!rows || rows.length === 0) break;
-      all.push(...(rows as Array<Record<string, unknown>>));
+      all.push(...(rows as BookingRow[]));
       if (rows.length < PAGE) break;
     }
     return all;

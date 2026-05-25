@@ -57,9 +57,9 @@ export const updateActionFn = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase } = context;
-    const patch: Record<string, unknown> = {};
+    const patch: { status?: "initiated" | "in_progress" | "completed"; kpis?: never } = {};
     if (data.status) patch.status = data.status;
-    if (data.kpis) patch.kpis = data.kpis;
+    if (data.kpis) patch.kpis = data.kpis as never;
     const { error } = await supabase.from("client_actions").update(patch).eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
