@@ -26,26 +26,38 @@ export const createActionFn = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => createSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    const insertRow: Record<string, unknown> = {
+      client_tenant_id: data.clientTenantId,
+      opportunity_id: data.opportunityId ?? null,
+      label: data.label,
+      kind: data.kind,
+      module: data.module,
+      city: data.city ?? null,
+      status: data.status ?? "initiated",
+      effort: data.effort,
+      payload: data.payload,
+      kpis: data.kpis,
+      created_by: userId,
+    };
+    if (data.id) insertRow.id = data.id;
     const { data: row, error } = await supabase
       .from("client_actions")
-      .insert({
-        client_tenant_id: data.clientTenantId,
-        opportunity_id: data.opportunityId ?? null,
-        label: data.label,
-        kind: data.kind,
-        module: data.module,
-        city: data.city ?? null,
-        status: "initiated",
-        effort: data.effort,
-        payload: data.payload as never,
-        kpis: data.kpis as never,
-        created_by: userId,
-      })
+      .insert(insertRow as never)
       .select("*")
       .single();
     if (error) throw new Error(error.message);
     return row;
   });
+
+export const deleteActionFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.from("client_actions").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 
 export const updateActionFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
