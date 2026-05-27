@@ -82,7 +82,7 @@ export const useBaselineStore = create<BaselineState>()((set, get) => ({
   hydratedForTenant: null,
   hydrating: false,
 
-  ingest: async (type, filename, rows, clientTenantId) => {
+  ingest: async (type, filename, rows, clientTenantId, storagePath) => {
     const schema = type === "bookings" ? bookingSchema : type === "hotels" ? hotelSchema : contractSchema;
     const { ok, errors } = parseRows(rows, schema as never);
     const status: UploadRecord["status"] = errors.length === 0 ? "ok" : ok.length === 0 ? "error" : "partial";
@@ -96,6 +96,7 @@ export const useBaselineStore = create<BaselineState>()((set, get) => ({
       errorCount: errors.length,
       status,
       errors: errors.slice(0, 20),
+      storagePath: storagePath ?? null,
     };
 
     // Persist to DB if we have a tenant
@@ -109,6 +110,7 @@ export const useBaselineStore = create<BaselineState>()((set, get) => ({
           rowCount: number;
           errorCount: number;
           errors: string[];
+          storagePath?: string | null;
           bookings?: unknown[];
           contracts?: unknown[];
         } = {
@@ -119,6 +121,7 @@ export const useBaselineStore = create<BaselineState>()((set, get) => ({
           rowCount: ok.length,
           errorCount: errors.length,
           errors: errors.slice(0, 100),
+          storagePath: storagePath ?? null,
         };
         if (type === "bookings") payload.bookings = ok as Booking[];
         if (type === "contracts") payload.contracts = ok as Contract[];
