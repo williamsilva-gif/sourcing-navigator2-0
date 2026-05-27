@@ -25,6 +25,7 @@ export interface UploadRecord {
   errorCount: number;
   status: "ok" | "partial" | "error";
   errors: string[];
+  storagePath?: string | null;
 }
 
 interface BaselineState {
@@ -40,6 +41,7 @@ interface BaselineState {
     filename: string,
     rows: unknown[],
     clientTenantId?: string,
+    storagePath?: string | null,
   ) => Promise<UploadRecord>;
   removeUpload: (id: string) => Promise<void>;
   reset: () => void;
