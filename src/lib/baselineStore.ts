@@ -211,6 +211,7 @@ export const useBaselineStore = create<BaselineState>()((set, get) => ({
         error_count: number;
         status: UploadRecord["status"];
         errors: string[];
+        storage_path: string | null;
       }>).map((u) => ({
         id: u.id,
         type: u.dataset_type,
@@ -220,6 +221,7 @@ export const useBaselineStore = create<BaselineState>()((set, get) => ({
         errorCount: u.error_count,
         status: u.status,
         errors: Array.isArray(u.errors) ? u.errors : [],
+        storagePath: u.storage_path ?? null,
       }));
 
       const mappedBookings: Booking[] = bookings.map((b) => ({
