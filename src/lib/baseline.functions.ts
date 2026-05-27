@@ -54,7 +54,8 @@ export const ingestBaselineFn = createServerFn({ method: "POST" })
         status: data.status,
         errors: data.errors as never,
         uploaded_by: userId,
-      })
+        storage_path: data.storagePath ?? null,
+      } as never)
       .select("*")
       .single();
     if (upErr) throw new Error(upErr.message);
