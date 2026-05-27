@@ -107,6 +107,7 @@ export type Database = {
           id: string
           row_count: number
           status: string
+          storage_path: string | null
           uploaded_at: string
           uploaded_by: string | null
         }
@@ -119,6 +120,7 @@ export type Database = {
           id?: string
           row_count?: number
           status?: string
+          storage_path?: string | null
           uploaded_at?: string
           uploaded_by?: string | null
         }
@@ -131,6 +133,7 @@ export type Database = {
           id?: string
           row_count?: number
           status?: string
+          storage_path?: string | null
           uploaded_at?: string
           uploaded_by?: string | null
         }
