@@ -33,6 +33,25 @@ export function DataIngestionPanel() {
   const [errorOpenId, setErrorOpenId] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
+  async function uploadRawFile(file: File, clientTenantId: string): Promise<string | null> {
+    try {
+      const { path, token } = await createBaselineUploadUrlFn({
+        data: { clientTenantId, filename: file.name },
+      });
+      const { error } = await supabase.storage
+        .from("baseline-files")
+        .uploadToSignedUrl(path, token, file, { contentType: file.type || "application/octet-stream" });
+      if (error) {
+        console.error("uploadToSignedUrl failed", error);
+        return null;
+      }
+      return path;
+    } catch (e) {
+      console.error("createBaselineUploadUrl failed", e);
+      return null;
+    }
+  }
+
   async function handleFiles(files: FileList | File[]) {
     if (!selectedClientId) {
       toast.error("Selecione um cliente antes de carregar arquivos.");
@@ -42,12 +61,18 @@ export function DataIngestionPanel() {
     let ingestedAny = false;
     for (const file of arr) {
       try {
+        // 1. Upload raw file first (so it survives parse errors)
+        const storagePath = await uploadRawFile(file, selectedClientId);
+        if (!storagePath) {
+          toast.warning(`${file.name}: arquivo original não pôde ser arquivado, seguindo só com parse.`);
+        }
+        // 2. Parse and ingest rows
         const rows = await readSpreadsheet(file);
         if (rows.length === 0) {
           toast.error(`${file.name}: arquivo vazio ou ilegível`);
           continue;
         }
-        const rec = await ingest(activeType, file.name, rows, selectedClientId);
+        const rec = await ingest(activeType, file.name, rows, selectedClientId, storagePath);
         if (rec.status === "ok") {
           toast.success(`${file.name}: ${rec.rowCount} linhas importadas`);
           ingestedAny = true;
@@ -68,6 +93,15 @@ export function DataIngestionPanel() {
       if (snap) {
         toast.info(`Recomendações atualizadas · ${snap.alerts.length} alertas · ${snap.opportunities.length} oportunidades`);
       }
+    }
+  }
+
+  async function downloadOriginal(uploadId: string) {
+    try {
+      const { url } = await getBaselineDownloadUrlFn({ data: { uploadId } });
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch (e) {
+      toast.error(`Não foi possível baixar o arquivo · ${(e as Error).message}`);
     }
   }
 
