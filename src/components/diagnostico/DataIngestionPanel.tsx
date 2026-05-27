@@ -286,16 +286,28 @@ export function DataIngestionPanel() {
                         {new Date(u.uploadedAt).toLocaleString("pt-BR")}
                       </td>
                       <td className="px-3 py-2 text-right">
-                        <button
-                          onClick={() => {
-                            removeUpload(u.id);
-                            toast.info(`${u.filename} removido`);
-                          }}
-                          className="rounded p-1 text-muted-foreground hover:bg-destructive-soft hover:text-destructive"
-                          aria-label="Remover"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
+                        <div className="inline-flex items-center gap-1">
+                          {u.storagePath && (
+                            <button
+                              onClick={() => downloadOriginal(u.id)}
+                              className="rounded p-1 text-muted-foreground hover:bg-primary-soft hover:text-primary"
+                              aria-label="Baixar arquivo original"
+                              title="Baixar arquivo original"
+                            >
+                              <Download className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => {
+                              removeUpload(u.id);
+                              toast.info(`${u.filename} removido`);
+                            }}
+                            className="rounded p-1 text-muted-foreground hover:bg-destructive-soft hover:text-destructive"
+                            aria-label="Remover"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                     {errorOpenId === u.id && u.errors.length > 0 && (
