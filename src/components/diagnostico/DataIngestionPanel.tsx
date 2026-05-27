@@ -143,7 +143,7 @@ export function DataIngestionPanel() {
           <div>
             <h2 className="text-sm font-semibold text-foreground">Ingestão de dados do programa</h2>
             <p className="text-xs text-muted-foreground">
-              Suba bookings, hotéis e contratos · dados em memória nesta sessão (persistência em breve)
+              Suba bookings, hotéis e contratos · arquivo original arquivado em Lovable Cloud
             </p>
           </div>
         </div>
