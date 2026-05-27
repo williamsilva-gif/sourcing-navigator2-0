@@ -31,6 +31,7 @@ const ingestSchema = z.object({
   rowCount: z.number().int().min(0),
   errorCount: z.number().int().min(0),
   errors: z.array(z.string()).max(100).default([]),
+  storagePath: z.string().max(500).optional().nullable(),
   bookings: z.array(bookingRowSchema).max(50000).optional(),
   contracts: z.array(contractRowSchema).max(50000).optional(),
 });
