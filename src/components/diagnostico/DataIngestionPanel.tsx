@@ -17,6 +17,11 @@ import { SCHEMA_LABELS, SCHEMA_HEADERS, type DatasetType } from "@/lib/baselineS
 import { downloadTemplate, readSpreadsheet } from "@/lib/xlsxTemplates";
 import { useSnapshotStore } from "@/lib/snapshotStore";
 import { generateDemoBookings, generateDemoContracts } from "@/lib/demoData";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  createBaselineUploadUrlFn,
+  getBaselineDownloadUrlFn,
+} from "@/lib/baseline.functions";
 
 const TYPES: DatasetType[] = ["bookings", "hotels", "contracts"];
 
