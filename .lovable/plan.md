@@ -1,72 +1,87 @@
-## Diagnóstico
+# Plano: Fechar os 4 gaps de "Production Reality"
 
-Verifiquei o banco e os stores. Resumo objetivo do que está acontecendo:
-
-### ✅ O que ESTÁ salvo no banco
-- **RFPs**: 3 registros existem no banco (`rfps`), 11 convites (`rfp_invitations`). O fluxo de criação grava corretamente via `createRfpFn`. Quando o usuário "criou e não viu nada", o problema é de UX (modal não fecha / não navega), não perda de dados.
-- **Hotéis**: 15.032 registros.
-- **Tenants/Clientes**: 4 registros.
-- **Convites e respostas de RFP**: salvos no banco.
-
-### ❌ O que NÃO está no banco (mora só no localStorage do navegador)
-Quatro stores Zustand persistem em `localStorage`. Ao deslogar, trocar de navegador ou limpar cache, **tudo se perde**:
-
-| Store | Chave localStorage | O que guarda |
-|---|---|---|
-| `baselineStore` | `sourcinghub.baseline.v1` | **Bookings, hotéis ingeridos, contratos, histórico de uploads** (Diagnóstico mostra 0 no banco) |
-| `actionStore` | `sourcinghub.actions.v1` | **Ações realizadas pelos clientes** (renegociação, ajuste de cap, mini-RFP, comunicações) |
-| `appConfigStore` | `sourcinghub.appconfig.v1` | Thresholds, módulos habilitados, configs por cliente |
-| `clientsStore` | `sourcinghub.clients.v1` | Cache local de tenants (tenants já estão no DB; só o cache é local) |
-
-Bookings no banco hoje: **0**. Tudo que foi carregado em Diagnóstico está só no navegador atual.
+Ordem de execução escolhida por impacto e dependência: **Storage → Observabilidade → DR → Rate Limiting**.
 
 ---
 
-## Plano de correção
+## Fase 1 — Storage de arquivos originais
 
-Vou migrar os 3 stores críticos para o banco (Cloud) com persistência real, mantendo a UX atual (Zustand fica como cache de leitura, mas a fonte da verdade passa a ser o banco). Vou dividir em fases para não quebrar nada.
+**Problema:** hoje `baseline_uploads` guarda apenas metadados (filename, contagem de linhas). O arquivo `.xlsx`/`.csv` original some após o parse. Sem ele, não há auditoria, reprocessamento ou prova de origem dos dados de bookings/contratos.
 
-### Fase 1 — Persistir bookings, hotéis ingeridos e contratos (baseline)
-Criar tabelas:
-- `baseline_uploads` (id, tenant_id, type, filename, uploaded_at, row_count, error_count, status, errors[])
-- `baseline_hotels_raw` (id, tenant_id, code, name, city, …, upload_id)
-- `baseline_contracts` (id, tenant_id, hotel_code, city, adr_cap, …, upload_id)
-- A tabela `bookings` já existe — usar ela direto, ligada ao `client_tenant_id`.
+**Entregáveis:**
+- Bucket privado `baseline-files` (Supabase Storage) com RLS escopado por `client_tenant_id` no path (`{tenant_id}/{upload_id}/{filename}`).
+- Coluna `storage_path` em `baseline_uploads`.
+- Upload do arquivo bruto **antes** do parse no `DataIngestionPanel`; se o parse falhar, o arquivo fica disponível para reprocessar.
+- Botão "Baixar arquivo original" e "Reprocessar" na lista de uploads (módulo Diagnóstico).
+- Política: TA master + tenants visíveis podem ler/baixar; só TA master apaga.
 
-Server functions: `ingestBookingsFn`, `ingestHotelsFn`, `ingestContractsFn`, `listBookingsFn`, `listUploadsFn`, `deleteUploadFn`.
-`baselineStore` passa a chamar essas funções; localStorage vira só cache curto. Sem migração de dados antigos do localStorage (o usuário re-faz o upload).
-
-### Fase 2 — Persistir ações dos clientes
-Criar tabela `client_actions` (id, tenant_id, kind, status, effort, payload jsonb, created_by, created_at, updated_at, completed_at) com RLS por `client_tenant_id`.
-Server functions: `createActionFn`, `updateActionStatusFn`, `listActionsFn`, `deleteActionFn`.
-`actionStore` migra para chamadas async; componentes que hoje chamam `useActionStore` continuam funcionando via wrapper.
-
-### Fase 3 — Persistir thresholds e módulos por cliente
-Já existem `tenant_thresholds` e `tenant_modules`. Substituir leitura/escrita do `appConfigStore` pelas tabelas existentes (server functions + React Query). Mantém UI igual.
-
-### Fase 4 — Corrigir UX da criação de RFP
-Garantir que ao concluir o wizard:
-- toast de sucesso explícito;
-- modal fecha;
-- lista de RFPs é invalidada e re-aparece com a nova RFP;
-- redireciona para a tela de detalhe da RFP criada.
-(O dado já salva; é só fechar o loop visual.)
-
-### Fase 5 — Avisos de segurança
-- Adicionar mensagem clara nos uploads: "Os dados são salvos no servidor".
-- Remover/avisar sobre o estado antigo em localStorage (limpar `sourcinghub.*.v1` na próxima carga após login para evitar mostrar dados desatualizados misturados com o do banco).
+**Bonus mesmo escopo:** anexar PDFs de contrato em `baseline_contracts` (mesmo bucket, prefixo `contracts/`).
 
 ---
+
+## Fase 2 — Observabilidade (Error Tracking & Logs)
+
+**Problema:** erros no cliente somem (sem Sentry); erros no server-fn só aparecem se alguém olhar os logs do Worker manualmente. Sem alertas.
+
+**Entregáveis:**
+- **Sentry** no frontend (`@sentry/react`) + source maps no build, capturando erros não tratados, rejeições de promise e breadcrumbs de navegação.
+- Wrapper de erro em todos os `createServerFn` (helper `withErrorReporting`) que envia exceções para Sentry com `userId`, `tenantId`, nome da função.
+- Tag automática de `release` (commit SHA) e `environment` (preview vs published).
+- Painel de health interno em `/admin/health`: últimos 50 erros, taxa de erro por server-fn (lendo logs do Worker), status do DB.
+- Alerta Sentry → e-mail/Slack para erros novos em produção.
+
+**Secrets necessários:** `SENTRY_DSN` (público) e `SENTRY_AUTH_TOKEN` (upload de source maps no build).
+
+---
+
+## Fase 3 — Availability & Recovery (DR)
+
+**Problema:** backup automático do Postgres existe (Lovable Cloud), mas nunca foi testado um restore; sem health check externo; sem runbook.
+
+**Entregáveis:**
+- **Health check endpoint** público `/api/public/health` retornando `{db: ok, auth: ok, version, timestamp}` (ping leve no Postgres + checagem de auth).
+- Monitor externo (UptimeRobot ou BetterStack — gratuito) batendo a cada 5 min na produção e na URL custom.
+- **Job semanal de backup lógico** (server route protegido por secret) exportando `bookings`, `client_actions`, `rfps`, `baseline_contracts` para o bucket `baseline-files/backups/{YYYY-MM-DD}/`.
+- **Runbook** em `docs/RUNBOOK.md`: como restaurar backup, como reverter migration, contatos, RTO/RPO declarados.
+- Teste de restore documentado (uma vez): clonar dados num tenant de teste e validar.
+
+---
+
+## Fase 4 — Rate Limiting
+
+**Problema:** plataforma Lovable Cloud não oferece primitivas nativas. Hoje qualquer endpoint público (`/api/public/*`, login) aceita requests ilimitados → vetor de abuso.
+
+**Entregáveis (ad-hoc, escopo mínimo):**
+- Tabela `rate_limit_buckets` (key TEXT, window_start TIMESTAMPTZ, count INT) com índice e TTL via cron.
+- Middleware `rateLimit({ key, max, windowSec })` para `createServerFn` e server routes.
+- Aplicar em: login (5 tentativas / 15 min / IP), criação de RFP (10 / hora / tenant), endpoints `/api/public/*` de resposta de hotel (20 / min / invitation).
+- Resposta `429` padronizada com `Retry-After`.
+- Documentar que isso é solução interina até a plataforma oferecer rate limit gerenciado.
+
+---
+
+## Resumo de impacto
+
+| Fase | Esforço | Quebra UX? | Bloqueia produção? |
+|---|---|---|---|
+| 1 Storage | Médio | Não | Sim — perda de dado real |
+| 2 Observabilidade | Médio | Não | Sim — voando às cegas |
+| 3 DR | Pequeno | Não | Risco alto se houver corrupção |
+| 4 Rate Limit | Pequeno-Médio | Não | Risco médio de abuso |
 
 ## Detalhes técnicos
 
-- Tabelas novas usam RLS via `can_see_tenant(auth.uid(), tenant_id)` (mesmo padrão das tabelas existentes).
-- Stores Zustand mantidos como camada de cache opcional; fonte da verdade = banco.
-- Bookings de Diagnóstico passam a ser carregados via `useQuery` server fn, com paginação (já temos 1000 row limit do Supabase — implementar `range()` se necessário).
-- Sem alteração nas tabelas existentes; só adição.
+- Storage RLS: `(storage.foldername(name))[1]::uuid IN (SELECT visible_tenant_ids(auth.uid()))`.
+- Sentry: inicializado em `src/router.tsx` (cliente) e em wrapper de `createServerFn` (server, via `Sentry.captureException`).
+- Health check: server route `/api/public/health.ts` com `select 1` via `supabaseAdmin`.
+- Rate limit: incremento atômico via RPC `pg` function `rl_increment(key, window_sec)` retornando count, evitando race condition.
 
-## Ordem de aprovação
+## Fora de escopo (deixar para depois)
 
-Posso executar tudo numa sequência, mas se preferir aprovar uma fase por vez (Fase 1 é a mais urgente — é onde realmente há perda de dados de upload), só me dizer.
+- Caching server-side (Redis/KV) — só vale quando houver query lenta medida.
+- CI/CD com staging separado — o fluxo preview/published do Lovable cobre o essencial hoje.
+- WAF avançado — depende de evolução da plataforma.
 
-Quer que eu vá com tudo (Fases 1 → 5) ou começo só pela Fase 1 (baseline/uploads)?
+---
+
+**Posso começar pela Fase 1 (Storage) assim que você aprovar.** Se preferir mudar a ordem ou tirar alguma fase, é só dizer.
