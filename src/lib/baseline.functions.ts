@@ -31,6 +31,7 @@ const ingestSchema = z.object({
   rowCount: z.number().int().min(0),
   errorCount: z.number().int().min(0),
   errors: z.array(z.string()).max(100).default([]),
+  storagePath: z.string().max(500).optional().nullable(),
   bookings: z.array(bookingRowSchema).max(50000).optional(),
   contracts: z.array(contractRowSchema).max(50000).optional(),
 });
@@ -53,7 +54,8 @@ export const ingestBaselineFn = createServerFn({ method: "POST" })
         status: data.status,
         errors: data.errors as never,
         uploaded_by: userId,
-      })
+        storage_path: data.storagePath ?? null,
+      } as never)
       .select("*")
       .single();
     if (upErr) throw new Error(upErr.message);
@@ -176,4 +178,64 @@ export const listContractsFn = createServerFn({ method: "POST" })
       .eq("client_tenant_id", data.clientTenantId);
     if (error) throw new Error(error.message);
     return rows ?? [];
+  });
+
+// =============================================================================
+// Storage: signed upload + download URLs for raw baseline files
+// =============================================================================
+
+const BUCKET = "baseline-files";
+
+/**
+ * Creates a signed upload URL the browser uses to PUT the raw file directly
+ * into Storage. Path: {clientTenantId}/{uuid}/{filename}.
+ */
+export const createBaselineUploadUrlFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        clientTenantId: z.string().uuid(),
+        filename: z.string().min(1).max(255),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    // Sanitize filename: keep only safe chars
+    const safe = data.filename.replace(/[^a-zA-Z0-9._-]+/g, "_").slice(-200);
+    const uid = crypto.randomUUID();
+    const path = `${data.clientTenantId}/${uid}/${safe}`;
+    const { data: signed, error } = await supabase.storage
+      .from(BUCKET)
+      .createSignedUploadUrl(path);
+    if (error) throw new Error(error.message);
+    return { path, token: signed.token, signedUrl: signed.signedUrl };
+  });
+
+/**
+ * Returns a short-lived signed download URL for an existing storage path,
+ * after verifying the caller can see the owning tenant.
+ */
+export const getBaselineDownloadUrlFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ uploadId: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { data: row, error } = await supabase
+      .from("baseline_uploads")
+      .select("storage_path, filename")
+      .eq("id", data.uploadId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!row || !row.storage_path) {
+      throw new Error("Arquivo original não disponível para este upload.");
+    }
+    const { data: signed, error: sErr } = await supabase.storage
+      .from(BUCKET)
+      .createSignedUrl(row.storage_path, 300, { download: row.filename });
+    if (sErr) throw new Error(sErr.message);
+    return { url: signed.signedUrl, filename: row.filename };
   });

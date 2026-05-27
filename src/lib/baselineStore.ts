@@ -25,6 +25,7 @@ export interface UploadRecord {
   errorCount: number;
   status: "ok" | "partial" | "error";
   errors: string[];
+  storagePath?: string | null;
 }
 
 interface BaselineState {
@@ -40,6 +41,7 @@ interface BaselineState {
     filename: string,
     rows: unknown[],
     clientTenantId?: string,
+    storagePath?: string | null,
   ) => Promise<UploadRecord>;
   removeUpload: (id: string) => Promise<void>;
   reset: () => void;
@@ -80,7 +82,7 @@ export const useBaselineStore = create<BaselineState>()((set, get) => ({
   hydratedForTenant: null,
   hydrating: false,
 
-  ingest: async (type, filename, rows, clientTenantId) => {
+  ingest: async (type, filename, rows, clientTenantId, storagePath) => {
     const schema = type === "bookings" ? bookingSchema : type === "hotels" ? hotelSchema : contractSchema;
     const { ok, errors } = parseRows(rows, schema as never);
     const status: UploadRecord["status"] = errors.length === 0 ? "ok" : ok.length === 0 ? "error" : "partial";
@@ -94,6 +96,7 @@ export const useBaselineStore = create<BaselineState>()((set, get) => ({
       errorCount: errors.length,
       status,
       errors: errors.slice(0, 20),
+      storagePath: storagePath ?? null,
     };
 
     // Persist to DB if we have a tenant
@@ -107,6 +110,7 @@ export const useBaselineStore = create<BaselineState>()((set, get) => ({
           rowCount: number;
           errorCount: number;
           errors: string[];
+          storagePath?: string | null;
           bookings?: unknown[];
           contracts?: unknown[];
         } = {
@@ -117,6 +121,7 @@ export const useBaselineStore = create<BaselineState>()((set, get) => ({
           rowCount: ok.length,
           errorCount: errors.length,
           errors: errors.slice(0, 100),
+          storagePath: storagePath ?? null,
         };
         if (type === "bookings") payload.bookings = ok as Booking[];
         if (type === "contracts") payload.contracts = ok as Contract[];
@@ -206,6 +211,7 @@ export const useBaselineStore = create<BaselineState>()((set, get) => ({
         error_count: number;
         status: UploadRecord["status"];
         errors: string[];
+        storage_path: string | null;
       }>).map((u) => ({
         id: u.id,
         type: u.dataset_type,
@@ -215,6 +221,7 @@ export const useBaselineStore = create<BaselineState>()((set, get) => ({
         errorCount: u.error_count,
         status: u.status,
         errors: Array.isArray(u.errors) ? u.errors : [],
+        storagePath: u.storage_path ?? null,
       }));
 
       const mappedBookings: Booking[] = bookings.map((b) => ({

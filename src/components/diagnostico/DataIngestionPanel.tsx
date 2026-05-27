@@ -17,6 +17,11 @@ import { SCHEMA_LABELS, SCHEMA_HEADERS, type DatasetType } from "@/lib/baselineS
 import { downloadTemplate, readSpreadsheet } from "@/lib/xlsxTemplates";
 import { useSnapshotStore } from "@/lib/snapshotStore";
 import { generateDemoBookings, generateDemoContracts } from "@/lib/demoData";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  createBaselineUploadUrlFn,
+  getBaselineDownloadUrlFn,
+} from "@/lib/baseline.functions";
 
 const TYPES: DatasetType[] = ["bookings", "hotels", "contracts"];
 
@@ -28,6 +33,25 @@ export function DataIngestionPanel() {
   const [errorOpenId, setErrorOpenId] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
+  async function uploadRawFile(file: File, clientTenantId: string): Promise<string | null> {
+    try {
+      const { path, token } = await createBaselineUploadUrlFn({
+        data: { clientTenantId, filename: file.name },
+      });
+      const { error } = await supabase.storage
+        .from("baseline-files")
+        .uploadToSignedUrl(path, token, file, { contentType: file.type || "application/octet-stream" });
+      if (error) {
+        console.error("uploadToSignedUrl failed", error);
+        return null;
+      }
+      return path;
+    } catch (e) {
+      console.error("createBaselineUploadUrl failed", e);
+      return null;
+    }
+  }
+
   async function handleFiles(files: FileList | File[]) {
     if (!selectedClientId) {
       toast.error("Selecione um cliente antes de carregar arquivos.");
@@ -37,12 +61,18 @@ export function DataIngestionPanel() {
     let ingestedAny = false;
     for (const file of arr) {
       try {
+        // 1. Upload raw file first (so it survives parse errors)
+        const storagePath = await uploadRawFile(file, selectedClientId);
+        if (!storagePath) {
+          toast.warning(`${file.name}: arquivo original não pôde ser arquivado, seguindo só com parse.`);
+        }
+        // 2. Parse and ingest rows
         const rows = await readSpreadsheet(file);
         if (rows.length === 0) {
           toast.error(`${file.name}: arquivo vazio ou ilegível`);
           continue;
         }
-        const rec = await ingest(activeType, file.name, rows, selectedClientId);
+        const rec = await ingest(activeType, file.name, rows, selectedClientId, storagePath);
         if (rec.status === "ok") {
           toast.success(`${file.name}: ${rec.rowCount} linhas importadas`);
           ingestedAny = true;
@@ -63,6 +93,15 @@ export function DataIngestionPanel() {
       if (snap) {
         toast.info(`Recomendações atualizadas · ${snap.alerts.length} alertas · ${snap.opportunities.length} oportunidades`);
       }
+    }
+  }
+
+  async function downloadOriginal(uploadId: string) {
+    try {
+      const { url } = await getBaselineDownloadUrlFn({ data: { uploadId } });
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch (e) {
+      toast.error(`Não foi possível baixar o arquivo · ${(e as Error).message}`);
     }
   }
 
@@ -104,7 +143,7 @@ export function DataIngestionPanel() {
           <div>
             <h2 className="text-sm font-semibold text-foreground">Ingestão de dados do programa</h2>
             <p className="text-xs text-muted-foreground">
-              Suba bookings, hotéis e contratos · dados em memória nesta sessão (persistência em breve)
+              Suba bookings, hotéis e contratos · arquivo original arquivado em Lovable Cloud
             </p>
           </div>
         </div>
@@ -247,16 +286,28 @@ export function DataIngestionPanel() {
                         {new Date(u.uploadedAt).toLocaleString("pt-BR")}
                       </td>
                       <td className="px-3 py-2 text-right">
-                        <button
-                          onClick={() => {
-                            removeUpload(u.id);
-                            toast.info(`${u.filename} removido`);
-                          }}
-                          className="rounded p-1 text-muted-foreground hover:bg-destructive-soft hover:text-destructive"
-                          aria-label="Remover"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
+                        <div className="inline-flex items-center gap-1">
+                          {u.storagePath && (
+                            <button
+                              onClick={() => downloadOriginal(u.id)}
+                              className="rounded p-1 text-muted-foreground hover:bg-primary-soft hover:text-primary"
+                              aria-label="Baixar arquivo original"
+                              title="Baixar arquivo original"
+                            >
+                              <Download className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => {
+                              removeUpload(u.id);
+                              toast.info(`${u.filename} removido`);
+                            }}
+                            className="rounded p-1 text-muted-foreground hover:bg-destructive-soft hover:text-destructive"
+                            aria-label="Remover"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                     {errorOpenId === u.id && u.errors.length > 0 && (
