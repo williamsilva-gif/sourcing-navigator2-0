@@ -42,7 +42,16 @@ export async function enforceRateLimit(opts: RateLimitOptions): Promise<void> {
   const compositeKey = `${opts.bucket}:${opts.key}`;
 
   try {
-    const { data, error } = await supabase.rpc("check_rate_limit", {
+    const rpc = supabase.rpc as unknown as (
+      name: string,
+      args: Record<string, unknown>,
+    ) => Promise<{
+      data:
+        | { allowed: boolean; current_count: number; retry_after_seconds: number }[]
+        | null;
+      error: { message: string } | null;
+    }>;
+    const { data, error } = await rpc("check_rate_limit", {
       _key: compositeKey,
       _max: opts.max,
       _window_seconds: opts.windowSeconds,
