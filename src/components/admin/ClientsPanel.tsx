@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useClientsStore, type ClientType } from "@/lib/clientsStore";
 import { useAppConfigStore } from "@/lib/appConfigStore";
-import { Trash2, Plus, Check, DatabaseZap, Loader2, RefreshCw } from "lucide-react";
+import { Trash2, Plus, Check, DatabaseZap, Loader2, RefreshCw, Sparkles, Eraser } from "lucide-react";
 import { toast } from "sonner";
 import { listVisibleTenants, migrateLocalClients } from "@/lib/tenantsRepo";
+import { useServerFn } from "@tanstack/react-start";
+import { seedDemoDataFn, wipeDemoDataFn } from "@/lib/demoSeed.functions";
 
 export function ClientsPanel() {
   const clients = useClientsStore((s) => s.clients);
@@ -163,6 +165,7 @@ export function ClientsPanel() {
                   </td>
                   <td className="px-4 py-2.5">
                     <div className="flex items-center justify-end gap-2">
+                      <SeedButtons clientId={c.id} clientName={c.name} clientType={c.type} />
                       <button
                         onClick={() => selectClient(c.id)}
                         className={`flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold ${
