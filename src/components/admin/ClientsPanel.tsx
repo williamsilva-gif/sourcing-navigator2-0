@@ -165,6 +165,7 @@ export function ClientsPanel() {
                   </td>
                   <td className="px-4 py-2.5">
                     <div className="flex items-center justify-end gap-2">
+                      <SeedButtons clientId={c.id} clientName={c.name} clientType={c.type} />
                       <button
                         onClick={() => selectClient(c.id)}
                         className={`flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold ${
