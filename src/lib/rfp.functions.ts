@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { enforceRateLimit, getClientIp } from "./rate-limit.server";
 import type { Database, Json } from "@/integrations/supabase/types";
 
 // ----- Shared types -----
@@ -71,7 +72,13 @@ export const createRfpFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => createRfpSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
+    const { supabase, userId } = context;
+    await enforceRateLimit({
+      bucket: "rfp:create",
+      key: `${data.clientTenantId}:${userId}`,
+      max: 10,
+      windowSeconds: 3600,
+    });
     const meta = {
       cycle: data.cycle,
       briefing: data.briefing,
@@ -248,6 +255,12 @@ function publicAdminClient() {
 export const getInvitationByTokenFn = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => z.object({ token: z.string().uuid() }).parse(input))
   .handler(async ({ data }) => {
+    await enforceRateLimit({
+      bucket: "rfp:invite:read",
+      key: `${data.token}:${getClientIp()}`,
+      max: 60,
+      windowSeconds: 60,
+    });
     const supabase = publicAdminClient();
     const { data: inv, error } = await supabase
       .from("rfp_invitations")
@@ -300,6 +313,12 @@ const submitResponseSchema = z.object({
 export const submitInvitationResponseFn = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => submitResponseSchema.parse(input))
   .handler(async ({ data }) => {
+    await enforceRateLimit({
+      bucket: "rfp:invite:submit",
+      key: `${data.token}:${getClientIp()}`,
+      max: 20,
+      windowSeconds: 60,
+    });
     const supabase = publicAdminClient();
     const { data: inv, error } = await supabase
       .from("rfp_invitations")
