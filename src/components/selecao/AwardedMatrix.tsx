@@ -35,7 +35,7 @@ export function AwardedMatrix() {
       const cmp = typeof av === "string" ? av.localeCompare(bv as string) : (av as number) - (bv as number);
       return sortDir === "asc" ? cmp : -cmp;
     });
-  }, [q, sortKey, sortDir, tierFilter]);
+  }, [AWARDED, q, sortKey, sortDir, tierFilter]);
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(sortDir === "asc" ? "desc" : "asc");
