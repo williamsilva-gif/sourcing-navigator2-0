@@ -15,8 +15,12 @@ import {
   Upload,
   Sparkles,
 } from "lucide-react";
-import { useDecisionStore, type ActionStatus } from "@/lib/decisionStore";
+import { useDecisionStore, type ActionStatus, type FollowUp, type DecisionComment, type DecisionAttachment } from "@/lib/decisionStore";
 import { toast } from "sonner";
+
+const EMPTY_FOLLOWUPS: FollowUp[] = [];
+const EMPTY_COMMENTS: DecisionComment[] = [];
+const EMPTY_ATTACHMENTS: DecisionAttachment[] = [];
 
 interface Props {
   actionId: string | null;
