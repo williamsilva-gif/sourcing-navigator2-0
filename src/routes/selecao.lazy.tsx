@@ -7,7 +7,7 @@ import { AwardedMatrix } from "@/components/selecao/AwardedMatrix";
 import { CoverageMap } from "@/components/selecao/CoverageMap";
 import { exportPdf, exportXlsx } from "@/components/selecao/exportProgram";
 import { useClientsStore } from "@/lib/clientsStore";
-import { useAwardedHotels } from "@/lib/demoRepos";
+import { useAwardedHotels, useDemandTargets } from "@/lib/demoRepos";
 
 function fmt$(n: number) { return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n ?? 0); }
 
@@ -18,6 +18,12 @@ export const Route = createLazyFileRoute("/selecao")({
 function SelecaoPage() {
   const tenantId = useClientsStore((s) => s.selectedClientId);
   const { rows: AWARDED } = useAwardedHotels(tenantId);
+  const { data: demandRows = [] } = useDemandTargets(tenantId);
+  const targetsByCity = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const r of demandRows) map[r.city] = Number(r.target_nights) || 0;
+    return map;
+  }, [demandRows]);
   const stats = useMemo(() => {
     const total = AWARDED.length;
     const primaries = AWARDED.filter((h) => h.status === "primary").length;
@@ -66,7 +72,7 @@ function SelecaoPage() {
 
       <div className="space-y-6">
         <AwardedMatrix />
-        <CoverageMap />
+        <CoverageMap awarded={AWARDED} targetsByCity={targetsByCity} />
       </div>
     </AppShell>
   );

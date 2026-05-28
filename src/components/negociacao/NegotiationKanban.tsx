@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Calendar,
   Clock,
@@ -34,8 +34,19 @@ function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
 }
 
-export function NegotiationKanban() {
-  const [cards, setCards] = useState<NegotiationCard[]>(NEGOTIATIONS);
+interface NegotiationKanbanProps {
+  initialCards?: NegotiationCard[];
+  onStageChange?: (id: string, stage: NegotiationStage) => void;
+}
+
+export function NegotiationKanban({ initialCards, onStageChange }: NegotiationKanbanProps = {}) {
+  const [cards, setCards] = useState<NegotiationCard[]>(initialCards && initialCards.length > 0 ? initialCards : NEGOTIATIONS);
+  // Re-sync when parent provides a new dataset (tenant switch)
+  const initSig = (initialCards ?? []).map((c) => `${c.id}:${c.stage}`).join("|");
+  useEffect(() => {
+    if (initialCards && initialCards.length > 0) setCards(initialCards);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initSig]);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOverStage, setDragOverStage] = useState<NegotiationStage | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
@@ -70,6 +81,7 @@ export function NegotiationKanban() {
     const id = e.dataTransfer.getData("text/plain") || draggingId;
     if (!id) return;
     setCards((prev) => prev.map((c) => (c.id === id ? { ...c, stage } : c)));
+    onStageChange?.(id, stage);
     setDraggingId(null);
     setDragOverStage(null);
   }
