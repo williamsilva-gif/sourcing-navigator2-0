@@ -61,7 +61,21 @@ export const seedDemoDataFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => seedSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context;
+    // Cast to any so we can write to tables not yet in the generated typings.
+    const supabase = context.supabase as unknown as {
+      from: (t: string) => {
+        select: (cols: string) => {
+          eq: (col: string, val: string) => {
+            maybeSingle: () => Promise<{ data: { id: string; name: string; type: string } | null; error: { message: string } | null }>;
+          };
+          in: (col: string, vals: string[]) => Promise<{ data: HotelInfo[] | null; error: { message: string } | null }>;
+          order: (col: string) => { limit: (n: number) => Promise<{ data: HotelInfo[] | null; error: { message: string } | null }> };
+        };
+        delete: () => { eq: (col: string, val: string) => Promise<{ error: { message: string } | null }> };
+        insert: (rows: unknown) => Promise<{ error: { message: string } | null }>;
+      };
+    };
+    const userId = context.userId;
     const tenantId = data.clientTenantId;
 
     // 1. Verify tenant exists and check type — skip TMC
