@@ -89,7 +89,10 @@ export function RfpComparisonTable() {
   const [showFilters, setShowFilters] = useState(false);
   const [compareOpen, setCompareOpen] = useState(false);
 
-  const cities = useMemo(() => [...new Set(RFP_ROWS.map((r) => r.city))].sort(), []);
+  const tenantId = useClientsStore((s) => s.selectedClientId);
+  const { rows: RFP_ROWS } = useRfpComparisonRows(tenantId);
+
+  const cities = useMemo(() => [...new Set(RFP_ROWS.map((r) => r.city))].sort(), [RFP_ROWS]);
 
   const filtered = useMemo(() => {
     return RFP_ROWS.filter((r) => {
@@ -107,7 +110,7 @@ export function RfpComparisonTable() {
       if (cityFilter && r.city !== cityFilter) return false;
       return true;
     });
-  }, [search, tierFilter, statusFilter, cityFilter]);
+  }, [RFP_ROWS, search, tierFilter, statusFilter, cityFilter]);
 
   const sorted = useMemo(() => {
     const arr = [...filtered];
