@@ -246,3 +246,60 @@ export function ClientsPanel() {
     </section>
   );
 }
+
+function SeedButtons({ clientId, clientName, clientType }: { clientId: string; clientName: string; clientType: ClientType }) {
+  const seed = useServerFn(seedDemoDataFn);
+  const wipe = useServerFn(wipeDemoDataFn);
+  const [busy, setBusy] = useState<null | "seed" | "wipe">(null);
+  const isTmc = clientType === "TMC";
+
+  async function run(kind: "seed" | "wipe") {
+    setBusy(kind);
+    try {
+      if (kind === "seed") {
+        const r: any = await seed({ data: { clientTenantId: clientId } });
+        toast.success(`Demo gerado para ${clientName}`, {
+          description: `${r?.bookings ?? 0} bookings · ${r?.contracts ?? 0} contratos · ${r?.awarded ?? 0} hotéis`,
+        });
+      } else {
+        await wipe({ data: { clientTenantId: clientId } });
+        toast.success(`Dados demo removidos de ${clientName}`);
+      }
+    } catch (e) {
+      toast.error(`Falha: ${(e as Error).message}`);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  if (isTmc) {
+    return (
+      <span className="mr-1 text-[10px] italic text-muted-foreground" title="TMC permanece vazia por padrão">
+        sem demo
+      </span>
+    );
+  }
+
+  return (
+    <>
+      <button
+        onClick={() => run("seed")}
+        disabled={busy !== null}
+        className="flex items-center gap-1 rounded-md border border-input px-2 py-1 text-xs font-semibold text-foreground hover:bg-muted disabled:opacity-50"
+        title="Gerar baseline demo para este cliente"
+      >
+        {busy === "seed" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+        Demo
+      </button>
+      <button
+        onClick={() => run("wipe")}
+        disabled={busy !== null}
+        className="flex items-center rounded-md p-1.5 text-muted-foreground hover:bg-destructive-soft hover:text-destructive disabled:opacity-50"
+        title="Limpar dados demo"
+      >
+        {busy === "wipe" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Eraser className="h-3.5 w-3.5" />}
+      </button>
+    </>
+  );
+}
+
