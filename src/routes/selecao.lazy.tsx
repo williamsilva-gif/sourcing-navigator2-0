@@ -35,10 +35,10 @@ function SelecaoPage() {
           <p className="text-sm font-medium text-primary">Módulo</p>
           <h1 className="mt-1 flex items-center gap-2 text-2xl font-semibold tracking-tight text-foreground">
             <CheckSquare className="h-6 w-6 text-primary" />
-            Seleção
+            Diretório de Hotéis
           </h1>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            Programa anual consolidado: hotéis selecionados, cobertura geográfica
+            Diretório consolidado: hotéis contratados, cobertura geográfica
             por cidade e exportação para PDF e Excel.
           </p>
         </div>

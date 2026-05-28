@@ -25,7 +25,7 @@ const modules: { to: string; label: string; icon: typeof LayoutDashboard; key: M
   { to: "/rfp", label: "RFP", icon: FileText, key: "rfp" },
   { to: "/analise", label: "Análise", icon: BarChart3, key: "analise" },
   { to: "/negociacao", label: "Negociação", icon: Handshake, key: "negociacao" },
-  { to: "/selecao", label: "Seleção", icon: CheckSquare, key: "selecao" },
+  { to: "/selecao", label: "Diretório de Hotéis", icon: CheckSquare, key: "selecao" },
   { to: "/implementacao", label: "Implementação", icon: Rocket, key: "implementacao" },
   { to: "/monitoramento", label: "Monitoramento", icon: Activity, key: "monitoramento" },
   { to: "/monetizacao", label: "Monetização", icon: DollarSign, key: "monetizacao" },

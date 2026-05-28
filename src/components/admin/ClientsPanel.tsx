@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useClientsStore, type ClientType } from "@/lib/clientsStore";
 import { useAppConfigStore } from "@/lib/appConfigStore";
-import { Trash2, Plus, Check, DatabaseZap, Loader2, RefreshCw } from "lucide-react";
+import { Trash2, Plus, Check, DatabaseZap, Loader2, RefreshCw, Sparkles, Eraser } from "lucide-react";
 import { toast } from "sonner";
 import { listVisibleTenants, migrateLocalClients } from "@/lib/tenantsRepo";
+import { useServerFn } from "@tanstack/react-start";
+import { seedDemoDataFn, wipeDemoDataFn } from "@/lib/demoSeed.functions";
 
 export function ClientsPanel() {
   const clients = useClientsStore((s) => s.clients);
