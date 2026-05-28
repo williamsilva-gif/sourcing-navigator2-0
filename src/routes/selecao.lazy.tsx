@@ -18,6 +18,12 @@ export const Route = createLazyFileRoute("/selecao")({
 function SelecaoPage() {
   const tenantId = useClientsStore((s) => s.selectedClientId);
   const { rows: AWARDED } = useAwardedHotels(tenantId);
+  const { data: demandRows = [] } = useDemandTargets(tenantId);
+  const targetsByCity = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const r of demandRows) map[r.city] = Number(r.target_nights) || 0;
+    return map;
+  }, [demandRows]);
   const stats = useMemo(() => {
     const total = AWARDED.length;
     const primaries = AWARDED.filter((h) => h.status === "primary").length;
