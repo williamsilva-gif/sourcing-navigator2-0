@@ -127,7 +127,7 @@ function NegociacaoPage() {
         title="Renegociações iniciadas pelo Decision Center"
       />
 
-      <NegotiationKanban />
+      <NegotiationKanban initialCards={cards} onStageChange={persistStage} />
     </AppShell>
   );
 }
