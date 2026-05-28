@@ -4,17 +4,28 @@ import { toast } from "sonner";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import { NegotiationKanban } from "@/components/negociacao/NegotiationKanban";
-import { ReverseAuction } from "@/components/negociacao/ReverseAuction";
 import { ActionInboxBanner } from "@/components/layout/ActionInboxBanner";
-import { NEGOTIATIONS } from "@/components/negociacao/negotiationData";
+import { useClientsStore } from "@/lib/clientsStore";
+import { useNegotiationLots, useNegotiationThreads } from "@/lib/demoRepos";
 
 function NegociacaoPage() {
-  const total = NEGOTIATIONS.length;
-  const agreed = NEGOTIATIONS.filter((n) => n.stage === "agreed").length;
+  const tenantId = useClientsStore((s) => s.selectedClientId);
+  const { data: lots = [] } = useNegotiationLots(tenantId);
+  const { data: threads = [] } = useNegotiationThreads(tenantId);
+
+  const total = threads.length;
+  const agreed = threads.filter((t) => t.status === "agreed").length;
   const pending = total - agreed;
-  const avgDiscount = (
-    NEGOTIATIONS.reduce((s, n) => s + n.discount, 0) / total
-  ).toFixed(1);
+  const avgDiscount = total
+    ? (
+        threads.reduce((s, t) => {
+          const start = Number(t.starting_adr) || 0;
+          const cur = Number(t.current_offer) || start;
+          return s + (start > 0 ? ((start - cur) / start) * 100 : 0);
+        }, 0) / total
+      ).toFixed(1)
+    : "0.0";
+  const activeLots = lots.filter((l) => l.status !== "closed").length;
 
   return (
     <AppShell>
@@ -25,8 +36,8 @@ function NegociacaoPage() {
             Negociação
           </h1>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            Acompanhe o pipeline de propostas em rodadas de negociação e leilões
-            reversos ao vivo. Arraste cards entre as colunas para mover etapas.
+            Pipeline de propostas em rodadas de negociação organizadas por lote.
+            Arraste cards entre as colunas para mover etapas.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -42,10 +53,10 @@ function NegociacaoPage() {
       </div>
 
       <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
-        <KpiTile label="Negociações ativas" value={String(total)} hint={`${pending} em aberto`} />
-        <KpiTile label="Acordos fechados" value={String(agreed)} hint={`${((agreed / total) * 100).toFixed(0)}% conversão`} tone="success" />
+        <KpiTile label="Threads ativas" value={String(total)} hint={`${pending} em aberto`} />
+        <KpiTile label="Acordos fechados" value={String(agreed)} hint={total ? `${((agreed / total) * 100).toFixed(0)}% conversão` : "—"} tone="success" />
         <KpiTile label="Desconto médio" value={`${avgDiscount}%`} hint="vs proposta inicial" tone="success" />
-        <KpiTile label="Lotes em leilão" value="3" hint="2 ao vivo" tone="primary" />
+        <KpiTile label="Lotes ativos" value={String(activeLots)} hint={`${lots.length} no total`} tone="primary" />
       </div>
 
       <ActionInboxBanner
@@ -54,10 +65,10 @@ function NegociacaoPage() {
       />
 
       <NegotiationKanban />
-      <ReverseAuction />
     </AppShell>
   );
 }
+
 
 function KpiTile({
   label,

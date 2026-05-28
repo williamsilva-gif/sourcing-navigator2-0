@@ -5,8 +5,9 @@ import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import { AwardedMatrix } from "@/components/selecao/AwardedMatrix";
 import { CoverageMap } from "@/components/selecao/CoverageMap";
-import { AWARDED } from "@/components/selecao/selectionData";
 import { exportPdf, exportXlsx } from "@/components/selecao/exportProgram";
+import { useClientsStore } from "@/lib/clientsStore";
+import { useAwardedHotels } from "@/lib/demoRepos";
 
 function fmt$(n: number) { return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n ?? 0); }
 
@@ -15,6 +16,8 @@ export const Route = createLazyFileRoute("/selecao")({
 });
 
 function SelecaoPage() {
+  const tenantId = useClientsStore((s) => s.selectedClientId);
+  const { rows: AWARDED } = useAwardedHotels(tenantId);
   const stats = useMemo(() => {
     const total = AWARDED.length;
     const primaries = AWARDED.filter((h) => h.status === "primary").length;
@@ -26,7 +29,7 @@ function SelecaoPage() {
     const savingsPct = baseline ? (savings / baseline) * 100 : 0;
     const weightedAdr = nights ? spend / nights : 0;
     return { total, primaries, cities, nights, spend, savings, savingsPct, weightedAdr };
-  }, []);
+  }, [AWARDED]);
 
   return (
     <AppShell>

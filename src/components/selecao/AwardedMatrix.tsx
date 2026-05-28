@@ -1,8 +1,10 @@
 import { useMemo, useState } from "react";
 import { Search, ArrowUpDown, Trophy, Shield, Building2, Wifi, Coffee, Car, Dumbbell, Lock } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { AWARDED, AMENITY_LABELS, type AwardedHotel } from "./selectionData";
+import { AMENITY_LABELS, type AwardedHotel } from "./selectionData";
 import { HotelHistoryModal } from "./HotelHistoryModal";
+import { useClientsStore } from "@/lib/clientsStore";
+import { useAwardedHotels, type AwardedHotelView } from "@/lib/demoRepos";
 
 const AMENITY_ICON: Record<string, typeof Wifi> = {
   breakfast: Coffee, wifi: Wifi, lra: Lock, parking: Car, gym: Dumbbell,
@@ -13,6 +15,8 @@ type SortKey = "city" | "finalAdr" | "roomNights" | "qualityScore" | "compliance
 function fmt$(n: number) { return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n ?? 0); }
 
 export function AwardedMatrix() {
+  const tenantId = useClientsStore((s) => s.selectedClientId);
+  const { rows: AWARDED, isLoading } = useAwardedHotels(tenantId);
   const [q, setQ] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("city");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
@@ -31,7 +35,7 @@ export function AwardedMatrix() {
       const cmp = typeof av === "string" ? av.localeCompare(bv as string) : (av as number) - (bv as number);
       return sortDir === "asc" ? cmp : -cmp;
     });
-  }, [q, sortKey, sortDir, tierFilter]);
+  }, [AWARDED, q, sortKey, sortDir, tierFilter]);
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(sortDir === "asc" ? "desc" : "asc");
