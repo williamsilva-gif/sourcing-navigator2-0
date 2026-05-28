@@ -13,7 +13,7 @@ export const Route = createFileRoute("/api/public/health")({
         try {
           // Ping leve no Postgres via supabaseAdmin
           const { data, error: dbError } = await supabaseAdmin
-            .from("client_tenants")
+            .from("client_tenants" as never)
             .select("id", { count: "exact", head: true });
 
           if (dbError) throw dbError;

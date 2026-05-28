@@ -41,7 +41,7 @@ export const Route = createFileRoute("/api/public/backup")({
           for (const table of TABLES) {
             // Stream all rows from table
             const { data: rows, error } = await supabaseAdmin
-              .from(table)
+              .from(table as never)
               .select("*")
               .limit(1000); // Safety limit per table
 
