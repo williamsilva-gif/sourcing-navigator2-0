@@ -313,6 +313,12 @@ const submitResponseSchema = z.object({
 export const submitInvitationResponseFn = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => submitResponseSchema.parse(input))
   .handler(async ({ data }) => {
+    await enforceRateLimit({
+      bucket: "rfp:invite:submit",
+      key: `${data.token}:${getClientIp()}`,
+      max: 20,
+      windowSeconds: 60,
+    });
     const supabase = publicAdminClient();
     const { data: inv, error } = await supabase
       .from("rfp_invitations")
