@@ -34,8 +34,19 @@ function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
 }
 
-export function NegotiationKanban() {
-  const [cards, setCards] = useState<NegotiationCard[]>(NEGOTIATIONS);
+interface NegotiationKanbanProps {
+  initialCards?: NegotiationCard[];
+  onStageChange?: (id: string, stage: NegotiationStage) => void;
+}
+
+export function NegotiationKanban({ initialCards, onStageChange }: NegotiationKanbanProps = {}) {
+  const [cards, setCards] = useState<NegotiationCard[]>(initialCards && initialCards.length > 0 ? initialCards : NEGOTIATIONS);
+  // Re-sync when parent provides a new dataset (tenant switch)
+  const initSig = (initialCards ?? []).map((c) => c.id).join("|");
+  useMemo(() => {
+    if (initialCards && initialCards.length > 0) setCards(initialCards);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initSig]);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOverStage, setDragOverStage] = useState<NegotiationStage | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
