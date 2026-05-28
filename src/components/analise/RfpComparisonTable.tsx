@@ -92,7 +92,7 @@ export function RfpComparisonTable() {
   const tenantId = useClientsStore((s) => s.selectedClientId);
   const { rows: RFP_ROWS } = useRfpComparisonRows(tenantId);
 
-  const cities = useMemo(() => [...new Set(RFP_ROWS.map((r) => r.city))].sort(), [RFP_ROWS]);
+  const cities = useMemo<string[]>(() => [...new Set(RFP_ROWS.map((r) => r.city))].sort(), [RFP_ROWS]);
 
   const filtered = useMemo(() => {
     return RFP_ROWS.filter((r) => {
