@@ -198,7 +198,7 @@ export function RfpComparisonTable() {
 
   const selectedRows = useMemo(
     () => RFP_ROWS.filter((r) => selected.has(r.id)),
-    [selected],
+    [RFP_ROWS, selected],
   );
   const canCompare = selectedRows.length >= 2 && selectedRows.length <= 4;
 
