@@ -420,19 +420,15 @@ export const wipeDemoDataFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ clientTenantId: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
+    const supabase = context.supabase as unknown as {
+      from: (t: string) => { delete: () => { eq: (col: string, val: string) => Promise<{ error: { message: string } | null }> } };
+    };
     const t = data.clientTenantId;
-    await Promise.all([
-      supabase.from("bookings").delete().eq("client_tenant_id", t),
-      supabase.from("baseline_contracts").delete().eq("client_tenant_id", t),
-      supabase.from("strategy_tiers").delete().eq("client_tenant_id", t),
-      supabase.from("strategy_caps").delete().eq("client_tenant_id", t),
-      supabase.from("strategy_clusters").delete().eq("client_tenant_id", t),
-      supabase.from("rfp_analysis_rows").delete().eq("client_tenant_id", t),
-      supabase.from("negotiation_threads").delete().eq("client_tenant_id", t),
-      supabase.from("negotiation_lots").delete().eq("client_tenant_id", t),
-      supabase.from("awarded_program").delete().eq("client_tenant_id", t),
-      supabase.from("demand_targets").delete().eq("client_tenant_id", t),
-    ]);
+    const tables = [
+      "bookings", "baseline_contracts", "strategy_tiers", "strategy_caps",
+      "strategy_clusters", "rfp_analysis_rows", "negotiation_threads",
+      "negotiation_lots", "awarded_program", "demand_targets",
+    ];
+    await Promise.all(tables.map((tbl) => supabase.from(tbl).delete().eq("client_tenant_id", t)));
     return { ok: true };
   });
