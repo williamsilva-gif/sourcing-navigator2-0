@@ -36,16 +36,16 @@ Voltaremos a esta fase futuramente. Requer SENTRY_DSN e SENTRY_AUTH_TOKEN.
 
 ---
 
-## Fase 4 — Rate Limiting (PENDENTE)
+## Fase 4 — Rate Limiting (CONCLUÍDA)
 
-**Problema:** plataforma Lovable Cloud não oferece primitivas nativas. Hoje qualquer endpoint público (`/api/public/*`, login) aceita requests ilimitados → vetor de abuso.
-
-**Entregáveis (ad-hoc, escopo mínimo):**
-- Tabela `rate_limit_buckets` (key TEXT, window_start TIMESTAMPTZ, count INT) com índice e TTL via cron.
-- Middleware `rateLimit({ key, max, windowSec })` para `createServerFn` e server routes.
-- Aplicar em: login (5 tentativas / 15 min / IP), criação de RFP (10 / hora / tenant), endpoints `/api/public/*` de resposta de hotel (20 / min / invitation).
-- Resposta `429` padronizada com `Retry-After`.
-- Documentar que isso é solução interina até a plataforma oferecer rate limit gerenciado.
+- Tabela `rate_limit_buckets` + função `check_rate_limit(_key, _max, _window_seconds)` (SECURITY DEFINER, EXECUTE só para service_role).
+- Cleanup `cleanup_rate_limit_buckets()` rodando a cada 15 min via `pg_cron`.
+- Helper `enforceRateLimit({ bucket, key, max, windowSeconds })` em `src/lib/rate-limit.server.ts` (fail-open em erro interno).
+- Aplicado em:
+  - `createRfpFn`: 10 / hora / (tenant + user).
+  - `getInvitationByTokenFn`: 60 / min / (token + IP).
+  - `submitInvitationResponseFn`: 20 / min / (token + IP).
+- Login não foi tocado (Supabase Auth já aplica rate limit nativo no endpoint `/auth/v1/token`).
 
 ---
 
