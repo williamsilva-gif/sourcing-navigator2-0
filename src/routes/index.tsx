@@ -19,6 +19,7 @@ import { Rfp2026Plan } from "@/components/dashboard/Rfp2026Plan";
 import { useBaselineStore, selectKpis } from "@/lib/baselineStore";
 import { useClientsStore } from "@/lib/clientsStore";
 import { WatchlistPanel } from "@/components/decision/WatchlistPanel";
+import { AdrVarianceCard } from "@/components/decision/AdrVarianceCard";
 import { useDecisionHydration } from "@/hooks/useDecisionHydration";
 import { useDecisionStore } from "@/lib/decisionStore";
 import {
@@ -273,6 +274,9 @@ function DashboardPage() {
 
       <div className="mt-6 space-y-6">
         <CriticalAlerts onViewRecommendation={openByOpportunityId} />
+
+        <AdrVarianceCard window={currentWindow} />
+
 
         <Rfp2026Plan />
 
