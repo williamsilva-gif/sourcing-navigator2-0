@@ -44,6 +44,72 @@ export type Database = {
         }
         Relationships: []
       }
+      awarded_program: {
+        Row: {
+          amenities: string[]
+          brand: string | null
+          cancellation_hours: number
+          cap: number
+          city: string
+          client_tenant_id: string
+          compliance_pct: number
+          contract_end: string | null
+          contract_start: string | null
+          created_at: string
+          final_adr: number
+          hotel_name: string
+          id: string
+          quality_score: number
+          room_nights: number
+          starting_adr: number
+          status: string
+          tier: string
+          updated_at: string
+        }
+        Insert: {
+          amenities?: string[]
+          brand?: string | null
+          cancellation_hours?: number
+          cap?: number
+          city: string
+          client_tenant_id: string
+          compliance_pct?: number
+          contract_end?: string | null
+          contract_start?: string | null
+          created_at?: string
+          final_adr?: number
+          hotel_name: string
+          id?: string
+          quality_score?: number
+          room_nights?: number
+          starting_adr?: number
+          status?: string
+          tier?: string
+          updated_at?: string
+        }
+        Update: {
+          amenities?: string[]
+          brand?: string | null
+          cancellation_hours?: number
+          cap?: number
+          city?: string
+          client_tenant_id?: string
+          compliance_pct?: number
+          contract_end?: string | null
+          contract_start?: string | null
+          created_at?: string
+          final_adr?: number
+          hotel_name?: string
+          id?: string
+          quality_score?: number
+          room_nights?: number
+          starting_adr?: number
+          status?: string
+          tier?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       baseline_contracts: {
         Row: {
           cap: number
@@ -570,6 +636,33 @@ export type Database = {
         }
         Relationships: []
       }
+      demand_targets: {
+        Row: {
+          city: string
+          client_tenant_id: string
+          created_at: string
+          id: string
+          target_nights: number
+          updated_at: string
+        }
+        Insert: {
+          city: string
+          client_tenant_id: string
+          created_at?: string
+          id?: string
+          target_nights?: number
+          updated_at?: string
+        }
+        Update: {
+          city?: string
+          client_tenant_id?: string
+          created_at?: string
+          id?: string
+          target_nights?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       hotel_members: {
         Row: {
           created_at: string
@@ -676,6 +769,108 @@ export type Database = {
           },
         ]
       }
+      negotiation_lots: {
+        Row: {
+          city: string
+          client_tenant_id: string
+          created_at: string
+          current_savings_pct: number
+          deadline: string | null
+          hotels_count: number
+          id: string
+          name: string
+          notes: string | null
+          owner: string | null
+          status: string
+          target_savings_pct: number
+          updated_at: string
+        }
+        Insert: {
+          city: string
+          client_tenant_id: string
+          created_at?: string
+          current_savings_pct?: number
+          deadline?: string | null
+          hotels_count?: number
+          id?: string
+          name: string
+          notes?: string | null
+          owner?: string | null
+          status?: string
+          target_savings_pct?: number
+          updated_at?: string
+        }
+        Update: {
+          city?: string
+          client_tenant_id?: string
+          created_at?: string
+          current_savings_pct?: number
+          deadline?: string | null
+          hotels_count?: number
+          id?: string
+          name?: string
+          notes?: string | null
+          owner?: string | null
+          status?: string
+          target_savings_pct?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      negotiation_threads: {
+        Row: {
+          city: string
+          client_tenant_id: string
+          created_at: string
+          current_offer: number
+          deadline: string | null
+          hotel_name: string
+          id: string
+          last_message_at: string | null
+          last_message_from: string | null
+          lot_id: string
+          owner: string | null
+          starting_adr: number
+          status: string
+          target_adr: number
+          updated_at: string
+        }
+        Insert: {
+          city: string
+          client_tenant_id: string
+          created_at?: string
+          current_offer?: number
+          deadline?: string | null
+          hotel_name: string
+          id?: string
+          last_message_at?: string | null
+          last_message_from?: string | null
+          lot_id: string
+          owner?: string | null
+          starting_adr?: number
+          status?: string
+          target_adr?: number
+          updated_at?: string
+        }
+        Update: {
+          city?: string
+          client_tenant_id?: string
+          created_at?: string
+          current_offer?: number
+          deadline?: string | null
+          hotel_name?: string
+          id?: string
+          last_message_at?: string | null
+          last_message_from?: string | null
+          lot_id?: string
+          owner?: string | null
+          starting_adr?: number
+          status?: string
+          target_adr?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -726,6 +921,60 @@ export type Database = {
           bucket_key?: string
           count?: number
           window_start?: string
+        }
+        Relationships: []
+      }
+      rfp_analysis_rows: {
+        Row: {
+          amenities: string[]
+          city: string
+          client_tenant_id: string
+          compliance_pct: number
+          created_at: string
+          current_adr: number
+          hotel_name: string
+          id: string
+          notes: string | null
+          proposed_adr: number
+          quality_score: number
+          recommendation: string
+          rfp_id: string | null
+          savings_pct: number
+          updated_at: string
+        }
+        Insert: {
+          amenities?: string[]
+          city: string
+          client_tenant_id: string
+          compliance_pct?: number
+          created_at?: string
+          current_adr?: number
+          hotel_name: string
+          id?: string
+          notes?: string | null
+          proposed_adr?: number
+          quality_score?: number
+          recommendation?: string
+          rfp_id?: string | null
+          savings_pct?: number
+          updated_at?: string
+        }
+        Update: {
+          amenities?: string[]
+          city?: string
+          client_tenant_id?: string
+          compliance_pct?: number
+          created_at?: string
+          current_adr?: number
+          hotel_name?: string
+          id?: string
+          notes?: string | null
+          proposed_adr?: number
+          quality_score?: number
+          recommendation?: string
+          rfp_id?: string | null
+          savings_pct?: number
+          updated_at?: string
         }
         Relationships: []
       }
@@ -863,6 +1112,120 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      strategy_caps: {
+        Row: {
+          approved_cap: number | null
+          baseline_adr: number
+          city: string
+          client_tenant_id: string
+          created_at: string
+          id: string
+          rationale: string | null
+          suggested_cap: number
+          updated_at: string
+        }
+        Insert: {
+          approved_cap?: number | null
+          baseline_adr?: number
+          city: string
+          client_tenant_id: string
+          created_at?: string
+          id?: string
+          rationale?: string | null
+          suggested_cap?: number
+          updated_at?: string
+        }
+        Update: {
+          approved_cap?: number | null
+          baseline_adr?: number
+          city?: string
+          client_tenant_id?: string
+          created_at?: string
+          id?: string
+          rationale?: string | null
+          suggested_cap?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      strategy_clusters: {
+        Row: {
+          cities: string[]
+          client_tenant_id: string
+          created_at: string
+          hotels: string[]
+          id: string
+          name: string
+          rationale: string | null
+          share_pct: number
+          updated_at: string
+        }
+        Insert: {
+          cities?: string[]
+          client_tenant_id: string
+          created_at?: string
+          hotels?: string[]
+          id?: string
+          name: string
+          rationale?: string | null
+          share_pct?: number
+          updated_at?: string
+        }
+        Update: {
+          cities?: string[]
+          client_tenant_id?: string
+          created_at?: string
+          hotels?: string[]
+          id?: string
+          name?: string
+          rationale?: string | null
+          share_pct?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      strategy_tiers: {
+        Row: {
+          brands: string[]
+          client_tenant_id: string
+          created_at: string
+          id: string
+          notes: string | null
+          position: number
+          qs_max: number
+          qs_min: number
+          share_pct: number
+          tier: string
+          updated_at: string
+        }
+        Insert: {
+          brands?: string[]
+          client_tenant_id: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          position?: number
+          qs_max?: number
+          qs_min?: number
+          share_pct?: number
+          tier: string
+          updated_at?: string
+        }
+        Update: {
+          brands?: string[]
+          client_tenant_id?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          position?: number
+          qs_max?: number
+          qs_min?: number
+          share_pct?: number
+          tier?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       tenant_modules: {
         Row: {
