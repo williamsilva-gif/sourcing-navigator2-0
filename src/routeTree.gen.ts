@@ -31,6 +31,8 @@ import { Route as WikiIndexRouteImport } from './routes/wiki.index'
 import { Route as WikiSlugRouteImport } from './routes/wiki.$slug'
 import { Route as RTokenRouteImport } from './routes/r.$token'
 import { Route as AccountPrivacyRouteImport } from './routes/account.privacy'
+import { Route as ApiPublicHealthRouteImport } from './routes/api/public/health'
+import { Route as ApiPublicBackupRouteImport } from './routes/api/public/backup'
 import { Route as AuthenticatedTaClientsRouteImport } from './routes/_authenticated/ta.clients'
 
 const WikiRoute = WikiRouteImport.update({
@@ -142,6 +144,16 @@ const AccountPrivacyRoute = AccountPrivacyRouteImport.update({
   path: '/account/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHealthRoute = ApiPublicHealthRouteImport.update({
+  id: '/api/public/health',
+  path: '/api/public/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicBackupRoute = ApiPublicBackupRouteImport.update({
+  id: '/api/public/backup',
+  path: '/api/public/backup',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedTaClientsRoute = AuthenticatedTaClientsRouteImport.update({
   id: '/ta/clients',
   path: '/ta/clients',
@@ -171,6 +183,8 @@ export interface FileRoutesByFullPath {
   '/wiki/$slug': typeof WikiSlugRoute
   '/wiki/': typeof WikiIndexRoute
   '/ta/clients': typeof AuthenticatedTaClientsRoute
+  '/api/public/backup': typeof ApiPublicBackupRoute
+  '/api/public/health': typeof ApiPublicHealthRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -194,6 +208,8 @@ export interface FileRoutesByTo {
   '/wiki/$slug': typeof WikiSlugRoute
   '/wiki': typeof WikiIndexRoute
   '/ta/clients': typeof AuthenticatedTaClientsRoute
+  '/api/public/backup': typeof ApiPublicBackupRoute
+  '/api/public/health': typeof ApiPublicHealthRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -220,6 +236,8 @@ export interface FileRoutesById {
   '/wiki/$slug': typeof WikiSlugRoute
   '/wiki/': typeof WikiIndexRoute
   '/_authenticated/ta/clients': typeof AuthenticatedTaClientsRoute
+  '/api/public/backup': typeof ApiPublicBackupRoute
+  '/api/public/health': typeof ApiPublicHealthRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -246,6 +264,8 @@ export interface FileRouteTypes {
     | '/wiki/$slug'
     | '/wiki/'
     | '/ta/clients'
+    | '/api/public/backup'
+    | '/api/public/health'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -269,6 +289,8 @@ export interface FileRouteTypes {
     | '/wiki/$slug'
     | '/wiki'
     | '/ta/clients'
+    | '/api/public/backup'
+    | '/api/public/health'
   id:
     | '__root__'
     | '/'
@@ -294,6 +316,8 @@ export interface FileRouteTypes {
     | '/wiki/$slug'
     | '/wiki/'
     | '/_authenticated/ta/clients'
+    | '/api/public/backup'
+    | '/api/public/health'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -317,6 +341,8 @@ export interface RootRouteChildren {
   WikiRoute: typeof WikiRouteWithChildren
   AccountPrivacyRoute: typeof AccountPrivacyRoute
   RTokenRoute: typeof RTokenRoute
+  ApiPublicBackupRoute: typeof ApiPublicBackupRoute
+  ApiPublicHealthRoute: typeof ApiPublicHealthRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -475,6 +501,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AccountPrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/health': {
+      id: '/api/public/health'
+      path: '/api/public/health'
+      fullPath: '/api/public/health'
+      preLoaderRoute: typeof ApiPublicHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/backup': {
+      id: '/api/public/backup'
+      path: '/api/public/backup'
+      fullPath: '/api/public/backup'
+      preLoaderRoute: typeof ApiPublicBackupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/ta/clients': {
       id: '/_authenticated/ta/clients'
       path: '/ta/clients'
@@ -530,7 +570,19 @@ const rootRouteChildren: RootRouteChildren = {
   WikiRoute: WikiRouteWithChildren,
   AccountPrivacyRoute: AccountPrivacyRoute,
   RTokenRoute: RTokenRoute,
+  ApiPublicBackupRoute: ApiPublicBackupRoute,
+  ApiPublicHealthRoute: ApiPublicHealthRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
