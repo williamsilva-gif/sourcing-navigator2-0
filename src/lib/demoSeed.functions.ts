@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 // Deterministic PRNG seeded by tenant id hash, so each client gets a stable
 // but distinct dataset (different cities, ADRs, compliance gaps, etc.).
