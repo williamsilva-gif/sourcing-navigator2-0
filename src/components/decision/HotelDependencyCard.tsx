@@ -213,7 +213,7 @@ export function HotelDependencyCard({ window }: Props) {
   if (summary.flaggedCities === 0) return null;
 
   return (
-    <section className="rounded-lg border border-border bg-card p-6 shadow-[var(--shadow-card)]">
+    <section id="module-dependency" className="scroll-mt-24 rounded-lg border border-border bg-card p-6 shadow-[var(--shadow-card)] transition-shadow">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">

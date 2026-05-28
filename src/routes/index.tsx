@@ -264,7 +264,7 @@ function DashboardPage() {
       </div>
 
       <div className="mt-6 space-y-6">
-        <CriticalAlerts onViewRecommendation={() => setWatchlistOpen(true)} />
+        <CriticalAlerts window={currentWindow} onViewRecommendation={() => setWatchlistOpen(true)} />
         <AdrVarianceCard window={currentWindow} />
         <SmartLeakageCard window={currentWindow} />
         <RateLoadingCard window={currentWindow} />
