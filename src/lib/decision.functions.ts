@@ -3,6 +3,10 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { enforceRateLimit, getClientIp } from "./rate-limit.server";
 
+// Serializer-friendly JSON shape (TanStack rejects `unknown`).
+type JsonValue = string | number | boolean | null | JsonValue[] | { [k: string]: JsonValue };
+type JsonRow = { [k: string]: JsonValue };
+
 // ============================================================================
 // Schemas
 // ============================================================================
@@ -126,7 +130,7 @@ export const listAlertsFn = createServerFn({ method: "POST" })
     if (data.status) q = q.eq("status", data.status);
     const { data: rows, error } = await q.order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
-    return (rows ?? []) as Record<string, unknown>[];
+    return (rows ?? []) as JsonRow[];
   });
 
 export const setAlertStatusFn = createServerFn({ method: "POST" })
@@ -190,7 +194,7 @@ export const createDecisionActionFn = createServerFn({ method: "POST" })
     };
     const { data: out, error } = await q.select("*").single();
     if (error) throw new Error(error.message);
-    return out as Record<string, unknown>;
+    return out as JsonRow;
   });
 
 export const setActionStatusFn = createServerFn({ method: "POST" })
@@ -232,7 +236,7 @@ export const listActionsFn = createServerFn({ method: "POST" })
     if (data.status) q = q.eq("status", data.status);
     const { data: rows, error } = await q.order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
-    return (rows ?? []) as Record<string, unknown>[];
+    return (rows ?? []) as JsonRow[];
   });
 
 // ============================================================================
@@ -259,7 +263,7 @@ export const listWatchlistFn = createServerFn({ method: "POST" })
     if (data.pinnedOnly) q = q.eq("pinned", true);
     const { data: rows, error } = await q.order("last_activity_at", { ascending: false });
     if (error) throw new Error(error.message);
-    return (rows ?? []) as Record<string, unknown>[];
+    return (rows ?? []) as JsonRow[];
   });
 
 export const setWatchlistPinnedFn = createServerFn({ method: "POST" })
@@ -309,7 +313,7 @@ export const addFollowUpFn = createServerFn({ method: "POST" })
     };
     const { data: out, error } = await q.select("*").single();
     if (error) throw new Error(error.message);
-    return out as Record<string, unknown>;
+    return out as JsonRow;
   });
 
 export const completeFollowUpFn = createServerFn({ method: "POST" })
@@ -352,7 +356,7 @@ export const listFollowUpsFn = createServerFn({ method: "POST" })
     };
     const { data: rows, error } = await q.eq("action_id", data.actionId).order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
-    return (rows ?? []) as Record<string, unknown>[];
+    return (rows ?? []) as JsonRow[];
   });
 
 // ============================================================================
@@ -393,7 +397,7 @@ export const addCommentFn = createServerFn({ method: "POST" })
     };
     const { data: out, error } = await q.select("*").single();
     if (error) throw new Error(error.message);
-    return out as Record<string, unknown>;
+    return out as JsonRow;
   });
 
 export const listCommentsFn = createServerFn({ method: "POST" })
@@ -418,7 +422,7 @@ export const listCommentsFn = createServerFn({ method: "POST" })
     const filterVal = data.actionId ?? data.alertId;
     const { data: rows, error } = await q.eq(filterCol, filterVal).order("created_at", { ascending: true });
     if (error) throw new Error(error.message);
-    return (rows ?? []) as Record<string, unknown>[];
+    return (rows ?? []) as JsonRow[];
   });
 
 // ============================================================================
@@ -478,7 +482,7 @@ export const recordAttachmentFn = createServerFn({ method: "POST" })
     };
     const { data: out, error } = await q.select("*").single();
     if (error) throw new Error(error.message);
-    return out as Record<string, unknown>;
+    return out as JsonRow;
   });
 
 export const listAttachmentsFn = createServerFn({ method: "POST" })
@@ -495,5 +499,5 @@ export const listAttachmentsFn = createServerFn({ method: "POST" })
     };
     const { data: rows, error } = await q.eq("action_id", data.actionId).order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
-    return (rows ?? []) as Record<string, unknown>[];
+    return (rows ?? []) as JsonRow[];
   });
