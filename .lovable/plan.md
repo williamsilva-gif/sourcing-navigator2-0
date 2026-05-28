@@ -4,8 +4,8 @@ Ordem de execução escolhida por impacto e dependência: **Storage → ~~Observ
 
 - Fase 1 (Storage) — **CONCLUÍDA**
 - Fase 2 (Observabilidade) — **PULADA** (voltaremos depois)
-- Fase 3 (DR) — **EM ANDAMENTO**
-- Fase 4 (Rate Limiting) — **PENDENTE**
+- Fase 3 (DR) — **CONCLUÍDA**
+- Fase 4 (Rate Limiting) — **CONCLUÍDA**
 
 ---
 
