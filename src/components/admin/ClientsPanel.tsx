@@ -259,7 +259,7 @@ function SeedButtons({ clientId, clientName, clientType }: { clientId: string; c
       if (kind === "seed") {
         const r: any = await seed({ data: { clientTenantId: clientId } });
         toast.success(`Demo gerado para ${clientName}`, {
-          description: r?.summary ?? "Baseline criado.",
+          description: `${r?.bookings ?? 0} bookings · ${r?.contracts ?? 0} contratos · ${r?.awarded ?? 0} hotéis`,
         });
       } else {
         await wipe({ data: { clientTenantId: clientId } });
