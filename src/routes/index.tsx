@@ -264,7 +264,7 @@ function DashboardPage() {
       </div>
 
       <div className="mt-6 space-y-6">
-        <CriticalAlerts alerts={derivedAlerts} />
+        <CriticalAlerts />
         <AdrVarianceCard window={currentWindow} />
         <SmartLeakageCard window={currentWindow} />
         <RateLoadingCard window={currentWindow} />
