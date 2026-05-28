@@ -531,13 +531,25 @@ export const wipeDemoDataFn = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => z.object({ clientTenantId: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     const supabase = context.supabase as unknown as {
-      from: (t: string) => { delete: () => { eq: (col: string, val: string) => Promise<{ error: { message: string } | null }> } };
+      from: (t: string) => {
+        select: (cols: string) => { eq: (col: string, val: string) => Promise<{ data: Array<{ id: string }> | null; error: { message: string } | null }> };
+        delete: () => {
+          eq: (col: string, val: string) => Promise<{ error: { message: string } | null }>;
+          in: (col: string, vals: string[]) => Promise<{ error: { message: string } | null }>;
+        };
+      };
     };
     const t = data.clientTenantId;
+    const { data: existingRfps } = await supabase.from("rfps").select("id").eq("client_tenant_id", t);
+    const rfpIds = (existingRfps ?? []).map((r) => r.id);
+    if (rfpIds.length > 0) {
+      await supabase.from("rfp_responses").delete().in("rfp_id", rfpIds);
+      await supabase.from("rfp_invitations").delete().in("rfp_id", rfpIds);
+    }
     const tables = [
       "bookings", "baseline_contracts", "strategy_tiers", "strategy_caps",
       "strategy_clusters", "rfp_analysis_rows", "negotiation_threads",
-      "negotiation_lots", "awarded_program", "demand_targets",
+      "negotiation_lots", "awarded_program", "demand_targets", "rfps",
     ];
     await Promise.all(tables.map((tbl) => supabase.from(tbl).delete().eq("client_tenant_id", t)));
     return { ok: true };
