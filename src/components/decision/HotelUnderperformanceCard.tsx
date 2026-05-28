@@ -148,15 +148,55 @@ export function HotelUnderperformanceCard({ window }: Props) {
   const handleIgnore = async (row: UnderperformanceRow) => {
     if (!clientTenantId) return;
     const sig = underperformanceSignature(periodLabel, row);
-    const persisted = persistedBySig.get(sig);
-    if (!persisted) {
-      toast.success("Linha ignorada.");
-      return;
-    }
     setBusySig(sig);
     try {
-      await setAlertStatus(persisted.id, "dismissed");
-      toast.success("Alerta arquivado.");
+      await upsertDerivedAlerts(clientTenantId, [
+        {
+          signature: sig,
+          type: "HOTEL_UNDERPERFORMANCE",
+          severity: row.severity,
+          title: `Underperformance — ${row.hotel} (${row.utilizationPct.toFixed(0)}% do esperado)`,
+          description: `${row.city} · ${row.actualRn.toLocaleString("pt-BR")} de ${Math.round(row.expectedRn).toLocaleString("pt-BR")} RN · gap de ${fmtUsd(row.estimatedMissedSpend)}`,
+          impactedCity: row.city,
+          impactedHotel: row.hotel,
+          financialImpact: row.estimatedMissedSpend,
+          metadata: {
+            expectedRn: row.expectedRn,
+            actualRn: row.actualRn,
+            gapRn: row.gapRn,
+            utilizationPct: row.utilizationPct,
+            bookings: row.bookings,
+            negotiatedAdr: row.negotiatedAdr,
+            estimatedMissedSpend: row.estimatedMissedSpend,
+            suspectedCauses: row.suspectedCauses,
+            expectedSource: row.expectedSource,
+            periodLabel,
+          },
+        },
+      ]);
+      const persisted = useDecisionStore.getState().alerts.find((a) => a.signature === sig);
+      if (persisted) {
+        await createAction({
+          clientTenantId,
+          alertId: persisted.id,
+          type: "IGNORE",
+          status: "IGNORED",
+          payload: {
+            hotel: row.hotel,
+            city: row.city,
+            estimatedMissedSpend: row.estimatedMissedSpend,
+            periodLabel,
+            reason: "Ignorado pelo usuário a partir do Decision Center",
+          },
+        });
+        await setAlertStatus(persisted.id, "dismissed");
+        toast.success("Ignorado — registrado na Watchlist para auditoria.");
+      } else {
+        toast.success("Linha ignorada.");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Falha ao ignorar alerta.");
     } finally {
       setBusySig(null);
     }
