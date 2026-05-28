@@ -115,6 +115,38 @@ export function useAwardedProgram(tenantId: string | null | undefined) {
     enabled: !!tenantId,
   });
 }
+
+// Adapter for legacy components expecting the `AwardedHotel` shape.
+export interface AwardedHotelView {
+  id: string; hotel: string; brand: string; city: string;
+  tier: "Luxury" | "Upscale" | "Midscale" | "Economy";
+  finalAdr: number; cap: number; startingAdr: number; roomNights: number;
+  qualityScore: number; compliance: number; amenities: string[];
+  cancellationHours: number; contractStart: string; contractEnd: string;
+  status: "primary" | "backup";
+}
+export function useAwardedHotels(tenantId: string | null | undefined) {
+  const q = useAwardedProgram(tenantId);
+  const rows: AwardedHotelView[] = (q.data ?? []).map((r) => ({
+    id: r.id,
+    hotel: r.hotel_name,
+    brand: r.brand ?? "",
+    city: r.city,
+    tier: (r.tier as AwardedHotelView["tier"]) ?? "Midscale",
+    finalAdr: Number(r.final_adr) || 0,
+    cap: Number(r.cap) || 0,
+    startingAdr: Number(r.starting_adr) || 0,
+    roomNights: Number(r.room_nights) || 0,
+    qualityScore: Number(r.quality_score) || 0,
+    compliance: Number(r.compliance_pct) || 0,
+    amenities: r.amenities ?? [],
+    cancellationHours: r.cancellation_hours ?? 24,
+    contractStart: r.contract_start ?? "",
+    contractEnd: r.contract_end ?? "",
+    status: r.status,
+  }));
+  return { ...q, rows };
+}
 export function useDemandTargets(tenantId: string | null | undefined) {
   return useQuery({
     queryKey: makeKey("demand_targets", tenantId),
