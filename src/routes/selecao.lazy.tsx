@@ -72,7 +72,7 @@ function SelecaoPage() {
 
       <div className="space-y-6">
         <AwardedMatrix />
-        <CoverageMap />
+        <CoverageMap awarded={AWARDED} targetsByCity={targetsByCity} />
       </div>
     </AppShell>
   );
