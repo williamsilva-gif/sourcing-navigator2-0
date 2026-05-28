@@ -20,6 +20,7 @@ import { useBaselineStore, selectKpis } from "@/lib/baselineStore";
 import { useClientsStore } from "@/lib/clientsStore";
 import { WatchlistPanel } from "@/components/decision/WatchlistPanel";
 import { AdrVarianceCard } from "@/components/decision/AdrVarianceCard";
+import { SmartLeakageCard } from "@/components/decision/SmartLeakageCard";
 import { useDecisionHydration } from "@/hooks/useDecisionHydration";
 import { useDecisionStore } from "@/lib/decisionStore";
 import {
@@ -276,6 +277,10 @@ function DashboardPage() {
         <CriticalAlerts onViewRecommendation={openByOpportunityId} />
 
         <AdrVarianceCard window={currentWindow} />
+
+        <SmartLeakageCard window={currentWindow} />
+
+
 
 
         <Rfp2026Plan />
