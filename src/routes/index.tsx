@@ -275,6 +275,9 @@ function DashboardPage() {
       <div className="mt-6 space-y-6">
         <CriticalAlerts onViewRecommendation={openByOpportunityId} />
 
+        <AdrVarianceCard window={currentWindow} />
+
+
         <Rfp2026Plan />
 
         <OpportunitiesList onTakeAction={openOpportunity} />
