@@ -42,8 +42,8 @@ interface NegotiationKanbanProps {
 export function NegotiationKanban({ initialCards, onStageChange }: NegotiationKanbanProps = {}) {
   const [cards, setCards] = useState<NegotiationCard[]>(initialCards && initialCards.length > 0 ? initialCards : NEGOTIATIONS);
   // Re-sync when parent provides a new dataset (tenant switch)
-  const initSig = (initialCards ?? []).map((c) => c.id).join("|");
-  useMemo(() => {
+  const initSig = (initialCards ?? []).map((c) => `${c.id}:${c.stage}`).join("|");
+  useEffect(() => {
     if (initialCards && initialCards.length > 0) setCards(initialCards);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initSig]);
