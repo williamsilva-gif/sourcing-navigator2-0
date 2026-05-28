@@ -46,9 +46,12 @@ export function WatchlistItemDetail({ actionId, onClose, clientTenantId }: Props
   const alert = useDecisionStore((s) =>
     action?.alert_id ? s.alerts.find((al) => al.id === action.alert_id) ?? null : null,
   );
-  const followUps = useDecisionStore((s) => (actionId ? s.followUpsByAction[actionId] ?? [] : []));
-  const comments = useDecisionStore((s) => (actionId ? s.commentsByAction[actionId] ?? [] : []));
-  const attachments = useDecisionStore((s) => (actionId ? s.attachmentsByAction[actionId] ?? [] : []));
+  const followUpsRaw = useDecisionStore((s) => (actionId ? s.followUpsByAction[actionId] : undefined));
+  const commentsRaw = useDecisionStore((s) => (actionId ? s.commentsByAction[actionId] : undefined));
+  const attachmentsRaw = useDecisionStore((s) => (actionId ? s.attachmentsByAction[actionId] : undefined));
+  const followUps = useMemo(() => followUpsRaw ?? EMPTY_FOLLOWUPS, [followUpsRaw]);
+  const comments = useMemo(() => commentsRaw ?? EMPTY_COMMENTS, [commentsRaw]);
+  const attachments = useMemo(() => attachmentsRaw ?? EMPTY_ATTACHMENTS, [attachmentsRaw]);
 
   const loadFollowUps = useDecisionStore((s) => s.loadFollowUps);
   const loadComments = useDecisionStore((s) => s.loadComments);
