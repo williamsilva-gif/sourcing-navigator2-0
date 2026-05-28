@@ -20,7 +20,9 @@ import {
   Calendar,
   GitCompare,
 } from "lucide-react";
-import { RFP_ROWS, type RfpRow, type RfpStatus } from "./rfpData";
+import type { RfpRow, RfpStatus } from "./rfpData";
+import { useRfpComparisonRows } from "@/lib/demoRepos";
+import { useClientsStore } from "@/lib/clientsStore";
 import { RfpCompareModal } from "./RfpCompareModal";
 import { cn } from "@/lib/utils";
 
@@ -87,7 +89,10 @@ export function RfpComparisonTable() {
   const [showFilters, setShowFilters] = useState(false);
   const [compareOpen, setCompareOpen] = useState(false);
 
-  const cities = useMemo(() => [...new Set(RFP_ROWS.map((r) => r.city))].sort(), []);
+  const tenantId = useClientsStore((s) => s.selectedClientId);
+  const { rows: RFP_ROWS } = useRfpComparisonRows(tenantId);
+
+  const cities = useMemo<string[]>(() => [...new Set(RFP_ROWS.map((r) => r.city))].sort(), [RFP_ROWS]);
 
   const filtered = useMemo(() => {
     return RFP_ROWS.filter((r) => {
@@ -105,7 +110,7 @@ export function RfpComparisonTable() {
       if (cityFilter && r.city !== cityFilter) return false;
       return true;
     });
-  }, [search, tierFilter, statusFilter, cityFilter]);
+  }, [RFP_ROWS, search, tierFilter, statusFilter, cityFilter]);
 
   const sorted = useMemo(() => {
     const arr = [...filtered];
@@ -193,7 +198,7 @@ export function RfpComparisonTable() {
 
   const selectedRows = useMemo(
     () => RFP_ROWS.filter((r) => selected.has(r.id)),
-    [selected],
+    [RFP_ROWS, selected],
   );
   const canCompare = selectedRows.length >= 2 && selectedRows.length <= 4;
 

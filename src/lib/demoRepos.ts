@@ -154,3 +154,84 @@ export function useDemandTargets(tenantId: string | null | undefined) {
     enabled: !!tenantId,
   });
 }
+
+// Adapter that maps DB analysis rows + awarded program to the legacy `RfpRow`
+// shape consumed by RfpComparisonTable / RfpCompareModal.
+export interface RfpRowView {
+  id: string;
+  hotel: string;
+  brand: string;
+  city: string;
+  tier: "Luxury" | "Upscale" | "Midscale" | "Economy";
+  adr: number;
+  cap: number;
+  variation: number;
+  roomNights: number;
+  spend: number;
+  breakfast: boolean;
+  wifi: boolean;
+  cancellation: number;
+  lra: boolean;
+  scoreCommercial: number;
+  scoreCompliance: number;
+  scoreLocation: number;
+  scoreTotal: number;
+  status: "approved" | "negotiation" | "rejected" | "pending";
+  responseDate: string;
+  contact: string;
+  notes: string;
+}
+export function useRfpComparisonRows(tenantId: string | null | undefined) {
+  const analysis = useRfpAnalysis(tenantId);
+  const awarded = useAwardedProgram(tenantId);
+  const awardedByHotel = new Map<string, AwardedRow>();
+  (awarded.data ?? []).forEach((a) => awardedByHotel.set(a.hotel_name, a));
+
+  const rows: RfpRowView[] = (analysis.data ?? []).map((a) => {
+    const aw = awardedByHotel.get(a.hotel_name);
+    const adr = Number(a.proposed_adr) || 0;
+    const cap = aw ? Number(aw.cap) : Math.round(adr * 1.05);
+    const variation = cap > 0 ? ((adr - cap) / cap) * 100 : 0;
+    const rn = aw ? Number(aw.room_nights) : 500;
+    const amenities = a.amenities ?? aw?.amenities ?? [];
+    const scoreCommercial = Math.max(0, Math.min(100, Math.round(50 + a.savings_pct * 4)));
+    const scoreCompliance = Math.round(a.compliance_pct);
+    const scoreLocation = Math.round(a.quality_score);
+    const scoreTotal = Math.round(
+      scoreCommercial * 0.5 + scoreCompliance * 0.3 + scoreLocation * 0.2,
+    );
+    const status: RfpRowView["status"] =
+      a.recommendation === "approve" ? "approved" :
+      a.recommendation === "negotiate" ? "negotiation" :
+      a.recommendation === "reject" ? "rejected" : "pending";
+    return {
+      id: a.id,
+      hotel: a.hotel_name,
+      brand: aw?.brand ?? a.hotel_name.split(/[\s-]+/)[0] ?? "",
+      city: a.city,
+      tier: (aw?.tier as RfpRowView["tier"]) ?? "Midscale",
+      adr,
+      cap,
+      variation,
+      roomNights: rn,
+      spend: adr * rn,
+      breakfast: amenities.includes("breakfast"),
+      wifi: amenities.includes("wifi"),
+      cancellation: aw?.cancellation_hours ?? 24,
+      lra: amenities.includes("lra"),
+      scoreCommercial,
+      scoreCompliance,
+      scoreLocation,
+      scoreTotal,
+      status,
+      responseDate: "",
+      contact: "",
+      notes: a.notes ?? "",
+    };
+  });
+  return {
+    rows,
+    isLoading: analysis.isLoading || awarded.isLoading,
+    error: analysis.error || awarded.error,
+  };
+}

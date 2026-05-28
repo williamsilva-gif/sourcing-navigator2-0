@@ -114,6 +114,26 @@ export const seedDemoDataFn = createServerFn({ method: "POST" })
     const selected = shuffled.slice(0, Math.min(20, Math.max(12, Math.floor(shuffled.length * 0.6))));
 
     // 3. Wipe existing demo rows for this tenant (idempotent reseed)
+    // rfps cascade: read existing rfp ids, delete invitations + responses, then rfps.
+    const supabaseAny = supabase as unknown as {
+      from: (t: string) => {
+        select: (cols: string) => {
+          eq: (col: string, val: string) => Promise<{ data: Array<{ id: string }> | null; error: { message: string } | null }>;
+          in: (col: string, vals: string[]) => Promise<{ data: unknown[] | null; error: { message: string } | null }>;
+        };
+        delete: () => {
+          eq: (col: string, val: string) => Promise<{ error: { message: string } | null }>;
+          in: (col: string, vals: string[]) => Promise<{ error: { message: string } | null }>;
+        };
+        insert: (rows: unknown) => Promise<{ error: { message: string } | null }>;
+      };
+    };
+    const { data: existingRfps } = await supabaseAny.from("rfps").select("id").eq("client_tenant_id", tenantId);
+    const existingRfpIds = (existingRfps ?? []).map((r) => r.id);
+    if (existingRfpIds.length > 0) {
+      await supabaseAny.from("rfp_responses").delete().in("rfp_id", existingRfpIds);
+      await supabaseAny.from("rfp_invitations").delete().in("rfp_id", existingRfpIds);
+    }
     await Promise.all([
       supabase.from("bookings").delete().eq("client_tenant_id", tenantId),
       supabase.from("baseline_contracts").delete().eq("client_tenant_id", tenantId),
@@ -125,6 +145,7 @@ export const seedDemoDataFn = createServerFn({ method: "POST" })
       supabase.from("negotiation_lots").delete().eq("client_tenant_id", tenantId),
       supabase.from("awarded_program").delete().eq("client_tenant_id", tenantId),
       supabase.from("demand_targets").delete().eq("client_tenant_id", tenantId),
+      supabaseAny.from("rfps").delete().eq("client_tenant_id", tenantId),
     ]);
 
     // Assign tier & base ADR to each selected hotel
@@ -286,7 +307,93 @@ export const seedDemoDataFn = createServerFn({ method: "POST" })
       if (error) throw new Error(`demand_targets: ${error.message}`);
     }
 
-    // 8. RFP ANALYSIS (compare responses): one row per hotel
+    // 8. RFP PROGRAMS — two cycles: one "Em análise" (closed responses), one "Em distribuição" (open).
+    const allCities = Array.from(cityGroups.keys());
+    const analysisRfpId = crypto.randomUUID();
+    const distributionRfpId = crypto.randomUUID();
+    const rfpRows = [
+      {
+        id: analysisRfpId,
+        client_tenant_id: tenantId,
+        name: `RFP ${tenant.name} 2026 — Programa Anual`,
+        status: "Em análise",
+        deadline: "2026-02-28",
+        pois: [],
+        metadata: {
+          cycle: "2026",
+          briefing: "Programa anual corporativo — top cidades.",
+          cities: allCities.slice(0, 6),
+          requirements: ["req-1", "req-2", "req-3", "req-7"],
+          questions: { rates: true, inclusions: true, policies: true },
+          openDate: "2025-11-01",
+          hotelStrategy: "preferred",
+        },
+      },
+      {
+        id: distributionRfpId,
+        client_tenant_id: tenantId,
+        name: `Mini-RFP ${allCities[0] ?? "Capitais"} Q2/2026`,
+        status: "Em distribuição",
+        deadline: "2026-04-30",
+        pois: [],
+        metadata: {
+          cycle: "2026-Q2",
+          briefing: "Cobertura tática.",
+          cities: allCities.slice(0, 2),
+          requirements: ["req-1", "req-3"],
+          questions: { rates: true },
+          openDate: "2026-02-15",
+          hotelStrategy: "open",
+        },
+      },
+    ];
+    {
+      const { error } = await supabaseAny.from("rfps").insert(rfpRows as never);
+      if (error) throw new Error(`rfps: ${error.message}`);
+    }
+
+    // 9. RFP INVITATIONS + responses — invitations for both RFPs, responses only for the "Em análise".
+    const invitationRows: Array<Record<string, unknown>> = [];
+    const responseRows: Array<Record<string, unknown>> = [];
+    enriched.forEach((h, idx) => {
+      const r = rand();
+      const status = r > 0.75 ? "Submetido" : r > 0.45 ? "Em preenchimento" : "Não respondeu";
+      invitationRows.push({
+        rfp_id: analysisRfpId,
+        hotel_id: h.id,
+        status: status === "Submetido" ? "Submetido" : status,
+        deadline: "2026-02-28",
+      });
+      if (status === "Submetido") {
+        responseRows.push({
+          rfp_id: analysisRfpId,
+          hotel_id: h.id,
+          rates: {
+            adr: Math.round(h.baseAdr * (0.9 + rand() * 0.12)),
+            currency: "BRL",
+          },
+        });
+      }
+      // Second RFP: subset of hotels in the first city, all "Não respondeu" yet
+      if (idx < 6) {
+        invitationRows.push({
+          rfp_id: distributionRfpId,
+          hotel_id: h.id,
+          status: "Não respondeu",
+          deadline: "2026-04-30",
+        });
+      }
+    });
+    if (invitationRows.length > 0) {
+      const { error } = await supabaseAny.from("rfp_invitations").insert(invitationRows as never);
+      if (error) throw new Error(`rfp_invitations: ${error.message}`);
+    }
+    if (responseRows.length > 0) {
+      const { error } = await supabaseAny.from("rfp_responses").insert(responseRows as never);
+      if (error) throw new Error(`rfp_responses: ${error.message}`);
+    }
+
+    // 10. RFP ANALYSIS rows (per hotel for the "Em análise" RFP)
     const analysisRows = enriched.map((h) => {
       const current = h.baseAdr;
       const proposed = Math.round(current * (0.88 + rand() * 0.18));
@@ -299,7 +406,7 @@ export const seedDemoDataFn = createServerFn({ method: "POST" })
         savingsPct < 0 ? "reject" : "review";
       return {
         client_tenant_id: tenantId,
-        rfp_id: null,
+        rfp_id: analysisRfpId,
         hotel_name: h.name,
         city: h.city,
         current_adr: current,
@@ -407,6 +514,9 @@ export const seedDemoDataFn = createServerFn({ method: "POST" })
       tiers: tierRows.length,
       caps: capRows.length,
       clusters: clusterRows.length,
+      rfps: rfpRows.length,
+      invitations: invitationRows.length,
+      responses: responseRows.length,
       analysisRows: analysisRows.length,
       lots: lots.length,
       threads: threads.length,
@@ -421,13 +531,25 @@ export const wipeDemoDataFn = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => z.object({ clientTenantId: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     const supabase = context.supabase as unknown as {
-      from: (t: string) => { delete: () => { eq: (col: string, val: string) => Promise<{ error: { message: string } | null }> } };
+      from: (t: string) => {
+        select: (cols: string) => { eq: (col: string, val: string) => Promise<{ data: Array<{ id: string }> | null; error: { message: string } | null }> };
+        delete: () => {
+          eq: (col: string, val: string) => Promise<{ error: { message: string } | null }>;
+          in: (col: string, vals: string[]) => Promise<{ error: { message: string } | null }>;
+        };
+      };
     };
     const t = data.clientTenantId;
+    const { data: existingRfps } = await supabase.from("rfps").select("id").eq("client_tenant_id", t);
+    const rfpIds = (existingRfps ?? []).map((r) => r.id);
+    if (rfpIds.length > 0) {
+      await supabase.from("rfp_responses").delete().in("rfp_id", rfpIds);
+      await supabase.from("rfp_invitations").delete().in("rfp_id", rfpIds);
+    }
     const tables = [
       "bookings", "baseline_contracts", "strategy_tiers", "strategy_caps",
       "strategy_clusters", "rfp_analysis_rows", "negotiation_threads",
-      "negotiation_lots", "awarded_program", "demand_targets",
+      "negotiation_lots", "awarded_program", "demand_targets", "rfps",
     ];
     await Promise.all(tables.map((tbl) => supabase.from(tbl).delete().eq("client_tenant_id", t)));
     return { ok: true };
