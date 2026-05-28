@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { enforceRateLimit, getClientIp } from "./rate-limit.server";
 import type { Database, Json } from "@/integrations/supabase/types";
 
 // ----- Shared types -----
