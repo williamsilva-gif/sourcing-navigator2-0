@@ -293,6 +293,12 @@ function DashboardPage() {
         open={modalOpen}
         onOpenChange={setModalOpen}
       />
+
+      <WatchlistPanel
+        open={watchlistOpen}
+        onOpenChange={setWatchlistOpen}
+        clientTenantId={clientTenantId}
+      />
     </AppShell>
   );
 }
