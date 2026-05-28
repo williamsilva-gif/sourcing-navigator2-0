@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
-import { DollarSign, TrendingUp, Activity, AlertTriangle, RefreshCw, Loader2 } from "lucide-react";
+import { DollarSign, TrendingUp, Activity, AlertTriangle, RefreshCw, Loader2, Bell } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/AppShell";
 import { KpiCard } from "@/components/dashboard/KpiCard";
@@ -17,6 +17,10 @@ import { useAuth, getPrimaryRole, landingForRole } from "@/hooks/useAuth";
 import { PeriodSelector } from "@/components/common/PeriodSelector";
 import { Rfp2026Plan } from "@/components/dashboard/Rfp2026Plan";
 import { useBaselineStore, selectKpis } from "@/lib/baselineStore";
+import { useClientsStore } from "@/lib/clientsStore";
+import { WatchlistPanel } from "@/components/decision/WatchlistPanel";
+import { useDecisionHydration } from "@/hooks/useDecisionHydration";
+import { useDecisionStore } from "@/lib/decisionStore";
 import {
   defaultPeriod,
   filterByWindow,
@@ -83,10 +87,21 @@ function DashboardPage() {
 
   const [selectedOpp, setSelectedOpp] = useState<Opportunity | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
-  const { opportunities, source } = useDecisionData(currentWindow);
+  const [watchlistOpen, setWatchlistOpen] = useState(false);
+  const { alerts: derivedAlerts, opportunities, source } = useDecisionData(currentWindow);
   const evaluate = useSnapshotStore((s) => s.evaluate);
   const evaluatedAt = useSnapshotStore((s) => s.evaluatedAt);
   const current = useSnapshotStore((s) => s.current);
+
+  // Decision Center: hydrate persisted state + sync derived alerts
+  const clientTenantId = useClientsStore((s) => s.selectedClientId) || null;
+  useDecisionHydration(clientTenantId, derivedAlerts);
+  const openWatchlistCount = useDecisionStore((s) => {
+    const openActionIds = new Set(
+      s.actions.filter((a) => a.status !== "COMPLETED" && a.status !== "IGNORED").map((a) => a.id),
+    );
+    return s.watchlist.filter((w) => openActionIds.has(w.action_id)).length;
+  });
 
   // Route guard: redirect by role once session is restored.
   useEffect(() => {
@@ -196,6 +211,18 @@ function DashboardPage() {
             onChange={(next) => navigate({ search: () => ({ grain: next.grain, period: next.period }) })}
           />
           <button
+            onClick={() => setWatchlistOpen(true)}
+            className="relative flex h-10 items-center gap-2 rounded-md border border-input bg-card px-3 text-sm font-medium text-foreground transition-colors hover:border-primary/40"
+          >
+            <Bell className="h-4 w-4 text-muted-foreground" />
+            Watchlist
+            {openWatchlistCount > 0 && (
+              <span className="ml-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground">
+                {openWatchlistCount}
+              </span>
+            )}
+          </button>
+          <button
             onClick={handleReevaluate}
             className="flex h-10 items-center gap-2 rounded-md border border-input bg-card px-3 text-sm font-medium text-foreground transition-colors hover:border-primary/40"
           >
@@ -265,6 +292,12 @@ function DashboardPage() {
         opportunity={selectedOpp}
         open={modalOpen}
         onOpenChange={setModalOpen}
+      />
+
+      <WatchlistPanel
+        open={watchlistOpen}
+        onOpenChange={setWatchlistOpen}
+        clientTenantId={clientTenantId}
       />
     </AppShell>
   );

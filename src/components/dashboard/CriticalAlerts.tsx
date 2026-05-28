@@ -1,7 +1,10 @@
-import { useMemo } from "react";
-import { AlertTriangle, AlertCircle, Info, ArrowRight, Sparkles } from "lucide-react";
+import { useMemo, useState } from "react";
+import { AlertTriangle, AlertCircle, Info, ArrowRight, Sparkles, Send, Check } from "lucide-react";
 import { useDecisionData, type Severity, type CriticalAlert } from "./decisionData";
 import { useSnapshotStore, deltaForAlert } from "@/lib/snapshotStore";
+import { useDecisionStore } from "@/lib/decisionStore";
+import { useClientsStore } from "@/lib/clientsStore";
+import { toast } from "sonner";
 
 interface Props {
   onViewRecommendation: (opportunityId?: string) => void;
@@ -35,6 +38,54 @@ export function CriticalAlerts({ onViewRecommendation }: Props) {
   const { alerts, source } = useDecisionData();
   const current = useSnapshotStore((s) => s.current);
   const previous = useSnapshotStore((s) => s.previous);
+  const clientTenantId = useClientsStore((s) => s.selectedClientId);
+  const persistedAlerts = useDecisionStore((s) => s.alerts);
+  const actions = useDecisionStore((s) => s.actions);
+  const createAction = useDecisionStore((s) => s.createAction);
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  // Map signature (=alert.id) → persisted alert id
+  const persistedBySig = useMemo(() => {
+    const m = new Map<string, string>();
+    persistedAlerts.forEach((a) => m.set(a.signature, a.id));
+    return m;
+  }, [persistedAlerts]);
+
+  // Open actions per persisted alert id
+  const hasOpenActionForAlert = useMemo(() => {
+    const set = new Set<string>();
+    actions.forEach((a) => {
+      if (a.alert_id && a.status !== "COMPLETED" && a.status !== "IGNORED") set.add(a.alert_id);
+    });
+    return set;
+  }, [actions]);
+
+  const handleAddToWatchlist = async (alert: CriticalAlert) => {
+    if (!clientTenantId) {
+      toast.error("Selecione um cliente para usar a Watchlist.");
+      return;
+    }
+    const persistedId = persistedBySig.get(alert.id);
+    if (!persistedId) {
+      toast.error("Alerta ainda não foi persistido. Tente novamente em instantes.");
+      return;
+    }
+    setBusyId(alert.id);
+    try {
+      await createAction({
+        clientTenantId,
+        alertId: persistedId,
+        type: "SEND_ALERT",
+        status: "SENT",
+        payload: { metric: alert.metric, title: alert.title },
+      });
+      toast.success("Adicionado à Watchlist");
+    } catch {
+      toast.error("Falha ao adicionar à Watchlist");
+    } finally {
+      setBusyId(null);
+    }
+  };
 
   const sorted = useMemo(() => {
     const order = { high: 0, medium: 1, low: 2 } as const;
@@ -110,15 +161,35 @@ export function CriticalAlerts({ onViewRecommendation }: Props) {
                     {cfg.label}
                   </span>
                 </div>
-                <div className="flex items-center justify-between border-t border-border pt-3">
-                  <span className="text-xs font-medium text-foreground">{alert.metric}</span>
-                  <button
-                    onClick={() => onViewRecommendation(alert.opportunityId)}
-                    className="flex items-center gap-1 text-xs font-semibold text-primary hover:text-primary-hover"
-                  >
-                    Ver recomendação
-                    <ArrowRight className="h-3 w-3" />
-                  </button>
+                <div className="flex items-center justify-between gap-2 border-t border-border pt-3">
+                  <span className="truncate text-xs font-medium text-foreground">{alert.metric}</span>
+                  <div className="flex shrink-0 items-center gap-2">
+                    {(() => {
+                      const persistedId = persistedBySig.get(alert.id);
+                      const tracked = persistedId ? hasOpenActionForAlert.has(persistedId) : false;
+                      return tracked ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-success-soft px-2 py-0.5 text-[10px] font-semibold text-success">
+                          <Check className="h-3 w-3" /> Na Watchlist
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => handleAddToWatchlist(alert)}
+                          disabled={busyId === alert.id || !persistedId}
+                          className="flex items-center gap-1 rounded-md border border-input px-2 py-1 text-[11px] font-semibold text-foreground hover:border-primary/40 disabled:opacity-50"
+                        >
+                          <Send className="h-3 w-3" />
+                          Acompanhar
+                        </button>
+                      );
+                    })()}
+                    <button
+                      onClick={() => onViewRecommendation(alert.opportunityId)}
+                      className="flex items-center gap-1 text-xs font-semibold text-primary hover:text-primary-hover"
+                    >
+                      Ver recomendação
+                      <ArrowRight className="h-3 w-3" />
+                    </button>
+                  </div>
                 </div>
               </li>
             );
