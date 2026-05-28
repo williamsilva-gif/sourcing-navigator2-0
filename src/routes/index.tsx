@@ -21,6 +21,8 @@ import { useClientsStore } from "@/lib/clientsStore";
 import { WatchlistPanel } from "@/components/decision/WatchlistPanel";
 import { AdrVarianceCard } from "@/components/decision/AdrVarianceCard";
 import { SmartLeakageCard } from "@/components/decision/SmartLeakageCard";
+import { RateLoadingCard } from "@/components/decision/RateLoadingCard";
+import { HotelUnderperformanceCard } from "@/components/decision/HotelUnderperformanceCard";
 import { useDecisionHydration } from "@/hooks/useDecisionHydration";
 import { useDecisionStore } from "@/lib/decisionStore";
 import {
