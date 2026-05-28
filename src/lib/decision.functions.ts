@@ -99,11 +99,11 @@ export const upsertAlertsFn = createServerFn({ method: "POST" })
     const q = supabase
       .from("decision_alerts")
       .upsert(rows, { onConflict: "client_tenant_id,signature" }) as unknown as {
-        select: (c: string) => Promise<{ data: unknown[] | null; error: { message: string } | null }>;
+        select: (c: string) => Promise<{ data: Record<string, unknown>[] | null; error: { message: string } | null }>;
       };
     const { data: out, error } = await q.select("*");
     if (error) throw new Error(error.message);
-    return { ok: true, upserted: out?.length ?? 0, rows: out ?? [] };
+    return { ok: true, upserted: out?.length ?? 0, rows: (out ?? []) as Record<string, unknown>[] };
   });
 
 export const listAlertsFn = createServerFn({ method: "POST" })
@@ -120,13 +120,13 @@ export const listAlertsFn = createServerFn({ method: "POST" })
     const supabase = asAny(context.supabase);
     let q = supabase.from("decision_alerts").select("*") as unknown as {
       eq: (c: string, v: unknown) => typeof q;
-      order: (c: string, o: { ascending: boolean }) => Promise<{ data: unknown[] | null; error: { message: string } | null }>;
+      order: (c: string, o: { ascending: boolean }) => Promise<{ data: Record<string, unknown>[] | null; error: { message: string } | null }>;
     };
     q = q.eq("client_tenant_id", data.clientTenantId);
     if (data.status) q = q.eq("status", data.status);
     const { data: rows, error } = await q.order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
-    return rows ?? [];
+    return (rows ?? []) as Record<string, unknown>[];
   });
 
 export const setAlertStatusFn = createServerFn({ method: "POST" })
@@ -186,11 +186,11 @@ export const createDecisionActionFn = createServerFn({ method: "POST" })
       created_by: userId,
     };
     const q = supabase.from("decision_actions").insert(row) as unknown as {
-      select: (c: string) => { single: () => Promise<{ data: unknown; error: { message: string } | null }> };
+      select: (c: string) => { single: () => Promise<{ data: Record<string, unknown>; error: { message: string } | null }> };
     };
     const { data: out, error } = await q.select("*").single();
     if (error) throw new Error(error.message);
-    return out;
+    return out as Record<string, unknown>;
   });
 
 export const setActionStatusFn = createServerFn({ method: "POST" })
@@ -226,13 +226,13 @@ export const listActionsFn = createServerFn({ method: "POST" })
     const supabase = asAny(context.supabase);
     let q = supabase.from("decision_actions").select("*") as unknown as {
       eq: (c: string, v: unknown) => typeof q;
-      order: (c: string, o: { ascending: boolean }) => Promise<{ data: unknown[] | null; error: { message: string } | null }>;
+      order: (c: string, o: { ascending: boolean }) => Promise<{ data: Record<string, unknown>[] | null; error: { message: string } | null }>;
     };
     q = q.eq("client_tenant_id", data.clientTenantId);
     if (data.status) q = q.eq("status", data.status);
     const { data: rows, error } = await q.order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
-    return rows ?? [];
+    return (rows ?? []) as Record<string, unknown>[];
   });
 
 // ============================================================================
@@ -253,13 +253,13 @@ export const listWatchlistFn = createServerFn({ method: "POST" })
     const supabase = asAny(context.supabase);
     let q = supabase.from("decision_watchlist").select("*") as unknown as {
       eq: (c: string, v: unknown) => typeof q;
-      order: (c: string, o: { ascending: boolean }) => Promise<{ data: unknown[] | null; error: { message: string } | null }>;
+      order: (c: string, o: { ascending: boolean }) => Promise<{ data: Record<string, unknown>[] | null; error: { message: string } | null }>;
     };
     q = q.eq("client_tenant_id", data.clientTenantId);
     if (data.pinnedOnly) q = q.eq("pinned", true);
     const { data: rows, error } = await q.order("last_activity_at", { ascending: false });
     if (error) throw new Error(error.message);
-    return rows ?? [];
+    return (rows ?? []) as Record<string, unknown>[];
   });
 
 export const setWatchlistPinnedFn = createServerFn({ method: "POST" })
@@ -305,11 +305,11 @@ export const addFollowUpFn = createServerFn({ method: "POST" })
       created_by: context.userId,
     };
     const q = supabase.from("decision_followups").insert(row) as unknown as {
-      select: (c: string) => { single: () => Promise<{ data: unknown; error: { message: string } | null }> };
+      select: (c: string) => { single: () => Promise<{ data: Record<string, unknown>; error: { message: string } | null }> };
     };
     const { data: out, error } = await q.select("*").single();
     if (error) throw new Error(error.message);
-    return out;
+    return out as Record<string, unknown>;
   });
 
 export const completeFollowUpFn = createServerFn({ method: "POST" })
@@ -347,12 +347,12 @@ export const listFollowUpsFn = createServerFn({ method: "POST" })
     const supabase = asAny(context.supabase);
     const q = supabase.from("decision_followups").select("*") as unknown as {
       eq: (c: string, v: unknown) => {
-        order: (c: string, o: { ascending: boolean }) => Promise<{ data: unknown[] | null; error: { message: string } | null }>;
+        order: (c: string, o: { ascending: boolean }) => Promise<{ data: Record<string, unknown>[] | null; error: { message: string } | null }>;
       };
     };
     const { data: rows, error } = await q.eq("action_id", data.actionId).order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
-    return rows ?? [];
+    return (rows ?? []) as Record<string, unknown>[];
   });
 
 // ============================================================================
@@ -389,11 +389,11 @@ export const addCommentFn = createServerFn({ method: "POST" })
       author_id: userId,
     };
     const q = supabase.from("decision_comments").insert(row) as unknown as {
-      select: (c: string) => { single: () => Promise<{ data: unknown; error: { message: string } | null }> };
+      select: (c: string) => { single: () => Promise<{ data: Record<string, unknown>; error: { message: string } | null }> };
     };
     const { data: out, error } = await q.select("*").single();
     if (error) throw new Error(error.message);
-    return out;
+    return out as Record<string, unknown>;
   });
 
 export const listCommentsFn = createServerFn({ method: "POST" })
@@ -411,14 +411,14 @@ export const listCommentsFn = createServerFn({ method: "POST" })
     const supabase = asAny(context.supabase);
     const q = supabase.from("decision_comments").select("*") as unknown as {
       eq: (c: string, v: unknown) => {
-        order: (c: string, o: { ascending: boolean }) => Promise<{ data: unknown[] | null; error: { message: string } | null }>;
+        order: (c: string, o: { ascending: boolean }) => Promise<{ data: Record<string, unknown>[] | null; error: { message: string } | null }>;
       };
     };
     const filterCol = data.actionId ? "action_id" : "alert_id";
     const filterVal = data.actionId ?? data.alertId;
     const { data: rows, error } = await q.eq(filterCol, filterVal).order("created_at", { ascending: true });
     if (error) throw new Error(error.message);
-    return rows ?? [];
+    return (rows ?? []) as Record<string, unknown>[];
   });
 
 // ============================================================================
@@ -474,11 +474,11 @@ export const recordAttachmentFn = createServerFn({ method: "POST" })
       uploaded_by: context.userId,
     };
     const q = supabase.from("decision_attachments").insert(row) as unknown as {
-      select: (c: string) => { single: () => Promise<{ data: unknown; error: { message: string } | null }> };
+      select: (c: string) => { single: () => Promise<{ data: Record<string, unknown>; error: { message: string } | null }> };
     };
     const { data: out, error } = await q.select("*").single();
     if (error) throw new Error(error.message);
-    return out;
+    return out as Record<string, unknown>;
   });
 
 export const listAttachmentsFn = createServerFn({ method: "POST" })
@@ -490,10 +490,10 @@ export const listAttachmentsFn = createServerFn({ method: "POST" })
     const supabase = asAny(context.supabase);
     const q = supabase.from("decision_attachments").select("*") as unknown as {
       eq: (c: string, v: unknown) => {
-        order: (c: string, o: { ascending: boolean }) => Promise<{ data: unknown[] | null; error: { message: string } | null }>;
+        order: (c: string, o: { ascending: boolean }) => Promise<{ data: Record<string, unknown>[] | null; error: { message: string } | null }>;
       };
     };
     const { data: rows, error } = await q.eq("action_id", data.actionId).order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
-    return rows ?? [];
+    return (rows ?? []) as Record<string, unknown>[];
   });
