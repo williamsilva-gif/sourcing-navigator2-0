@@ -324,6 +324,252 @@ export type Database = {
         }
         Relationships: []
       }
+      decision_actions: {
+        Row: {
+          alert_id: string | null
+          assigned_to: string | null
+          client_tenant_id: string
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          email_recipients: string[] | null
+          id: string
+          payload: Json
+          status: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          alert_id?: string | null
+          assigned_to?: string | null
+          client_tenant_id: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          email_recipients?: string[] | null
+          id?: string
+          payload?: Json
+          status?: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          alert_id?: string | null
+          assigned_to?: string | null
+          client_tenant_id?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          email_recipients?: string[] | null
+          id?: string
+          payload?: Json
+          status?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      decision_alerts: {
+        Row: {
+          client_tenant_id: string
+          completed_at: string | null
+          created_at: string
+          description: string
+          dismissed_at: string | null
+          financial_impact: number
+          id: string
+          impacted_city: string | null
+          impacted_hotel: string | null
+          metadata: Json
+          severity: string
+          signature: string
+          status: string
+          title: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          client_tenant_id: string
+          completed_at?: string | null
+          created_at?: string
+          description?: string
+          dismissed_at?: string | null
+          financial_impact?: number
+          id?: string
+          impacted_city?: string | null
+          impacted_hotel?: string | null
+          metadata?: Json
+          severity: string
+          signature: string
+          status?: string
+          title: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          client_tenant_id?: string
+          completed_at?: string | null
+          created_at?: string
+          description?: string
+          dismissed_at?: string | null
+          financial_impact?: number
+          id?: string
+          impacted_city?: string | null
+          impacted_hotel?: string | null
+          metadata?: Json
+          severity?: string
+          signature?: string
+          status?: string
+          title?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      decision_attachments: {
+        Row: {
+          action_id: string
+          client_tenant_id: string
+          created_at: string
+          filename: string
+          id: string
+          mime_type: string | null
+          size_bytes: number
+          storage_path: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          action_id: string
+          client_tenant_id: string
+          created_at?: string
+          filename: string
+          id?: string
+          mime_type?: string | null
+          size_bytes?: number
+          storage_path: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          action_id?: string
+          client_tenant_id?: string
+          created_at?: string
+          filename?: string
+          id?: string
+          mime_type?: string | null
+          size_bytes?: number
+          storage_path?: string
+          uploaded_by?: string | null
+        }
+        Relationships: []
+      }
+      decision_comments: {
+        Row: {
+          action_id: string | null
+          alert_id: string | null
+          author_id: string | null
+          body: string
+          client_tenant_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          action_id?: string | null
+          alert_id?: string | null
+          author_id?: string | null
+          body: string
+          client_tenant_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          action_id?: string | null
+          alert_id?: string | null
+          author_id?: string | null
+          body?: string
+          client_tenant_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      decision_followups: {
+        Row: {
+          action_id: string
+          client_tenant_id: string
+          created_at: string
+          created_by: string | null
+          executed_at: string | null
+          id: string
+          kind: string
+          notes: string
+          outcome: string
+          scheduled_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          action_id: string
+          client_tenant_id: string
+          created_at?: string
+          created_by?: string | null
+          executed_at?: string | null
+          id?: string
+          kind: string
+          notes?: string
+          outcome?: string
+          scheduled_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          action_id?: string
+          client_tenant_id?: string
+          created_at?: string
+          created_by?: string | null
+          executed_at?: string | null
+          id?: string
+          kind?: string
+          notes?: string
+          outcome?: string
+          scheduled_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      decision_watchlist: {
+        Row: {
+          action_id: string
+          client_tenant_id: string
+          created_at: string
+          due_at: string | null
+          id: string
+          last_activity_at: string
+          pinned: boolean
+          summary: string
+          updated_at: string
+        }
+        Insert: {
+          action_id: string
+          client_tenant_id: string
+          created_at?: string
+          due_at?: string | null
+          id?: string
+          last_activity_at?: string
+          pinned?: boolean
+          summary?: string
+          updated_at?: string
+        }
+        Update: {
+          action_id?: string
+          client_tenant_id?: string
+          created_at?: string
+          due_at?: string | null
+          id?: string
+          last_activity_at?: string
+          pinned?: boolean
+          summary?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       hotel_members: {
         Row: {
           created_at: string
