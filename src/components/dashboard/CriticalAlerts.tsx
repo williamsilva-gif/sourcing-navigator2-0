@@ -161,15 +161,35 @@ export function CriticalAlerts({ onViewRecommendation }: Props) {
                     {cfg.label}
                   </span>
                 </div>
-                <div className="flex items-center justify-between border-t border-border pt-3">
-                  <span className="text-xs font-medium text-foreground">{alert.metric}</span>
-                  <button
-                    onClick={() => onViewRecommendation(alert.opportunityId)}
-                    className="flex items-center gap-1 text-xs font-semibold text-primary hover:text-primary-hover"
-                  >
-                    Ver recomendação
-                    <ArrowRight className="h-3 w-3" />
-                  </button>
+                <div className="flex items-center justify-between gap-2 border-t border-border pt-3">
+                  <span className="truncate text-xs font-medium text-foreground">{alert.metric}</span>
+                  <div className="flex shrink-0 items-center gap-2">
+                    {(() => {
+                      const persistedId = persistedBySig.get(alert.id);
+                      const tracked = persistedId ? hasOpenActionForAlert.has(persistedId) : false;
+                      return tracked ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-success-soft px-2 py-0.5 text-[10px] font-semibold text-success">
+                          <Check className="h-3 w-3" /> Na Watchlist
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => handleAddToWatchlist(alert)}
+                          disabled={busyId === alert.id || !persistedId}
+                          className="flex items-center gap-1 rounded-md border border-input px-2 py-1 text-[11px] font-semibold text-foreground hover:border-primary/40 disabled:opacity-50"
+                        >
+                          <Send className="h-3 w-3" />
+                          Acompanhar
+                        </button>
+                      );
+                    })()}
+                    <button
+                      onClick={() => onViewRecommendation(alert.opportunityId)}
+                      className="flex items-center gap-1 text-xs font-semibold text-primary hover:text-primary-hover"
+                    >
+                      Ver recomendação
+                      <ArrowRight className="h-3 w-3" />
+                    </button>
+                  </div>
                 </div>
               </li>
             );
