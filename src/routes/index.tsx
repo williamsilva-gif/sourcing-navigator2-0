@@ -87,10 +87,21 @@ function DashboardPage() {
 
   const [selectedOpp, setSelectedOpp] = useState<Opportunity | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
-  const { opportunities, source } = useDecisionData(currentWindow);
+  const [watchlistOpen, setWatchlistOpen] = useState(false);
+  const { alerts: derivedAlerts, opportunities, source } = useDecisionData(currentWindow);
   const evaluate = useSnapshotStore((s) => s.evaluate);
   const evaluatedAt = useSnapshotStore((s) => s.evaluatedAt);
   const current = useSnapshotStore((s) => s.current);
+
+  // Decision Center: hydrate persisted state + sync derived alerts
+  const clientTenantId = useClientsStore((s) => s.selectedClientId) || null;
+  useDecisionHydration(clientTenantId, derivedAlerts);
+  const openWatchlistCount = useDecisionStore((s) => {
+    const openActionIds = new Set(
+      s.actions.filter((a) => a.status !== "COMPLETED" && a.status !== "IGNORED").map((a) => a.id),
+    );
+    return s.watchlist.filter((w) => openActionIds.has(w.action_id)).length;
+  });
 
   // Route guard: redirect by role once session is restored.
   useEffect(() => {
