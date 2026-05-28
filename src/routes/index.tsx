@@ -211,6 +211,18 @@ function DashboardPage() {
             onChange={(next) => navigate({ search: () => ({ grain: next.grain, period: next.period }) })}
           />
           <button
+            onClick={() => setWatchlistOpen(true)}
+            className="relative flex h-10 items-center gap-2 rounded-md border border-input bg-card px-3 text-sm font-medium text-foreground transition-colors hover:border-primary/40"
+          >
+            <Bell className="h-4 w-4 text-muted-foreground" />
+            Watchlist
+            {openWatchlistCount > 0 && (
+              <span className="ml-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground">
+                {openWatchlistCount}
+              </span>
+            )}
+          </button>
+          <button
             onClick={handleReevaluate}
             className="flex h-10 items-center gap-2 rounded-md border border-input bg-card px-3 text-sm font-medium text-foreground transition-colors hover:border-primary/40"
           >
