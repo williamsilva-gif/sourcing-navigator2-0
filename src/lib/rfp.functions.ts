@@ -72,7 +72,13 @@ export const createRfpFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => createRfpSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
+    const { supabase, userId } = context;
+    await enforceRateLimit({
+      bucket: "rfp:create",
+      key: `${data.clientTenantId}:${userId}`,
+      max: 10,
+      windowSeconds: 3600,
+    });
     const meta = {
       cycle: data.cycle,
       briefing: data.briefing,
