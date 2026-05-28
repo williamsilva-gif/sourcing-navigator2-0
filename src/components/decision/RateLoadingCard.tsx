@@ -148,15 +148,55 @@ export function RateLoadingCard({ window }: Props) {
   const handleIgnore = async (row: RateLoadingRow) => {
     if (!clientTenantId) return;
     const sig = rateLoadingSignature(periodLabel, row);
-    const persisted = persistedBySig.get(sig);
-    if (!persisted) {
-      toast.success("Linha ignorada.");
-      return;
-    }
     setBusySig(sig);
     try {
-      await setAlertStatus(persisted.id, "dismissed");
-      toast.success("Alerta arquivado.");
+      await upsertDerivedAlerts(clientTenantId, [
+        {
+          signature: sig,
+          type: "RATE_LOADING",
+          severity: row.severity,
+          title: `Falha de carregamento de tarifa — ${row.hotel}`,
+          description: `${row.city} · ${row.affectedBookings}/${row.totalBookings} reservas acima do negociado · ${row.causeLabel}`,
+          impactedCity: row.city,
+          impactedHotel: row.hotel,
+          financialImpact: row.estimatedLoss,
+          metadata: {
+            negotiatedAdr: row.negotiatedAdr,
+            realizedAdr: row.realizedAdr,
+            variancePct: row.variancePct,
+            affectedBookings: row.affectedBookings,
+            totalBookings: row.totalBookings,
+            affectedRn: row.affectedRn,
+            estimatedLoss: row.estimatedLoss,
+            suspectedCause: row.suspectedCause,
+            causeLabel: row.causeLabel,
+            periodLabel,
+          },
+        },
+      ]);
+      const persisted = useDecisionStore.getState().alerts.find((a) => a.signature === sig);
+      if (persisted) {
+        await createAction({
+          clientTenantId,
+          alertId: persisted.id,
+          type: "IGNORE",
+          status: "IGNORED",
+          payload: {
+            hotel: row.hotel,
+            city: row.city,
+            estimatedLoss: row.estimatedLoss,
+            periodLabel,
+            reason: "Ignorado pelo usuário a partir do Decision Center",
+          },
+        });
+        await setAlertStatus(persisted.id, "dismissed");
+        toast.success("Ignorado — registrado na Watchlist para auditoria.");
+      } else {
+        toast.success("Linha ignorada.");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Falha ao ignorar alerta.");
     } finally {
       setBusySig(null);
     }
