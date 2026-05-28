@@ -81,6 +81,7 @@ export function NegotiationKanban({ initialCards, onStageChange }: NegotiationKa
     const id = e.dataTransfer.getData("text/plain") || draggingId;
     if (!id) return;
     setCards((prev) => prev.map((c) => (c.id === id ? { ...c, stage } : c)));
+    onStageChange?.(id, stage);
     setDraggingId(null);
     setDragOverStage(null);
   }
