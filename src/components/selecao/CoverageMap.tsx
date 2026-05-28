@@ -14,14 +14,29 @@ interface CityRow {
   tiers: Set<string>;
 }
 
+interface AwardedLike {
+  city: string;
+  status: string;
+  roomNights: number;
+  finalAdr: number;
+  tier: string;
+}
+
+interface CoverageMapProps {
+  awarded?: AwardedLike[];
+  targetsByCity?: Record<string, number>;
+}
+
 function fmt$(n: number) { return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n ?? 0); }
 
-export function CoverageMap() {
+export function CoverageMap({ awarded, targetsByCity }: CoverageMapProps = {}) {
+  const source: AwardedLike[] = awarded && awarded.length > 0 ? awarded : (AWARDED as unknown as AwardedLike[]);
+  const targets = targetsByCity ?? DEMAND_TARGETS;
   const rows: CityRow[] = useMemo(() => {
     const map = new Map<string, CityRow>();
-    AWARDED.forEach((h) => {
+    source.forEach((h) => {
       const r = map.get(h.city) ?? {
-        city: h.city, hotels: 0, primaries: 0, nights: 0, target: DEMAND_TARGETS[h.city] ?? 0,
+        city: h.city, hotels: 0, primaries: 0, nights: 0, target: targets[h.city] ?? 0,
         coverage: 0, weightedAdr: 0, spend: 0, tiers: new Set<string>(),
       };
       r.hotels += 1;
@@ -34,9 +49,9 @@ export function CoverageMap() {
     return Array.from(map.values()).map((r) => ({
       ...r,
       coverage: r.target ? (r.nights / r.target) * 100 : 100,
-      weightedAdr: r.spend / r.nights,
+      weightedAdr: r.nights ? r.spend / r.nights : 0,
     })).sort((a, b) => b.nights - a.nights);
-  }, []);
+  }, [source, targets]);
 
   const maxCoverage = Math.max(...rows.map((r) => r.coverage), 100);
 
