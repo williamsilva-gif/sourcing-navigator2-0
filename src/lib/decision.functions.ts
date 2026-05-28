@@ -107,7 +107,7 @@ export const upsertAlertsFn = createServerFn({ method: "POST" })
       };
     const { data: out, error } = await q.select("*");
     if (error) throw new Error(error.message);
-    return { ok: true, upserted: out?.length ?? 0, rows: (out ?? []) as Record<string, unknown>[] };
+    return { ok: true as const, upserted: out?.length ?? 0, rows: (out ?? []) as unknown as JsonRow[] };
   });
 
 export const listAlertsFn = createServerFn({ method: "POST" })
