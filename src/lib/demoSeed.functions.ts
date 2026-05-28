@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 // Deterministic PRNG seeded by tenant id hash, so each client gets a stable
 // but distinct dataset (different cities, ADRs, compliance gaps, etc.).
@@ -389,7 +390,8 @@ export const seedDemoDataFn = createServerFn({ method: "POST" })
       if (error) throw new Error(`rfp_invitations: ${error.message}`);
     }
     if (responseRows.length > 0) {
-      const { error } = await supabaseAny.from("rfp_responses").insert(responseRows as never);
+      // Bypass RLS: rfp_responses requires hotel_member, which the seeding TA user is not.
+      const { error } = await supabaseAdmin.from("rfp_responses").insert(responseRows as never);
       if (error) throw new Error(`rfp_responses: ${error.message}`);
     }
 
