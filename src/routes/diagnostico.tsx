@@ -15,6 +15,9 @@ import { KpiCard } from "@/components/dashboard/KpiCard";
 import { CityHeatmap } from "@/components/diagnostico/CityHeatmap";
 import { AdrHistogram } from "@/components/diagnostico/AdrHistogram";
 import { DataIngestionPanel } from "@/components/diagnostico/DataIngestionPanel";
+import { OpportunitiesList } from "@/components/dashboard/OpportunitiesList";
+import { RecommendedActionsModal } from "@/components/dashboard/RecommendedActionsModal";
+import type { Opportunity } from "@/components/dashboard/decisionData";
 import { useBaselineStore, selectKpis } from "@/lib/baselineStore";
 
 export const Route = createFileRoute("/diagnostico")({
@@ -29,6 +32,8 @@ export const Route = createFileRoute("/diagnostico")({
 
 function DiagnosticoPage() {
   const [period, setPeriod] = useState<"30D" | "Trim" | "12M" | "YTD">("12M");
+  const [selectedOpp, setSelectedOpp] = useState<Opportunity | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
   const bookings = useBaselineStore((s) => s.bookings);
   const isLive = bookings.length > 0;
   const live = selectKpis(bookings);
@@ -131,7 +136,20 @@ function DiagnosticoPage() {
       <CityHeatmap />
 
       <AdrHistogram />
+
+      <OpportunitiesList
+        onTakeAction={(opp) => {
+          setSelectedOpp(opp);
+          setModalOpen(true);
+        }}
+      />
       </div>
+
+      <RecommendedActionsModal
+        opportunity={selectedOpp}
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+      />
     </AppShell>
   );
 }
