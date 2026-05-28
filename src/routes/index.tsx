@@ -23,6 +23,8 @@ import { AdrVarianceCard } from "@/components/decision/AdrVarianceCard";
 import { SmartLeakageCard } from "@/components/decision/SmartLeakageCard";
 import { RateLoadingCard } from "@/components/decision/RateLoadingCard";
 import { HotelUnderperformanceCard } from "@/components/decision/HotelUnderperformanceCard";
+import { HotelDependencyCard } from "@/components/decision/HotelDependencyCard";
+import { SavingsMissedCard } from "@/components/decision/SavingsMissedCard";
 import { useDecisionHydration } from "@/hooks/useDecisionHydration";
 import { useDecisionStore } from "@/lib/decisionStore";
 import {
@@ -285,6 +287,12 @@ function DashboardPage() {
         <RateLoadingCard window={currentWindow} />
 
         <HotelUnderperformanceCard window={currentWindow} />
+
+        <HotelDependencyCard window={currentWindow} />
+
+        <SavingsMissedCard window={currentWindow} />
+
+
 
 
 
