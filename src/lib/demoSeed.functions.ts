@@ -114,6 +114,26 @@ export const seedDemoDataFn = createServerFn({ method: "POST" })
     const selected = shuffled.slice(0, Math.min(20, Math.max(12, Math.floor(shuffled.length * 0.6))));
 
     // 3. Wipe existing demo rows for this tenant (idempotent reseed)
+    // rfps cascade: read existing rfp ids, delete invitations + responses, then rfps.
+    const supabaseAny = supabase as unknown as {
+      from: (t: string) => {
+        select: (cols: string) => {
+          eq: (col: string, val: string) => Promise<{ data: Array<{ id: string }> | null; error: { message: string } | null }>;
+          in: (col: string, vals: string[]) => Promise<{ data: unknown[] | null; error: { message: string } | null }>;
+        };
+        delete: () => {
+          eq: (col: string, val: string) => Promise<{ error: { message: string } | null }>;
+          in: (col: string, vals: string[]) => Promise<{ error: { message: string } | null }>;
+        };
+        insert: (rows: unknown) => Promise<{ error: { message: string } | null }>;
+      };
+    };
+    const { data: existingRfps } = await supabaseAny.from("rfps").select("id").eq("client_tenant_id", tenantId);
+    const existingRfpIds = (existingRfps ?? []).map((r) => r.id);
+    if (existingRfpIds.length > 0) {
+      await supabaseAny.from("rfp_responses").delete().in("rfp_id", existingRfpIds);
+      await supabaseAny.from("rfp_invitations").delete().in("rfp_id", existingRfpIds);
+    }
     await Promise.all([
       supabase.from("bookings").delete().eq("client_tenant_id", tenantId),
       supabase.from("baseline_contracts").delete().eq("client_tenant_id", tenantId),
@@ -125,6 +145,7 @@ export const seedDemoDataFn = createServerFn({ method: "POST" })
       supabase.from("negotiation_lots").delete().eq("client_tenant_id", tenantId),
       supabase.from("awarded_program").delete().eq("client_tenant_id", tenantId),
       supabase.from("demand_targets").delete().eq("client_tenant_id", tenantId),
+      supabaseAny.from("rfps").delete().eq("client_tenant_id", tenantId),
     ]);
 
     // Assign tier & base ADR to each selected hotel
