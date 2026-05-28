@@ -1,40 +1,29 @@
 # Plano: Fechar os 4 gaps de "Production Reality"
 
-Ordem de execução escolhida por impacto e dependência: **Storage → Observabilidade → DR → Rate Limiting**.
+Ordem de execução escolhida por impacto e dependência: **Storage → ~~Observabilidade~~ → DR → Rate Limiting**.
+
+- Fase 1 (Storage) — **CONCLUÍDA**
+- Fase 2 (Observabilidade) — **PULADA** (voltaremos depois)
+- Fase 3 (DR) — **EM ANDAMENTO**
+- Fase 4 (Rate Limiting) — **PENDENTE**
 
 ---
 
-## Fase 1 — Storage de arquivos originais
+## Fase 1 — Storage de arquivos originais (CONCLUÍDA)
 
-**Problema:** hoje `baseline_uploads` guarda apenas metadados (filename, contagem de linhas). O arquivo `.xlsx`/`.csv` original some após o parse. Sem ele, não há auditoria, reprocessamento ou prova de origem dos dados de bookings/contratos.
-
-**Entregáveis:**
-- Bucket privado `baseline-files` (Supabase Storage) com RLS escopado por `client_tenant_id` no path (`{tenant_id}/{upload_id}/{filename}`).
-- Coluna `storage_path` em `baseline_uploads`.
-- Upload do arquivo bruto **antes** do parse no `DataIngestionPanel`; se o parse falhar, o arquivo fica disponível para reprocessar.
-- Botão "Baixar arquivo original" e "Reprocessar" na lista de uploads (módulo Diagnóstico).
-- Política: TA master + tenants visíveis podem ler/baixar; só TA master apaga.
-
-**Bonus mesmo escopo:** anexar PDFs de contrato em `baseline_contracts` (mesmo bucket, prefixo `contracts/`).
+- Bucket privado `baseline-files` com RLS por tenant
+- Coluna `storage_path` em `baseline_uploads`
+- Upload antes do parse + botão de download
 
 ---
 
-## Fase 2 — Observabilidade (Error Tracking & Logs)
+## Fase 2 — Observabilidade (PULADA)
 
-**Problema:** erros no cliente somem (sem Sentry); erros no server-fn só aparecem se alguém olhar os logs do Worker manualmente. Sem alertas.
-
-**Entregáveis:**
-- **Sentry** no frontend (`@sentry/react`) + source maps no build, capturando erros não tratados, rejeições de promise e breadcrumbs de navegação.
-- Wrapper de erro em todos os `createServerFn` (helper `withErrorReporting`) que envia exceções para Sentry com `userId`, `tenantId`, nome da função.
-- Tag automática de `release` (commit SHA) e `environment` (preview vs published).
-- Painel de health interno em `/admin/health`: últimos 50 erros, taxa de erro por server-fn (lendo logs do Worker), status do DB.
-- Alerta Sentry → e-mail/Slack para erros novos em produção.
-
-**Secrets necessários:** `SENTRY_DSN` (público) e `SENTRY_AUTH_TOKEN` (upload de source maps no build).
+Voltaremos a esta fase futuramente. Requer SENTRY_DSN e SENTRY_AUTH_TOKEN.
 
 ---
 
-## Fase 3 — Availability & Recovery (DR)
+## Fase 3 — Availability & Recovery (DR) (EM ANDAMENTO)
 
 **Problema:** backup automático do Postgres existe (Lovable Cloud), mas nunca foi testado um restore; sem health check externo; sem runbook.
 
@@ -47,7 +36,7 @@ Ordem de execução escolhida por impacto e dependência: **Storage → Observab
 
 ---
 
-## Fase 4 — Rate Limiting
+## Fase 4 — Rate Limiting (PENDENTE)
 
 **Problema:** plataforma Lovable Cloud não oferece primitivas nativas. Hoje qualquer endpoint público (`/api/public/*`, login) aceita requests ilimitados → vetor de abuso.
 
@@ -81,7 +70,3 @@ Ordem de execução escolhida por impacto e dependência: **Storage → Observab
 - Caching server-side (Redis/KV) — só vale quando houver query lenta medida.
 - CI/CD com staging separado — o fluxo preview/published do Lovable cobre o essencial hoje.
 - WAF avançado — depende de evolução da plataforma.
-
----
-
-**Posso começar pela Fase 1 (Storage) assim que você aprovar.** Se preferir mudar a ordem ou tirar alguma fase, é só dizer.
