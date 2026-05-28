@@ -46,7 +46,10 @@ function inferCause(
   contract: Contract,
 ): { cause: RateLoadingCause; label: string } {
   // Heuristics based on signal strength
-  const raw = (contract.raw ?? {}) as Record<string, unknown>;
+  const raw = ((contract as unknown as { raw?: Record<string, unknown> }).raw ?? {}) as Record<
+    string,
+    unknown
+  >;
   const hasBlackoutMeta =
     Array.isArray(raw.blackouts) && (raw.blackouts as unknown[]).length > 0;
   const hasLraMeta = raw.lra !== undefined || raw.last_room_availability !== undefined;
