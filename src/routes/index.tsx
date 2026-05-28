@@ -2,20 +2,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
-import { DollarSign, TrendingUp, Activity, AlertTriangle, RefreshCw, Loader2, Bell } from "lucide-react";
+import { DollarSign, TrendingUp, Activity, Percent, RefreshCw, Loader2, Bell } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/AppShell";
 import { KpiCard } from "@/components/dashboard/KpiCard";
-import { CriticalAlerts } from "@/components/dashboard/CriticalAlerts";
-import { OpportunitiesList } from "@/components/dashboard/OpportunitiesList";
-import { RecommendedActionsModal } from "@/components/dashboard/RecommendedActionsModal";
-import { ActiveActions } from "@/components/dashboard/ActiveActions";
-import { ImpactTracking } from "@/components/dashboard/ImpactTracking";
-import { useDecisionData, type Opportunity } from "@/components/dashboard/decisionData";
+import { useDecisionData } from "@/components/dashboard/decisionData";
 import { useSnapshotStore, timeAgo, daysUntilNextEval } from "@/lib/snapshotStore";
 import { useAuth, getPrimaryRole, landingForRole } from "@/hooks/useAuth";
 import { PeriodSelector } from "@/components/common/PeriodSelector";
-import { Rfp2026Plan } from "@/components/dashboard/Rfp2026Plan";
 import { useBaselineStore, selectKpis } from "@/lib/baselineStore";
 import { useClientsStore } from "@/lib/clientsStore";
 import { WatchlistPanel } from "@/components/decision/WatchlistPanel";
@@ -49,7 +43,7 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Centro de decisão contínua: alertas, oportunidades priorizadas e acompanhamento de impacto do programa de hotel sourcing.",
+          "Centro de decisão contínua: alertas operacionais, Watchlist persistente e acompanhamento de impacto do programa de hotel sourcing.",
       },
     ],
   }),
@@ -67,7 +61,6 @@ function DashboardPage() {
   const allBookings = useBaselineStore((s) => s.bookings);
   const contracts = useBaselineStore((s) => s.contracts);
 
-  // Resolve period: search params take priority, otherwise default from data.
   const fallbackPeriod = useMemo(() => defaultPeriod(allBookings), [allBookings]);
   const grain: Granularity = search.grain;
   const period = search.period || fallbackPeriod.period;
@@ -91,15 +84,12 @@ function DashboardPage() {
     return Array.from(years).sort((a, b) => b - a);
   }, [allBookings]);
 
-  const [selectedOpp, setSelectedOpp] = useState<Opportunity | null>(null);
-  const [modalOpen, setModalOpen] = useState(false);
   const [watchlistOpen, setWatchlistOpen] = useState(false);
   const { alerts: derivedAlerts, opportunities, source } = useDecisionData(currentWindow);
   const evaluate = useSnapshotStore((s) => s.evaluate);
   const evaluatedAt = useSnapshotStore((s) => s.evaluatedAt);
   const current = useSnapshotStore((s) => s.current);
 
-  // Decision Center: hydrate persisted state + sync derived alerts
   const clientTenantId = useClientsStore((s) => s.selectedClientId) || null;
   useDecisionHydration(clientTenantId, derivedAlerts);
   const openWatchlistCount = useDecisionStore((s) => {
@@ -109,7 +99,6 @@ function DashboardPage() {
     return s.watchlist.filter((w) => openActionIds.has(w.action_id)).length;
   });
 
-  // Route guard: redirect by role once session is restored.
   useEffect(() => {
     if (!ready) return;
     if (!user) {
@@ -122,7 +111,6 @@ function DashboardPage() {
     }
   }, [ready, user, roles, navigate]);
 
-  // Initial evaluation on mount so deltas have a baseline to compare against.
   const didInit = useRef(false);
   useEffect(() => {
     if (!didInit.current && !current) {
@@ -139,16 +127,6 @@ function DashboardPage() {
     );
   }
 
-  const openOpportunity = (opp: Opportunity) => {
-    setSelectedOpp(opp);
-    setModalOpen(true);
-  };
-
-  const openByOpportunityId = (id?: string) => {
-    const opp = opportunities.find((o: Opportunity) => o.id === id) ?? opportunities[0];
-    if (opp) openOpportunity(opp);
-  };
-
   const handleReevaluate = () => {
     evaluate();
     const next = useSnapshotStore.getState().current;
@@ -160,12 +138,15 @@ function DashboardPage() {
 
   const daysNext = daysUntilNextEval(evaluatedAt);
 
-  // Deltas — null when previous window has no bookings.
   const spendDelta = previousHasData ? safeDelta(currentKpis.totalSpend, previousKpis.totalSpend) : null;
   const adrDelta = previousHasData ? safeDelta(currentKpis.adr, previousKpis.adr) : null;
   const rnDelta = previousHasData ? safeDelta(currentKpis.totalRn, previousKpis.totalRn) : null;
-  // For leakage we want delta in pp (percentage points), not relative.
-  const leakageDelta = previousHasData ? currentKpis.leakagePct - previousKpis.leakagePct : null;
+  // Savings YoY = (previousADR - currentADR) / previousADR * 100
+  // Positive = economia (ADR caiu). Negativo = ADR subiu.
+  const savingsYoYPct =
+    previousHasData && previousKpis.adr > 0
+      ? ((previousKpis.adr - currentKpis.adr) / previousKpis.adr) * 100
+      : null;
 
   return (
     <AppShell>
@@ -268,54 +249,27 @@ function DashboardPage() {
           tone="info"
         />
         <KpiCard
-          label="Leakage detectado"
-          value={`${currentKpis.leakagePct.toFixed(1)}%`}
-          delta={leakageDelta}
-          deltaLabel={leakageDelta === null ? "sem histórico" : "vs período anterior (pp)"}
-          icon={AlertTriangle}
-          tone="warning"
+          label="Savings YoY"
+          value={savingsYoYPct === null ? "—" : `${savingsYoYPct.toFixed(1)}%`}
+          delta={savingsYoYPct}
+          deltaLabel={
+            savingsYoYPct === null
+              ? "sem histórico"
+              : `ADR anterior ${fmtBrl(previousKpis.adr)} → atual ${fmtBrl(currentKpis.adr)}`
+          }
+          icon={Percent}
+          tone={savingsYoYPct === null ? "primary" : savingsYoYPct >= 0 ? "success" : "warning"}
         />
       </div>
 
       <div className="mt-6 space-y-6">
-        <CriticalAlerts onViewRecommendation={openByOpportunityId} />
-
         <AdrVarianceCard window={currentWindow} />
-
         <SmartLeakageCard window={currentWindow} />
-
         <RateLoadingCard window={currentWindow} />
-
         <HotelUnderperformanceCard window={currentWindow} />
-
         <HotelDependencyCard window={currentWindow} />
-
         <SavingsMissedCard window={currentWindow} />
-
-
-
-
-
-
-        <Rfp2026Plan />
-
-        <OpportunitiesList onTakeAction={openOpportunity} />
-
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
-          <div className="lg:col-span-2">
-            <ActiveActions />
-          </div>
-          <div className="lg:col-span-3">
-            <ImpactTracking />
-          </div>
-        </div>
       </div>
-
-      <RecommendedActionsModal
-        opportunity={selectedOpp}
-        open={modalOpen}
-        onOpenChange={setModalOpen}
-      />
 
       <WatchlistPanel
         open={watchlistOpen}
