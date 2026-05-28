@@ -282,6 +282,10 @@ function DashboardPage() {
 
         <SmartLeakageCard window={currentWindow} />
 
+        <RateLoadingCard window={currentWindow} />
+
+        <HotelUnderperformanceCard window={currentWindow} />
+
 
 
 
