@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
-import { DollarSign, TrendingUp, Activity, AlertTriangle, RefreshCw, Loader2 } from "lucide-react";
+import { DollarSign, TrendingUp, Activity, AlertTriangle, RefreshCw, Loader2, Bell } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/AppShell";
 import { KpiCard } from "@/components/dashboard/KpiCard";
@@ -17,6 +17,10 @@ import { useAuth, getPrimaryRole, landingForRole } from "@/hooks/useAuth";
 import { PeriodSelector } from "@/components/common/PeriodSelector";
 import { Rfp2026Plan } from "@/components/dashboard/Rfp2026Plan";
 import { useBaselineStore, selectKpis } from "@/lib/baselineStore";
+import { useClientsStore } from "@/lib/clientsStore";
+import { WatchlistPanel } from "@/components/decision/WatchlistPanel";
+import { useDecisionHydration } from "@/hooks/useDecisionHydration";
+import { useDecisionStore } from "@/lib/decisionStore";
 import {
   defaultPeriod,
   filterByWindow,
