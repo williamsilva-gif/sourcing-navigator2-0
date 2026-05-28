@@ -1,7 +1,10 @@
-import { useMemo } from "react";
-import { AlertTriangle, AlertCircle, Info, ArrowRight, Sparkles } from "lucide-react";
+import { useMemo, useState } from "react";
+import { AlertTriangle, AlertCircle, Info, ArrowRight, Sparkles, Send, Check } from "lucide-react";
 import { useDecisionData, type Severity, type CriticalAlert } from "./decisionData";
 import { useSnapshotStore, deltaForAlert } from "@/lib/snapshotStore";
+import { useDecisionStore } from "@/lib/decisionStore";
+import { useClientsStore } from "@/lib/clientsStore";
+import { toast } from "sonner";
 
 interface Props {
   onViewRecommendation: (opportunityId?: string) => void;
