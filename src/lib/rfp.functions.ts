@@ -255,6 +255,12 @@ function publicAdminClient() {
 export const getInvitationByTokenFn = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => z.object({ token: z.string().uuid() }).parse(input))
   .handler(async ({ data }) => {
+    await enforceRateLimit({
+      bucket: "rfp:invite:read",
+      key: `${data.token}:${getClientIp()}`,
+      max: 60,
+      windowSeconds: 60,
+    });
     const supabase = publicAdminClient();
     const { data: inv, error } = await supabase
       .from("rfp_invitations")
