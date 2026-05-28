@@ -8,8 +8,16 @@ function makeKey(table: string, tenantId: string | null | undefined) {
 }
 
 async function fetchByTenant<T>(table: string, tenantId: string): Promise<T[]> {
-  const { data, error } = await supabase.from(table).select("*").eq("client_tenant_id", tenantId);
-  if (error) throw error;
+  // Cast through unknown — supabase typegen hasn't picked up the new tables yet.
+  const client = supabase as unknown as {
+    from: (t: string) => {
+      select: (cols: string) => {
+        eq: (col: string, val: string) => Promise<{ data: T[] | null; error: { message: string } | null }>;
+      };
+    };
+  };
+  const { data, error } = await client.from(table).select("*").eq("client_tenant_id", tenantId);
+  if (error) throw new Error(error.message);
   return (data ?? []) as T[];
 }
 
