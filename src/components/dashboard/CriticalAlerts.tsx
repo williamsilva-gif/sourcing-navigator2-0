@@ -38,6 +38,54 @@ export function CriticalAlerts({ onViewRecommendation }: Props) {
   const { alerts, source } = useDecisionData();
   const current = useSnapshotStore((s) => s.current);
   const previous = useSnapshotStore((s) => s.previous);
+  const clientTenantId = useClientsStore((s) => s.selectedClientId);
+  const persistedAlerts = useDecisionStore((s) => s.alerts);
+  const actions = useDecisionStore((s) => s.actions);
+  const createAction = useDecisionStore((s) => s.createAction);
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  // Map signature (=alert.id) → persisted alert id
+  const persistedBySig = useMemo(() => {
+    const m = new Map<string, string>();
+    persistedAlerts.forEach((a) => m.set(a.signature, a.id));
+    return m;
+  }, [persistedAlerts]);
+
+  // Open actions per persisted alert id
+  const hasOpenActionForAlert = useMemo(() => {
+    const set = new Set<string>();
+    actions.forEach((a) => {
+      if (a.alert_id && a.status !== "COMPLETED" && a.status !== "IGNORED") set.add(a.alert_id);
+    });
+    return set;
+  }, [actions]);
+
+  const handleAddToWatchlist = async (alert: CriticalAlert) => {
+    if (!clientTenantId) {
+      toast.error("Selecione um cliente para usar a Watchlist.");
+      return;
+    }
+    const persistedId = persistedBySig.get(alert.id);
+    if (!persistedId) {
+      toast.error("Alerta ainda não foi persistido. Tente novamente em instantes.");
+      return;
+    }
+    setBusyId(alert.id);
+    try {
+      await createAction({
+        clientTenantId,
+        alertId: persistedId,
+        type: "SEND_ALERT",
+        status: "SENT",
+        payload: { metric: alert.metric, title: alert.title },
+      });
+      toast.success("Adicionado à Watchlist");
+    } catch {
+      toast.error("Falha ao adicionar à Watchlist");
+    } finally {
+      setBusyId(null);
+    }
+  };
 
   const sorted = useMemo(() => {
     const order = { high: 0, medium: 1, low: 2 } as const;
