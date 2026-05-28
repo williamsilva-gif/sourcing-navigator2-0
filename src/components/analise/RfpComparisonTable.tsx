@@ -20,7 +20,9 @@ import {
   Calendar,
   GitCompare,
 } from "lucide-react";
-import { RFP_ROWS, type RfpRow, type RfpStatus } from "./rfpData";
+import type { RfpRow, RfpStatus } from "./rfpData";
+import { useRfpComparisonRows } from "@/lib/demoRepos";
+import { useClientsStore } from "@/lib/clientsStore";
 import { RfpCompareModal } from "./RfpCompareModal";
 import { cn } from "@/lib/utils";
 
