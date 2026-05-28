@@ -307,7 +307,93 @@ export const seedDemoDataFn = createServerFn({ method: "POST" })
       if (error) throw new Error(`demand_targets: ${error.message}`);
     }
 
-    // 8. RFP ANALYSIS (compare responses): one row per hotel
+    // 8. RFP PROGRAMS — two cycles: one "Em análise" (closed responses), one "Em distribuição" (open).
+    const allCities = Array.from(cityGroups.keys());
+    const analysisRfpId = crypto.randomUUID();
+    const distributionRfpId = crypto.randomUUID();
+    const rfpRows = [
+      {
+        id: analysisRfpId,
+        client_tenant_id: tenantId,
+        name: `RFP ${tenant.name} 2026 — Programa Anual`,
+        status: "Em análise",
+        deadline: "2026-02-28",
+        pois: [],
+        metadata: {
+          cycle: "2026",
+          briefing: "Programa anual corporativo — top cidades.",
+          cities: allCities.slice(0, 6),
+          requirements: ["req-1", "req-2", "req-3", "req-7"],
+          questions: { rates: true, inclusions: true, policies: true },
+          openDate: "2025-11-01",
+          hotelStrategy: "preferred",
+        },
+      },
+      {
+        id: distributionRfpId,
+        client_tenant_id: tenantId,
+        name: `Mini-RFP ${allCities[0] ?? "Capitais"} Q2/2026`,
+        status: "Em distribuição",
+        deadline: "2026-04-30",
+        pois: [],
+        metadata: {
+          cycle: "2026-Q2",
+          briefing: "Cobertura tática.",
+          cities: allCities.slice(0, 2),
+          requirements: ["req-1", "req-3"],
+          questions: { rates: true },
+          openDate: "2026-02-15",
+          hotelStrategy: "open",
+        },
+      },
+    ];
+    {
+      const { error } = await supabaseAny.from("rfps").insert(rfpRows as never);
+      if (error) throw new Error(`rfps: ${error.message}`);
+    }
+
+    // 9. RFP INVITATIONS + responses — invitations for both RFPs, responses only for the "Em análise".
+    const invitationRows: Array<Record<string, unknown>> = [];
+    const responseRows: Array<Record<string, unknown>> = [];
+    enriched.forEach((h, idx) => {
+      const r = rand();
+      const status = r > 0.75 ? "Submetido" : r > 0.45 ? "Em preenchimento" : "Não respondeu";
+      invitationRows.push({
+        rfp_id: analysisRfpId,
+        hotel_id: h.id,
+        status: status === "Submetido" ? "Submetido" : status,
+        deadline: "2026-02-28",
+      });
+      if (status === "Submetido") {
+        responseRows.push({
+          rfp_id: analysisRfpId,
+          hotel_id: h.id,
+          rates: {
+            adr: Math.round(h.baseAdr * (0.9 + rand() * 0.12)),
+            currency: "BRL",
+          },
+        });
+      }
+      // Second RFP: subset of hotels in the first city, all "Não respondeu" yet
+      if (idx < 6) {
+        invitationRows.push({
+          rfp_id: distributionRfpId,
+          hotel_id: h.id,
+          status: "Não respondeu",
+          deadline: "2026-04-30",
+        });
+      }
+    });
+    if (invitationRows.length > 0) {
+      const { error } = await supabaseAny.from("rfp_invitations").insert(invitationRows as never);
+      if (error) throw new Error(`rfp_invitations: ${error.message}`);
+    }
+    if (responseRows.length > 0) {
+      const { error } = await supabaseAny.from("rfp_responses").insert(responseRows as never);
+      if (error) throw new Error(`rfp_responses: ${error.message}`);
+    }
+
+    // 10. RFP ANALYSIS rows (per hotel for the "Em análise" RFP)
     const analysisRows = enriched.map((h) => {
       const current = h.baseAdr;
       const proposed = Math.round(current * (0.88 + rand() * 0.18));
@@ -320,7 +406,7 @@ export const seedDemoDataFn = createServerFn({ method: "POST" })
         savingsPct < 0 ? "reject" : "review";
       return {
         client_tenant_id: tenantId,
-        rfp_id: null,
+        rfp_id: analysisRfpId,
         hotel_name: h.name,
         city: h.city,
         current_adr: current,
