@@ -7,7 +7,7 @@ import { AwardedMatrix } from "@/components/selecao/AwardedMatrix";
 import { CoverageMap } from "@/components/selecao/CoverageMap";
 import { exportPdf, exportXlsx } from "@/components/selecao/exportProgram";
 import { useClientsStore } from "@/lib/clientsStore";
-import { useAwardedHotels } from "@/lib/demoRepos";
+import { useAwardedHotels, useDemandTargets } from "@/lib/demoRepos";
 
 function fmt$(n: number) { return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n ?? 0); }
 
