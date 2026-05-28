@@ -13,6 +13,7 @@ import { PeriodSelector } from "@/components/common/PeriodSelector";
 import { useBaselineStore, selectKpis } from "@/lib/baselineStore";
 import { useClientsStore } from "@/lib/clientsStore";
 import { WatchlistPanel } from "@/components/decision/WatchlistPanel";
+import { CriticalAlerts } from "@/components/dashboard/CriticalAlerts";
 import { AdrVarianceCard } from "@/components/decision/AdrVarianceCard";
 import { SmartLeakageCard } from "@/components/decision/SmartLeakageCard";
 import { RateLoadingCard } from "@/components/decision/RateLoadingCard";
