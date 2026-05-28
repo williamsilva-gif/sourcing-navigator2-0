@@ -172,15 +172,31 @@ export function HotelDependencyCard({ window }: Props) {
   const handleIgnore = async (row: DependencyRow) => {
     if (!clientTenantId) return;
     const sig = dependencySignature(periodLabel, row);
-    const persisted = persistedBySig.get(sig);
-    if (!persisted) {
-      toast.success("Linha ignorada.");
-      return;
-    }
     setBusySig(sig);
     try {
-      await setAlertStatus(persisted.id, "dismissed");
-      toast.success("Alerta arquivado.");
+      const persisted = await ensureAlert(row);
+      if (persisted) {
+        await createAction({
+          clientTenantId,
+          alertId: persisted.id,
+          type: "IGNORE",
+          status: "IGNORED",
+          payload: {
+            hotel: row.topHotel,
+            city: row.city,
+            concentrationPct: row.concentrationPct,
+            periodLabel,
+            reason: "Ignorado pelo usuário a partir do Decision Center",
+          },
+        });
+        await setAlertStatus(persisted.id, "dismissed");
+        toast.success("Ignorado — registrado na Watchlist para auditoria.");
+      } else {
+        toast.success("Linha ignorada.");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Falha ao ignorar alerta.");
     } finally {
       setBusySig(null);
     }

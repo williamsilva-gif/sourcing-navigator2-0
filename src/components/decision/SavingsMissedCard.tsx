@@ -146,14 +146,30 @@ export function SavingsMissedCard({ window }: Props) {
   };
 
   const handleIgnore = async () => {
-    if (!persisted) {
-      toast.success("Card arquivado.");
-      return;
-    }
     setBusy(true);
     try {
-      await setAlertStatus(persisted.id, "dismissed");
-      toast.success("Alerta arquivado.");
+      const p = persisted ?? (await ensureAlert());
+      if (!p || !clientTenantId) {
+        toast.success("Card arquivado.");
+        return;
+      }
+      await createAction({
+        clientTenantId,
+        alertId: p.id,
+        type: "IGNORE",
+        status: "IGNORED",
+        payload: {
+          totalMissed: summary.totalMissed,
+          topCity: summary.topCity,
+          periodLabel,
+          reason: "Ignorado pelo usuário a partir do Decision Center",
+        },
+      });
+      await setAlertStatus(p.id, "dismissed");
+      toast.success("Ignorado — registrado na Watchlist para auditoria.");
+    } catch (err) {
+      console.error(err);
+      toast.error("Falha ao ignorar alerta.");
     } finally {
       setBusy(false);
     }

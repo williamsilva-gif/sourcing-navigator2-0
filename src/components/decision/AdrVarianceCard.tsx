@@ -79,6 +79,28 @@ export function AdrVarianceCard({ window }: Props) {
   const [expanded, setExpanded] = useState(false);
   const [busySig, setBusySig] = useState<string | null>(null);
 
+  const buildAlertInput = (row: AdrVarianceRow, sig: string) => ({
+    signature: sig,
+    type: "ADR_VARIANCE" as const,
+    severity: (row.severity === "ok" ? "low" : row.severity) as "high" | "medium" | "low",
+    title: `ADR realizado ${fmtPctSigned(row.variancePct)} vs negociado — ${row.hotel}`,
+    description: `${row.city} · Negociado ${fmtBrl(row.negotiatedAdr)} · Realizado ${fmtBrl(
+      row.realizedAdr,
+    )} · ${row.roomNights.toLocaleString("pt-BR")} room nights`,
+    impactedCity: row.city,
+    impactedHotel: row.hotel,
+    financialImpact: row.leakage,
+    metadata: {
+      negotiatedAdr: row.negotiatedAdr,
+      realizedAdr: row.realizedAdr,
+      variancePct: row.variancePct,
+      roomNights: row.roomNights,
+      bookings: row.bookings,
+      inferredCauses: row.inferredCauses,
+      periodLabel,
+    },
+  });
+
   const handleSendAlert = async (row: AdrVarianceRow) => {
     if (!clientTenantId) {
       toast.error("Selecione um cliente para enviar alertas.");
@@ -87,39 +109,14 @@ export function AdrVarianceCard({ window }: Props) {
     const sig = adrVarianceSignature(periodLabel, row);
     setBusySig(sig);
     try {
-      // 1. Ensure the alert is persisted (idempotent via signature)
-      await upsertDerivedAlerts(clientTenantId, [
-        {
-          signature: sig,
-          type: "ADR_VARIANCE",
-          severity: row.severity === "ok" ? "low" : row.severity,
-          title: `ADR realizado ${fmtPctSigned(row.variancePct)} vs negociado — ${row.hotel}`,
-          description: `${row.city} · Negociado ${fmtBrl(row.negotiatedAdr)} · Realizado ${fmtBrl(
-            row.realizedAdr,
-          )} · ${row.roomNights.toLocaleString("pt-BR")} room nights`,
-          impactedCity: row.city,
-          impactedHotel: row.hotel,
-          financialImpact: row.leakage,
-          metadata: {
-            negotiatedAdr: row.negotiatedAdr,
-            realizedAdr: row.realizedAdr,
-            variancePct: row.variancePct,
-            roomNights: row.roomNights,
-            bookings: row.bookings,
-            inferredCauses: row.inferredCauses,
-            periodLabel,
-          },
-        },
-      ]);
+      await upsertDerivedAlerts(clientTenantId, [buildAlertInput(row, sig)]);
 
-      // 2. Look up the persisted id (store was refreshed by upsertDerivedAlerts)
       const persisted = useDecisionStore.getState().alerts.find((a) => a.signature === sig);
       if (!persisted) {
         toast.error("Não foi possível registrar o alerta.");
         return;
       }
 
-      // 3. Create the operational action — trigger creates the Watchlist row.
       await createAction({
         clientTenantId,
         alertId: persisted.id,
@@ -163,15 +160,33 @@ export function AdrVarianceCard({ window }: Props) {
   const handleIgnore = async (row: AdrVarianceRow) => {
     if (!clientTenantId) return;
     const sig = adrVarianceSignature(periodLabel, row);
-    const persisted = persistedBySig.get(sig);
-    if (!persisted) {
-      toast.success("Linha ignorada.");
-      return;
-    }
     setBusySig(sig);
     try {
+      await upsertDerivedAlerts(clientTenantId, [buildAlertInput(row, sig)]);
+      const persisted = useDecisionStore.getState().alerts.find((a) => a.signature === sig);
+      if (!persisted) {
+        toast.success("Linha ignorada.");
+        return;
+      }
+      await createAction({
+        clientTenantId,
+        alertId: persisted.id,
+        type: "IGNORE",
+        status: "IGNORED",
+        payload: {
+          hotel: row.hotel,
+          city: row.city,
+          variancePct: row.variancePct,
+          leakage: row.leakage,
+          periodLabel,
+          reason: "Ignorado pelo usuário a partir do Decision Center",
+        },
+      });
       await setAlertStatus(persisted.id, "dismissed");
-      toast.success("Alerta arquivado.");
+      toast.success("Ignorado — registrado na Watchlist para auditoria.");
+    } catch (err) {
+      console.error(err);
+      toast.error("Falha ao ignorar alerta.");
     } finally {
       setBusySig(null);
     }

@@ -207,9 +207,27 @@ export function SmartLeakageCard({ window }: Props) {
     try {
       for (const sig of sigs) {
         const persisted = persistedBySig.get(sig);
-        if (persisted) await setAlertStatus(persisted.id, "dismissed");
+        if (persisted) {
+          await createAction({
+            clientTenantId,
+            alertId: persisted.id,
+            type: "IGNORE",
+            status: "IGNORED",
+            payload: {
+              city: group.city,
+              leakagePct: group.leakagePct,
+              missedSavings: group.missedSavings,
+              periodLabel,
+              reason: "Ignorado pelo usuário a partir do Decision Center",
+            },
+          });
+          await setAlertStatus(persisted.id, "dismissed");
+        }
       }
-      toast.success(`${group.city} arquivado.`);
+      toast.success(`${group.city} arquivado — registrado na Watchlist para auditoria.`);
+    } catch (err) {
+      console.error(err);
+      toast.error("Falha ao ignorar.");
     } finally {
       setBusy(null);
     }
