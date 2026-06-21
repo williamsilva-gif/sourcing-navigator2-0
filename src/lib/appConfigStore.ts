@@ -1,7 +1,21 @@
 import { create } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
 import { useClientsStore } from "./clientsStore";
 import { defaultFeatures } from "./featureCatalog";
+import {
+  getTenantConfigFn,
+  setTenantModuleFn,
+  setTenantFeatureFn,
+  setTenantThresholdFn,
+  setTenantSettingsFn,
+} from "./tenantConfig.functions";
+
+/**
+ * IMPORTANTE: dados de negócio (módulos, features, thresholds, ambiente)
+ * são persistidos no banco (tabelas tenant_modules, tenant_features,
+ * tenant_thresholds e colunas environment/default_cap em tenants).
+ * NÃO reintroduzir middleware `persist` / localStorage aqui — fonte da
+ * verdade é o DB; trocar de máquina/navegador não pode perder configuração.
+ */
 
 /** ID virtual do workspace pessoal do TA (William). Não é um tenant real no DB. */
 export const TA_WORKSPACE_ID = "__ta_workspace__";
@@ -35,18 +49,16 @@ export interface ClientConfig {
   defaultCap: number;
   enabledModules: Record<ModuleKey, boolean>;
   environment: Environment;
-  /** Feature flags por funcionalidade (rfp.create, negociacao.createLot, etc.) */
   features: Record<string, boolean>;
 }
 
 interface AppConfigState {
   user: { id: string; name: string; role: Role };
-  // Config por cliente — chave é clientId do useClientsStore
   configByClient: Record<string, ClientConfig>;
-  /**
-   * Quando o TA "entra" em um cliente para visualizar/editar como ele.
-   * Null = TA está no próprio workspace. Não-TA ignora este campo.
-   */
+  /** clientId em hidratação no momento */
+  hydrating: Record<string, boolean>;
+  /** clientIds que já foram hidratados do DB nesta sessão */
+  hydrated: Record<string, boolean>;
   impersonatingClientId: string | null;
 
   setRole: (role: Role) => void;
@@ -61,6 +73,8 @@ interface AppConfigState {
 
   enterClientMode: (clientId: string) => void;
   exitClientMode: () => void;
+
+  hydrateFromDb: (clientId: string) => Promise<void>;
 }
 
 const ALL_MODULES: ModuleKey[] = [
@@ -73,10 +87,10 @@ const FULL_MODULES: Record<ModuleKey, boolean> = ALL_MODULES.reduce(
   {} as Record<ModuleKey, boolean>,
 );
 
-/** Workspace TA: só Admin + Documentação(dashboard cobre) + Hotéis(diagnostico). Tudo mais desligado. */
+/** Workspace TA: só Admin + Hotéis. Tudo mais desligado. */
 const TA_WORKSPACE_MODULES: Record<ModuleKey, boolean> = {
   dashboard: false,
-  diagnostico: true, // /hoteis usa key diagnostico
+  diagnostico: true,
   estrategia: false,
   rfp: false,
   analise: false,
@@ -95,11 +109,10 @@ const DEFAULT_THRESHOLDS: Thresholds = {
   concentrationPct: 50,
 };
 
-// Defaults por environment — esconde módulos que não fazem sentido naquele contexto
 function defaultModulesForEnv(env: Environment): Record<ModuleKey, boolean> {
   if (env === "Corporate") return { ...FULL_MODULES, rfp: false, selecao: false, monetizacao: false };
   if (env === "Supplier") return { ...FULL_MODULES, estrategia: false, negociacao: false, selecao: false, implementacao: false };
-  return { ...FULL_MODULES }; // TMC = tudo
+  return { ...FULL_MODULES };
 }
 
 export function makeDefaultClientConfig(env: Environment = "TMC"): ClientConfig {
@@ -122,15 +135,17 @@ export function makeTaWorkspaceConfig(): ClientConfig {
   };
 }
 
-export const useAppConfigStore = create<AppConfigState>()(
-  persist(
-    (set) => ({
+function isRealTenant(id: string): boolean {
+  return Boolean(id) && id !== TA_WORKSPACE_ID;
+}
+
+export const useAppConfigStore = create<AppConfigState>()((set, get) => ({
   user: { id: "u1", name: "Marina Reis", role: "admin" },
   configByClient: {
     [TA_WORKSPACE_ID]: makeTaWorkspaceConfig(),
-    kontik: makeDefaultClientConfig("TMC"),
-    acme: makeDefaultClientConfig("Corporate"),
   },
+  hydrating: {},
+  hydrated: { [TA_WORKSPACE_ID]: true },
   impersonatingClientId: null,
 
   setRole: (role) => set((s) => ({ user: { ...s.user, role } })),
@@ -143,18 +158,35 @@ export const useAppConfigStore = create<AppConfigState>()(
         : { configByClient: { ...s.configByClient, [clientId]: makeDefaultClientConfig(env) } },
     ),
 
-  toggleModule: (clientId, key) =>
-    set((s) => {
-      const cfg = s.configByClient[clientId] ?? makeDefaultClientConfig();
-      return {
-        configByClient: {
-          ...s.configByClient,
-          [clientId]: { ...cfg, enabledModules: { ...cfg.enabledModules, [key]: !cfg.enabledModules[key] } },
-        },
-      };
-    }),
+  toggleModule: (clientId, key) => {
+    const cfg = get().configByClient[clientId] ?? makeDefaultClientConfig();
+    const nextEnabled = !cfg.enabledModules[key];
+    set((s) => ({
+      configByClient: {
+        ...s.configByClient,
+        [clientId]: { ...cfg, enabledModules: { ...cfg.enabledModules, [key]: nextEnabled } },
+      },
+    }));
+    if (isRealTenant(clientId)) {
+      setTenantModuleFn({ data: { tenantId: clientId, key, enabled: nextEnabled } }).catch((e) => {
+        console.error("[appConfigStore] setTenantModuleFn failed", e);
+        // rollback
+        set((s) => {
+          const c = s.configByClient[clientId];
+          if (!c) return s;
+          return {
+            configByClient: {
+              ...s.configByClient,
+              [clientId]: { ...c, enabledModules: { ...c.enabledModules, [key]: !nextEnabled } },
+            },
+          };
+        });
+      });
+    }
+  },
 
-  setThreshold: (clientId, key, value) =>
+  setThreshold: (clientId, key, value) => {
+    const prev = get().configByClient[clientId]?.thresholds[key];
     set((s) => {
       const cfg = s.configByClient[clientId] ?? makeDefaultClientConfig();
       return {
@@ -163,21 +195,51 @@ export const useAppConfigStore = create<AppConfigState>()(
           [clientId]: { ...cfg, thresholds: { ...cfg.thresholds, [key]: value } },
         },
       };
-    }),
+    });
+    if (isRealTenant(clientId)) {
+      setTenantThresholdFn({ data: { tenantId: clientId, key, value } }).catch((e) => {
+        console.error("[appConfigStore] setTenantThresholdFn failed", e);
+        if (prev !== undefined) {
+          set((s) => {
+            const cfg = s.configByClient[clientId];
+            if (!cfg) return s;
+            return {
+              configByClient: {
+                ...s.configByClient,
+                [clientId]: { ...cfg, thresholds: { ...cfg.thresholds, [key]: prev } },
+              },
+            };
+          });
+        }
+      });
+    }
+  },
 
-  setDefaultCap: (clientId, cap) =>
+  setDefaultCap: (clientId, cap) => {
     set((s) => {
       const cfg = s.configByClient[clientId] ?? makeDefaultClientConfig();
       return { configByClient: { ...s.configByClient, [clientId]: { ...cfg, defaultCap: cap } } };
-    }),
+    });
+    if (isRealTenant(clientId)) {
+      setTenantSettingsFn({ data: { tenantId: clientId, defaultCap: cap } }).catch((e) =>
+        console.error("[appConfigStore] setTenantSettingsFn(defaultCap) failed", e),
+      );
+    }
+  },
 
-  setEnvironment: (clientId, env) =>
+  setEnvironment: (clientId, env) => {
     set((s) => {
       const cfg = s.configByClient[clientId] ?? makeDefaultClientConfig(env);
       return { configByClient: { ...s.configByClient, [clientId]: { ...cfg, environment: env } } };
-    }),
+    });
+    if (isRealTenant(clientId)) {
+      setTenantSettingsFn({ data: { tenantId: clientId, environment: env } }).catch((e) =>
+        console.error("[appConfigStore] setTenantSettingsFn(environment) failed", e),
+      );
+    }
+  },
 
-  setFeature: (clientId, key, enabled) =>
+  setFeature: (clientId, key, enabled) => {
     set((s) => {
       const cfg = s.configByClient[clientId] ?? makeDefaultClientConfig();
       return {
@@ -186,29 +248,67 @@ export const useAppConfigStore = create<AppConfigState>()(
           [clientId]: { ...cfg, features: { ...(cfg.features ?? {}), [key]: enabled } },
         },
       };
-    }),
+    });
+    if (isRealTenant(clientId)) {
+      setTenantFeatureFn({ data: { tenantId: clientId, key, enabled } }).catch((e) => {
+        console.error("[appConfigStore] setTenantFeatureFn failed", e);
+        set((s) => {
+          const cfg = s.configByClient[clientId];
+          if (!cfg) return s;
+          return {
+            configByClient: {
+              ...s.configByClient,
+              [clientId]: { ...cfg, features: { ...cfg.features, [key]: !enabled } },
+            },
+          };
+        });
+      });
+    }
+  },
 
   enterClientMode: (clientId) => set({ impersonatingClientId: clientId }),
   exitClientMode: () => set({ impersonatingClientId: null }),
-}),
-    {
-      name: "sourcinghub.appconfig.v1",
-      storage: createJSONStorage(() =>
-        typeof window === "undefined"
-          ? (({ getItem: () => null, setItem: () => {}, removeItem: () => {} } as unknown) as Storage)
-          : localStorage,
-      ),
-    },
-  ),
-);
+
+  hydrateFromDb: async (clientId) => {
+    if (!isRealTenant(clientId)) return;
+    if (get().hydrating[clientId]) return;
+    if (get().hydrated[clientId]) return;
+    set((s) => ({ hydrating: { ...s.hydrating, [clientId]: true } }));
+    try {
+      const dto = await getTenantConfigFn({ data: { tenantId: clientId } });
+      const base = makeDefaultClientConfig(dto.environment);
+      const enabledModules: Record<ModuleKey, boolean> = { ...base.enabledModules };
+      for (const k of Object.keys(dto.modules) as ModuleKey[]) {
+        if (k in enabledModules) enabledModules[k] = dto.modules[k];
+      }
+      const features: Record<string, boolean> = { ...base.features, ...dto.features };
+      const thresholds: Thresholds = {
+        adrGapPct: dto.thresholds.adrGapPct ?? base.thresholds.adrGapPct,
+        compliancePct: dto.thresholds.compliancePct ?? base.thresholds.compliancePct,
+        leakagePct: dto.thresholds.leakagePct ?? base.thresholds.leakagePct,
+        concentrationPct: dto.thresholds.concentrationPct ?? base.thresholds.concentrationPct,
+      };
+      const cfg: ClientConfig = {
+        environment: dto.environment,
+        defaultCap: dto.defaultCap,
+        enabledModules,
+        features,
+        thresholds,
+      };
+      set((s) => ({
+        configByClient: { ...s.configByClient, [clientId]: cfg },
+        hydrating: { ...s.hydrating, [clientId]: false },
+        hydrated: { ...s.hydrated, [clientId]: true },
+      }));
+    } catch (e) {
+      console.error("[appConfigStore] hydrateFromDb failed", e);
+      set((s) => ({ hydrating: { ...s.hydrating, [clientId]: false } }));
+    }
+  },
+}));
 
 // ============== Helpers — sempre via cliente ativo ==============
 
-/**
- * ID do cliente ativo no momento.
- * - Se o TA está em "modo cliente", retorna esse id (pode ser TA_WORKSPACE_ID).
- * - Caso contrário, retorna o cliente selecionado no `clientsStore`.
- */
 export function useActiveClientId(): string {
   const imp = useAppConfigStore((s) => s.impersonatingClientId);
   const sel = useClientsStore((s) => s.selectedClientId);
@@ -260,7 +360,6 @@ export function useModuleEnabled(key: ModuleKey): boolean {
   return useEnabledModules()[key];
 }
 
-/** True quando o contexto ativo é o workspace pessoal do TA */
 export function useIsTaWorkspace(): boolean {
   return useActiveClientId() === TA_WORKSPACE_ID;
 }
