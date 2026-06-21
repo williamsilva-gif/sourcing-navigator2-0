@@ -704,5 +704,6 @@ function UserAccessEditor({ tenantId, userId, templateModules, templateFeatures 
         </div>
       </div>
     </div>
+    </TooltipProvider>
   );
 }
