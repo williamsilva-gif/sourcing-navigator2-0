@@ -12,6 +12,11 @@ import { useAuth, getPrimaryRole } from "@/hooks/useAuth";
 import { Lock } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
+  // Admin depende fortemente de sessão/roles do Supabase, que só existem no
+  // browser (localStorage). Renderizar via SSR causa hydration mismatch no
+  // Header (server vê "deslogado", client vê "logado") e quebra dropdowns,
+  // abas condicionais (Usuários do cliente) e o reconhecimento de TA.
+  ssr: false,
   head: () => ({
     meta: [
       { title: "Application Configuration — SourcingHub" },
