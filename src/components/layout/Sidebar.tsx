@@ -14,8 +14,9 @@ import {
   Settings,
   BookOpen,
 } from "lucide-react";
-import { useAppConfigStore, useEnabledModules, type ModuleKey } from "@/lib/appConfigStore";
+import { useAppConfigStore, useEnabledModules, type ModuleKey, TA_WORKSPACE_ID, useActiveClientId } from "@/lib/appConfigStore";
 import { useAuth, getPrimaryRole } from "@/hooks/useAuth";
+import { useEffectiveAccess } from "@/hooks/useEffectiveAccess";
 
 const modules: { to: string; label: string; icon: typeof LayoutDashboard; key: ModuleKey }[] = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, key: "dashboard" },
@@ -35,17 +36,29 @@ const modules: { to: string; label: string; icon: typeof LayoutDashboard; key: M
 
 export function Sidebar() {
   const { pathname } = useLocation();
-  const enabledModules = useEnabledModules();
+  const localModules = useEnabledModules();
   const role = useAppConfigStore((s) => s.user.role);
   const { roles } = useAuth();
   const authRole = getPrimaryRole(roles);
   const isTa = authRole === "ta_master" || authRole === "ta_staff";
+  const activeClientId = useActiveClientId();
+  const effective = useEffectiveAccess();
   // Rotas sempre visíveis (catálogo global / docs)
   const alwaysOn = new Set(["/hoteis", "/wiki"]);
   const visible = modules.filter((m) => {
     if (alwaysOn.has(m.to)) return true;
-    if (m.key === "admin") return isTa || (enabledModules.admin && role === "admin");
-    return enabledModules[m.key];
+    if (m.key === "admin") {
+      if (isTa) return true;
+      return localModules.admin && role === "admin";
+    }
+    if (isTa) {
+      // TA in own workspace = local TA config; impersonating = local TA config too
+      return activeClientId === TA_WORKSPACE_ID ? localModules[m.key] : localModules[m.key];
+    }
+    // Real tenant user → server-side effective access
+    if (!effective.ready) return false;
+    const v = effective.modules[m.key];
+    return v === undefined ? true : v;
   });
 
   return (
