@@ -6,12 +6,14 @@ import { useAuth } from "@/hooks/useAuth";
 import { useClientsStore } from "@/lib/clientsStore";
 import { useBaselineStore } from "@/lib/baselineStore";
 import { useActionStore } from "@/lib/actionStore";
+import { useAppConfigStore } from "@/lib/appConfigStore";
 import { CookieBanner } from "@/components/privacy/CookieBanner";
 
 
-// One-time purge of legacy persisted local data (demo bookings, seed clients,
-// pending hotel uploads). Bumps the flag whenever we want to wipe again.
-const PURGE_FLAG = "sourcinghub.localPurge.v3";
+// One-time purge of legacy persisted local data. Bump the flag to wipe again.
+// v4: removed `persist` from clientsStore/actionStore/appConfigStore — DB is the
+// single source of truth now. Clean up any residual cache keys.
+const PURGE_FLAG = "sourcinghub.localPurge.v4";
 if (typeof window !== "undefined") {
   try {
     if (localStorage.getItem(PURGE_FLAG) !== "1") {
@@ -19,6 +21,7 @@ if (typeof window !== "undefined") {
       localStorage.removeItem("sourcinghub.clients.v1");
       localStorage.removeItem("sourcinghub.snapshot.v1");
       localStorage.removeItem("sourcinghub.actions.v1");
+      localStorage.removeItem("sourcinghub.appconfig.v1");
       localStorage.setItem(PURGE_FLAG, "1");
     }
   } catch {
@@ -111,6 +114,7 @@ function RootComponent() {
   const selectedClientId = useClientsStore((s) => s.selectedClientId);
   const hydrateBaseline = useBaselineStore((s) => s.hydrateFromDb);
   const hydrateActions = useActionStore((s) => s.hydrateFromDb);
+  const hydrateConfig = useAppConfigStore((s) => s.hydrateFromDb);
   const [queryClient] = useState(() => new QueryClient());
   useEffect(() => {
     if (ready && user) syncClients();
@@ -119,8 +123,9 @@ function RootComponent() {
     if (ready && user && selectedClientId) {
       hydrateBaseline(selectedClientId);
       hydrateActions(selectedClientId);
+      hydrateConfig(selectedClientId);
     }
-  }, [ready, user, selectedClientId, hydrateBaseline, hydrateActions]);
+  }, [ready, user, selectedClientId, hydrateBaseline, hydrateActions, hydrateConfig]);
 
 
   return (

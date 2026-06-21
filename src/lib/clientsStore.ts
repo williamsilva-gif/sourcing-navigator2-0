@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
 import {
   listVisibleTenants,
   createTenant,
@@ -9,6 +8,13 @@ import {
   tenantTypeToClientType,
   type ClientType,
 } from "./tenantsRepo";
+
+/**
+ * IMPORTANTE: clientes vivem no banco (tabela `tenants`).
+ * NÃO reintroduzir middleware `persist`/localStorage aqui — fonte da verdade
+ * é o DB. O id selecionado é persistido por aba em sessionStorage para
+ * conveniência da UI, mas não é dado de negócio.
+ */
 
 export type { ClientType };
 
@@ -24,101 +30,110 @@ interface ClientsState {
   loading: boolean;
   loaded: boolean;
   selectClient: (id: string) => void;
-  // DB-backed mutations (async). Components await these for error handling.
   addClient: (c: Omit<ClientRecord, "id">) => Promise<ClientRecord | null>;
   updateClient: (id: string, patch: Partial<Omit<ClientRecord, "id">>) => Promise<void>;
   removeClient: (id: string) => Promise<void>;
-  // Refresh from DB. Called once on auth.
   syncFromDb: () => Promise<void>;
 }
 
-// No seed clients — the app starts empty. Clients come from the DB via syncFromDb.
-const SEED: ClientRecord[] = [];
+const SELECTED_KEY = "sourcinghub.selectedClientId";
 
-export const useClientsStore = create<ClientsState>()(
-  persist(
-    (set, get) => ({
-      clients: SEED,
-      selectedClientId: "",
-      loading: false,
-      loaded: false,
+function readInitialSelection(): string {
+  if (typeof window === "undefined") return "";
+  try {
+    return window.sessionStorage.getItem(SELECTED_KEY) ?? "";
+  } catch {
+    return "";
+  }
+}
 
-      selectClient: (id) => set({ selectedClientId: id }),
+function writeSelection(id: string) {
+  if (typeof window === "undefined") return;
+  try {
+    if (id) window.sessionStorage.setItem(SELECTED_KEY, id);
+    else window.sessionStorage.removeItem(SELECTED_KEY);
+  } catch {
+    /* ignore */
+  }
+}
 
-      addClient: async (c) => {
-        try {
-          const row = await createTenant({ name: c.name, type: clientTypeToTenantType(c.type) });
-          const rec: ClientRecord = { id: row.id, name: row.name, type: tenantTypeToClientType(row.type) };
-          set((s) => ({ clients: [...s.clients, rec] }));
-          return rec;
-        } catch (e) {
-          console.error("addClient failed", e);
-          return null;
-        }
-      },
+export const useClientsStore = create<ClientsState>()((set, get) => ({
+  clients: [],
+  selectedClientId: readInitialSelection(),
+  loading: false,
+  loaded: false,
 
-      updateClient: async (id, patch) => {
-        try {
-          const dbPatch: { name?: string; type?: ReturnType<typeof clientTypeToTenantType> } = {};
-          if (patch.name !== undefined) dbPatch.name = patch.name;
-          if (patch.type !== undefined) dbPatch.type = clientTypeToTenantType(patch.type);
-          await updateTenant(id, dbPatch);
-          set((s) => ({ clients: s.clients.map((c) => (c.id === id ? { ...c, ...patch } : c)) }));
-        } catch (e) {
-          console.error("updateClient failed", e);
-        }
-      },
+  selectClient: (id) => {
+    writeSelection(id);
+    set({ selectedClientId: id });
+  },
 
-      removeClient: async (id) => {
-        try {
-          await archiveTenant(id);
-          set((s) => ({
-            clients: s.clients.filter((c) => c.id !== id),
-            selectedClientId:
-              s.selectedClientId === id ? s.clients.find((c) => c.id !== id)?.id ?? "" : s.selectedClientId,
-          }));
-        } catch (e) {
-          console.error("removeClient failed", e);
-        }
-      },
+  addClient: async (c) => {
+    try {
+      const row = await createTenant({ name: c.name, type: clientTypeToTenantType(c.type) });
+      const rec: ClientRecord = { id: row.id, name: row.name, type: tenantTypeToClientType(row.type) };
+      set((s) => ({ clients: [...s.clients, rec] }));
+      return rec;
+    } catch (e) {
+      console.error("addClient failed", e);
+      return null;
+    }
+  },
 
-      syncFromDb: async () => {
-        if (get().loading) return;
-        set({ loading: true });
-        try {
-          const rows = await listVisibleTenants();
-          if (rows.length === 0) {
-            set({ loading: false, loaded: true });
-            return;
-          }
-          const clients: ClientRecord[] = rows.map((r) => ({
-            id: r.id,
-            name: r.name,
-            type: tenantTypeToClientType(r.type),
-          }));
-          const cur = get().selectedClientId;
-          const selectedStillValid = clients.some((c) => c.id === cur);
-          set({
-            clients,
-            loading: false,
-            loaded: true,
-            selectedClientId: selectedStillValid ? cur : clients[0]?.id ?? "",
-          });
-        } catch (e) {
-          console.error("syncFromDb failed", e);
-          set({ loading: false });
-        }
-      },
-    }),
-    {
-      name: "sourcinghub.clients.v1",
-      storage: createJSONStorage(() =>
-        typeof window === "undefined"
-          ? (({ getItem: () => null, setItem: () => {}, removeItem: () => {} } as unknown) as Storage)
-          : localStorage,
-      ),
-      // Don't persist transient flags
-      partialize: (s) => ({ clients: s.clients, selectedClientId: s.selectedClientId }) as ClientsState,
-    },
-  ),
-);
+  updateClient: async (id, patch) => {
+    try {
+      const dbPatch: { name?: string; type?: ReturnType<typeof clientTypeToTenantType> } = {};
+      if (patch.name !== undefined) dbPatch.name = patch.name;
+      if (patch.type !== undefined) dbPatch.type = clientTypeToTenantType(patch.type);
+      await updateTenant(id, dbPatch);
+      set((s) => ({ clients: s.clients.map((c) => (c.id === id ? { ...c, ...patch } : c)) }));
+    } catch (e) {
+      console.error("updateClient failed", e);
+    }
+  },
+
+  removeClient: async (id) => {
+    try {
+      await archiveTenant(id);
+      const fallback = get().clients.find((c) => c.id !== id)?.id ?? "";
+      const newSelected = get().selectedClientId === id ? fallback : get().selectedClientId;
+      writeSelection(newSelected);
+      set((s) => ({
+        clients: s.clients.filter((c) => c.id !== id),
+        selectedClientId: newSelected,
+      }));
+    } catch (e) {
+      console.error("removeClient failed", e);
+    }
+  },
+
+  syncFromDb: async () => {
+    if (get().loading) return;
+    set({ loading: true });
+    try {
+      const rows = await listVisibleTenants();
+      if (rows.length === 0) {
+        set({ loading: false, loaded: true });
+        return;
+      }
+      const clients: ClientRecord[] = rows.map((r) => ({
+        id: r.id,
+        name: r.name,
+        type: tenantTypeToClientType(r.type),
+      }));
+      const cur = get().selectedClientId;
+      const selectedStillValid = clients.some((c) => c.id === cur);
+      const nextSelected = selectedStillValid ? cur : clients[0]?.id ?? "";
+      if (nextSelected !== cur) writeSelection(nextSelected);
+      set({
+        clients,
+        loading: false,
+        loaded: true,
+        selectedClientId: nextSelected,
+      });
+    } catch (e) {
+      console.error("syncFromDb failed", e);
+      set({ loading: false });
+    }
+  },
+}));
