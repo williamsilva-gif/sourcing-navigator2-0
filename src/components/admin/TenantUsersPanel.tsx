@@ -89,6 +89,10 @@ export function TenantUsersPanel() {
   const list = useServerFn(listTenantUsersFn);
   const invite = useServerFn(inviteTenantUserFn);
   const remove = useServerFn(removeTenantUserFn);
+  const resend = useServerFn(resendInviteFn);
+  const resetAll = useServerFn(resetAllTenantOverridesFn);
+  const [showAudit, setShowAudit] = useState(false);
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   useEffect(() => {
     if (!editId || !isTa) return;
