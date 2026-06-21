@@ -1359,6 +1359,8 @@ export type Database = {
         Row: {
           billing_status: string
           created_at: string
+          default_cap: number
+          environment: string
           id: string
           metadata: Json
           name: string
@@ -1370,6 +1372,8 @@ export type Database = {
         Insert: {
           billing_status?: string
           created_at?: string
+          default_cap?: number
+          environment?: string
           id?: string
           metadata?: Json
           name: string
@@ -1381,6 +1385,8 @@ export type Database = {
         Update: {
           billing_status?: string
           created_at?: string
+          default_cap?: number
+          environment?: string
           id?: string
           metadata?: Json
           name?: string
