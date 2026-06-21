@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { listVisibleTenants, migrateLocalClients } from "@/lib/tenantsRepo";
 import { useServerFn } from "@tanstack/react-start";
 import { seedDemoDataFn, wipeDemoDataFn } from "@/lib/demoSeed.functions";
+import { useAuth } from "@/hooks/useAuth";
 
 export function ClientsPanel() {
   const clients = useClientsStore((s) => s.clients);
