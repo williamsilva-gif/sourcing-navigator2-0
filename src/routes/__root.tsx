@@ -114,6 +114,7 @@ function RootComponent() {
   const selectedClientId = useClientsStore((s) => s.selectedClientId);
   const hydrateBaseline = useBaselineStore((s) => s.hydrateFromDb);
   const hydrateActions = useActionStore((s) => s.hydrateFromDb);
+  const hydrateConfig = useAppConfigStore((s) => s.hydrateFromDb);
   const [queryClient] = useState(() => new QueryClient());
   useEffect(() => {
     if (ready && user) syncClients();
@@ -122,8 +123,9 @@ function RootComponent() {
     if (ready && user && selectedClientId) {
       hydrateBaseline(selectedClientId);
       hydrateActions(selectedClientId);
+      hydrateConfig(selectedClientId);
     }
-  }, [ready, user, selectedClientId, hydrateBaseline, hydrateActions]);
+  }, [ready, user, selectedClientId, hydrateBaseline, hydrateActions, hydrateConfig]);
 
 
   return (
