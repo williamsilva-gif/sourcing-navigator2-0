@@ -35,12 +35,19 @@ export interface ClientConfig {
   defaultCap: number;
   enabledModules: Record<ModuleKey, boolean>;
   environment: Environment;
+  /** Feature flags por funcionalidade (rfp.create, negociacao.createLot, etc.) */
+  features: Record<string, boolean>;
 }
 
 interface AppConfigState {
   user: { id: string; name: string; role: Role };
   // Config por cliente — chave é clientId do useClientsStore
   configByClient: Record<string, ClientConfig>;
+  /**
+   * Quando o TA "entra" em um cliente para visualizar/editar como ele.
+   * Null = TA está no próprio workspace. Não-TA ignora este campo.
+   */
+  impersonatingClientId: string | null;
 
   setRole: (role: Role) => void;
   setUserName: (name: string) => void;
@@ -50,6 +57,10 @@ interface AppConfigState {
   setDefaultCap: (clientId: string, cap: number) => void;
   setEnvironment: (clientId: string, env: Environment) => void;
   ensureClientConfig: (clientId: string, env?: Environment) => void;
+  setFeature: (clientId: string, key: string, enabled: boolean) => void;
+
+  enterClientMode: (clientId: string) => void;
+  exitClientMode: () => void;
 }
 
 const ALL_MODULES: ModuleKey[] = [
@@ -61,6 +72,21 @@ const FULL_MODULES: Record<ModuleKey, boolean> = ALL_MODULES.reduce(
   (acc, k) => ({ ...acc, [k]: true }),
   {} as Record<ModuleKey, boolean>,
 );
+
+/** Workspace TA: só Admin + Documentação(dashboard cobre) + Hotéis(diagnostico). Tudo mais desligado. */
+const TA_WORKSPACE_MODULES: Record<ModuleKey, boolean> = {
+  dashboard: false,
+  diagnostico: true, // /hoteis usa key diagnostico
+  estrategia: false,
+  rfp: false,
+  analise: false,
+  negociacao: false,
+  selecao: false,
+  implementacao: false,
+  monitoramento: false,
+  monetizacao: false,
+  admin: true,
+};
 
 const DEFAULT_THRESHOLDS: Thresholds = {
   adrGapPct: 8,
@@ -82,6 +108,17 @@ export function makeDefaultClientConfig(env: Environment = "TMC"): ClientConfig 
     defaultCap: 280,
     enabledModules: defaultModulesForEnv(env),
     environment: env,
+    features: defaultFeatures(),
+  };
+}
+
+export function makeTaWorkspaceConfig(): ClientConfig {
+  return {
+    thresholds: { ...DEFAULT_THRESHOLDS },
+    defaultCap: 280,
+    enabledModules: { ...TA_WORKSPACE_MODULES },
+    environment: "TMC",
+    features: defaultFeatures(),
   };
 }
 
