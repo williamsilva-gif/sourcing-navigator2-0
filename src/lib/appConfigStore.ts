@@ -1,6 +1,10 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { useClientsStore } from "./clientsStore";
+import { defaultFeatures } from "./featureCatalog";
+
+/** ID virtual do workspace pessoal do TA (William). Não é um tenant real no DB. */
+export const TA_WORKSPACE_ID = "__ta_workspace__";
 
 export type Role = "admin" | "manager" | "viewer";
 
