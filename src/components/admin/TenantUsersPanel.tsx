@@ -186,18 +186,35 @@ export function TenantUsersPanel() {
             usuários; overrides personalizam acesso individual.
           </p>
         </div>
-        <label className="flex items-center gap-2 text-xs">
-          <span className="font-semibold uppercase tracking-wider text-muted-foreground">Cliente</span>
-          <select
-            value={editId}
-            onChange={(e) => setEditId(e.target.value)}
-            className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+        <div className="flex flex-wrap items-end gap-2">
+          <label className="flex items-center gap-2 text-xs">
+            <span className="font-semibold uppercase tracking-wider text-muted-foreground">Cliente</span>
+            <select
+              value={editId}
+              onChange={(e) => setEditId(e.target.value)}
+              className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+            >
+              {clients.map((c) => (
+                <option key={c.id} value={c.id}>{c.name} · {c.type}</option>
+              ))}
+            </select>
+          </label>
+          <button
+            onClick={() => setShowAudit((v) => !v)}
+            className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border bg-background px-3 text-xs font-medium text-muted-foreground hover:bg-muted"
           >
-            {clients.map((c) => (
-              <option key={c.id} value={c.id}>{c.name} · {c.type}</option>
-            ))}
-          </select>
-        </label>
+            <History className="h-3.5 w-3.5" />
+            {showAudit ? "Ocultar histórico" : "Ver histórico"}
+          </button>
+          <button
+            onClick={handleBulkReset}
+            disabled={bulkBusy}
+            className="inline-flex h-9 items-center gap-1.5 rounded-md border border-destructive/30 bg-destructive-soft px-3 text-xs font-semibold text-destructive hover:bg-destructive/10 disabled:opacity-50"
+          >
+            {bulkBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />}
+            Resetar overrides do cliente
+          </button>
+        </div>
       </div>
 
       <form onSubmit={handleInvite} className="mt-5 grid grid-cols-1 gap-3 rounded-md border border-border bg-background p-4 md:grid-cols-[1fr_1fr_180px_auto]">
