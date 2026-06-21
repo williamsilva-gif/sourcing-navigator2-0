@@ -1,59 +1,54 @@
-# Corrigir o Admin/TA Console sem tocar em dados
+## Objetivo
 
-## Problema confirmado
+Garantir que **nenhum dado importante viva apenas no navegador**. Hoje há três áreas que persistem em `localStorage` e uma delas (configuração por cliente) **não tem espelho no banco** — é a fonte real de risco. As outras duas (clientes, ações) já vão ao banco, mas o `localStorage` pode mascarar staleness/perda em outro dispositivo.
 
-Os ambientes/clientes **não foram apagados**. O banco ainda tem Travel Academy, Kontik, Viagens Internas Kontik, Acme e Deloitte.
+## O que está em risco hoje
 
-A bagunça atual vem de duas causas de UI/rota:
+1. **`appConfigStore` (CRÍTICO — só no navegador)**
+   Salva por cliente: thresholds, `defaultCap`, `environment`, módulos habilitados e feature flags. Se você limpar o navegador ou abrir em outra máquina, **essas configurações somem**. As tabelas `tenant_modules`, `tenant_features` e `tenant_thresholds` já existem no banco mas o app não as usa — apenas o painel admin lê/grava em paralelo, deixando duas fontes da verdade.
 
-1. `/admin` está como rota pública com SSR, mas depende de sessão do usuário. Isso causa erro de hidratação no Header: o servidor renderiza um placeholder/login e o client tenta renderizar usuário/logoff.
-2. Como a sessão não fica pronta no momento certo, o Header não reconhece o usuário TA, o dropdown ao lado do sino não carrega corretamente, e as abas condicionadas por TA (`Usuários do cliente`) podem sumir.
+2. **`actionStore` (OK no banco, cache no LS)** — já grava e relê do banco; o `localStorage` é cache.
 
-## Correção proposta
+3. **`clientsStore` (OK no banco, cache no LS)** — já grava e relê do banco; o `localStorage` é cache.
 
-1. **Mover o Admin para a área autenticada**
-   - Criar a rota autenticada correta para o Admin, preservando o URL `/admin`.
-   - O conteúdo atual de `src/routes/admin.tsx` será movido para `src/routes/_authenticated.admin.tsx`.
-   - A rota pública `/admin` deixará de renderizar conteúdo dependente de sessão/SSR.
-   - Resultado: sem hydration mismatch e sem perder sessão no Header.
+4. **`consentManager`** — espelha em `consent_logs` quando autenticado; sem login fica só no LS (aceitável para visitante anônimo).
 
-2. **Restaurar o comportamento TA no Header**
-   - O dropdown ao lado do sino deve sempre mostrar:
-     - `Workspace TA (pessoal)` quando o usuário é TA.
-     - Os clientes existentes para “entrar como cliente”.
-   - O Header deve esperar `auth.ready` antes de trocar entre login/logout para evitar mismatch.
-   - Reforçar que o Workspace TA é o ambiente próprio da Travel Academy e que entrar em cliente é modo cliente, sem afetar configs próprias da TA.
+## Plano
 
-3. **Restaurar a aba “Usuários do cliente”**
-   - Garantir que a aba apareça para `ta_master` e `ta_staff` assim que os papéis forem carregados.
-   - Se os papéis ainda estiverem carregando, mostrar estado de carregamento em vez de esconder a aba.
+### 1. Migrar `appConfigStore` para o banco (fonte da verdade = DB)
 
-4. **Preservar tudo que foi implementado hoje**
-   - Manter no painel de Usuários do cliente:
-     - módulos/features por usuário,
-     - reset individual para template,
-     - reset em massa para template,
-     - tooltip de motivo de acesso,
-     - audit log,
-     - reenvio de convite/set-password.
-   - Não remover migrations, funções ou tabelas.
+- Adicionar duas colunas em `public.tenants`: `environment text` (TMC/Corporate/Supplier) e `default_cap numeric`. Backfill com os valores atuais (`TMC` / `280`).
+- Passar a ler/gravar:
+  - **Thresholds** → `tenant_thresholds` (chaves `adrGapPct`, `compliancePct`, `leakagePct`, `concentrationPct`).
+  - **Módulos habilitados** → `tenant_modules` (já em uso pelo admin).
+  - **Features** → `tenant_features` (já em uso pelo admin).
+  - **Environment / defaultCap** → colunas novas em `tenants`.
+- Criar server functions (`createServerFn` com `requireSupabaseAuth`) `getTenantConfigFn` e `setTenantConfigFn` para leitura/gravação atômica.
+- `appConfigStore` deixa de persistir em `localStorage`. Passa a:
+  - Hidratar do DB quando muda o cliente ativo (igual `actionStore`/`baselineStore`).
+  - Cada `set*` chamar a server function (otimista; rollback em erro com toast).
+- O workspace TA (`__ta_workspace__`) continua local em memória pois não é um tenant real, mas suas únicas configurações são derivadas de constantes do código — nada a perder.
 
-5. **Bloquear ações perigosas na tela Clientes**
-   - Remover ou desabilitar botões que possam “limpar demo” ou remover cliente sem confirmação forte.
-   - Trocar remoção direta por confirmação explícita, para reduzir risco de perda operacional.
-   - Não alterar dados existentes.
+### 2. Tirar o `localStorage` dos stores que já têm DB
 
-6. **Validação**
-   - Abrir `/admin` com sessão TA.
-   - Confirmar que não há erro de hydration.
-   - Confirmar Header com usuário/role TA e dropdown funcional.
-   - Confirmar que a lista inclui Travel Academy + clientes existentes conforme solicitado.
-   - Confirmar que a aba `Usuários do cliente` aparece.
-   - Confirmar que as funcionalidades por usuário/audit/reset/reenvio continuam presentes.
+- Remover o middleware `persist` de `clientsStore` e `actionStore`. O DB já é a fonte; o cache no LS apenas cria janelas de inconsistência entre dispositivos/sessões e foi a raiz dos sumiços recentes.
+- `selectedClientId` (apenas UI) passa para `sessionStorage` da aba — não é "dado", e some por aba sem prejuízo.
+- Limpar as chaves antigas (`sourcinghub.clients.v1`, `sourcinghub.actions.v1`, `sourcinghub.appconfig.v1`, `sourcinghub.baseline.v1`, `sourcinghub.snapshot.v1`) no boot, uma vez, via o mesmo mecanismo de `PURGE_FLAG` já existente em `__root.tsx`.
 
-## O que não será feito
+### 3. Reforço — proibir novo `localStorage` para dados
 
-- Não vou apagar, recriar, limpar ou migrar dados.
-- Não vou rodar seed/wipe.
-- Não vou criar nova migration.
-- Não vou mexer em negociações, RFPs, baseline, contratos ou dados dos clientes.
+- Adicionar comentário/aviso no topo de `appConfigStore`, `actionStore`, `clientsStore`: "Dados de negócio vão para o banco. Não reintroduzir `persist`/`localStorage`."
+- Único uso legítimo restante de `localStorage`: sessão do Supabase (`client.ts`, auto-gerado — não tocar) e consent do visitante anônimo.
+
+### 4. Validação
+
+- Limpar `localStorage` do navegador → recarregar `/admin` autenticado como TA → ver os 4 clientes, ações executadas, thresholds, módulos e features carregarem direto do banco.
+- Trocar de cliente → trocar de máquina (ou aba anônima após login) → configuração idêntica.
+- Não há `DELETE` ou migração destrutiva — só `CREATE`/`ALTER ADD COLUMN` com defaults e backfill conservador.
+
+## Detalhes técnicos
+
+- Migração: `ALTER TABLE tenants ADD COLUMN environment text DEFAULT 'TMC' NOT NULL`, `ADD COLUMN default_cap numeric DEFAULT 280 NOT NULL`. Sem mudança de RLS (já coberto pelas policies de `tenants`).
+- Server fns ficam em `src/lib/tenantConfig.functions.ts`.
+- `useAppConfigStore` mantém a mesma API pública (`useThresholds`, `useEnabledModules`, etc.) — componentes não mudam. As actions viram `async` e mostram toast em falha.
+- Nenhum dado existente é apagado. O backfill preserva o que já está em `tenant_modules`/`tenant_features`/`tenant_thresholds`; o que estiver só no `localStorage` de um usuário será sobrescrito pelo banco (que é o comportamento desejado para evitar "fantasmas" entre máquinas).
