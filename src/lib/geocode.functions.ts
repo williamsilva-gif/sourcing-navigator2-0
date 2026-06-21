@@ -71,35 +71,47 @@ export const placesAutocompleteFn = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<PlacesAutocompleteResult> => {
     const apiKey = process.env.GOOGLE_MAPS_API_KEY;
     if (!apiKey) return { ok: false, predictions: [], error: "GOOGLE_MAPS_API_KEY ausente" };
-    const params = new URLSearchParams({
-      input: data.query,
-      language: "pt-BR",
-      components: "country:br",
-      key: apiKey,
-    });
-    if (data.sessionToken) params.set("sessiontoken", data.sessionToken);
     try {
-      const res = await fetch(`https://maps.googleapis.com/maps/api/place/autocomplete/json?${params.toString()}`);
-      if (!res.ok) return { ok: false, predictions: [], error: `HTTP ${res.status}` };
+      const res = await fetch("https://places.googleapis.com/v1/places:autocomplete", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Goog-Api-Key": apiKey,
+        },
+        body: JSON.stringify({
+          input: data.query,
+          languageCode: "pt-BR",
+          regionCode: "br",
+          includedRegionCodes: ["br"],
+          sessionToken: data.sessionToken,
+        }),
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        return { ok: false, predictions: [], error: `HTTP ${res.status}: ${text.slice(0, 200)}` };
+      }
       const json = (await res.json()) as {
-        status: string;
-        error_message?: string;
-        predictions?: Array<{
-          description: string;
-          place_id: string;
-          structured_formatting?: { main_text?: string; secondary_text?: string };
+        suggestions?: Array<{
+          placePrediction?: {
+            placeId: string;
+            text?: { text: string };
+            structuredFormat?: {
+              mainText?: { text: string };
+              secondaryText?: { text: string };
+            };
+          };
         }>;
       };
-      if (json.status === "ZERO_RESULTS") return { ok: true, predictions: [] };
-      if (json.status !== "OK") return { ok: false, predictions: [], error: json.error_message ?? json.status };
       return {
         ok: true,
-        predictions: (json.predictions ?? []).map((p) => ({
-          description: p.description,
-          placeId: p.place_id,
-          mainText: p.structured_formatting?.main_text,
-          secondaryText: p.structured_formatting?.secondary_text,
-        })),
+        predictions: (json.suggestions ?? [])
+          .filter((s) => s.placePrediction)
+          .map((s) => ({
+            description: s.placePrediction!.text?.text ?? "",
+            placeId: s.placePrediction!.placeId,
+            mainText: s.placePrediction!.structuredFormat?.mainText?.text,
+            secondaryText: s.placePrediction!.structuredFormat?.secondaryText?.text,
+          })),
       };
     } catch (e) {
       return { ok: false, predictions: [], error: (e as Error).message };
