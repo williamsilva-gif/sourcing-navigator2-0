@@ -233,7 +233,7 @@ export function TenantUsersPanel() {
             ) : users.map((u) => {
               const open = expanded === u.userId;
               return (
-                <>
+                <Fragment key={u.userId}>
                   <tr key={u.userId} className="border-t border-border">
                     <td className="px-2">
                       <button
@@ -279,7 +279,7 @@ export function TenantUsersPanel() {
                       </td>
                     </tr>
                   )}
-                </>
+                </Fragment>
               );
             })}
           </tbody>
