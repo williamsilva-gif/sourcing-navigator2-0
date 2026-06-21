@@ -127,9 +127,11 @@ export const useAppConfigStore = create<AppConfigState>()(
     (set) => ({
   user: { id: "u1", name: "Marina Reis", role: "admin" },
   configByClient: {
+    [TA_WORKSPACE_ID]: makeTaWorkspaceConfig(),
     kontik: makeDefaultClientConfig("TMC"),
     acme: makeDefaultClientConfig("Corporate"),
   },
+  impersonatingClientId: null,
 
   setRole: (role) => set((s) => ({ user: { ...s.user, role } })),
   setUserName: (name) => set((s) => ({ user: { ...s.user, name } })),
@@ -174,6 +176,20 @@ export const useAppConfigStore = create<AppConfigState>()(
       const cfg = s.configByClient[clientId] ?? makeDefaultClientConfig(env);
       return { configByClient: { ...s.configByClient, [clientId]: { ...cfg, environment: env } } };
     }),
+
+  setFeature: (clientId, key, enabled) =>
+    set((s) => {
+      const cfg = s.configByClient[clientId] ?? makeDefaultClientConfig();
+      return {
+        configByClient: {
+          ...s.configByClient,
+          [clientId]: { ...cfg, features: { ...(cfg.features ?? {}), [key]: enabled } },
+        },
+      };
+    }),
+
+  enterClientMode: (clientId) => set({ impersonatingClientId: clientId }),
+  exitClientMode: () => set({ impersonatingClientId: null }),
 }),
     {
       name: "sourcinghub.appconfig.v1",
