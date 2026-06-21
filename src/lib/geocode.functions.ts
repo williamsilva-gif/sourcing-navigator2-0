@@ -125,34 +125,30 @@ export const placeDetailsFn = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<GeocodeServerResult> => {
     const apiKey = process.env.GOOGLE_MAPS_API_KEY;
     if (!apiKey) return { ok: false, error: "GOOGLE_MAPS_API_KEY ausente" };
-    const params = new URLSearchParams({
-      place_id: data.placeId,
-      fields: "geometry,formatted_address,place_id",
-      language: "pt-BR",
-      key: apiKey,
-    });
     try {
-      const res = await fetch(`https://maps.googleapis.com/maps/api/place/details/json?${params.toString()}`);
-      if (!res.ok) return { ok: false, error: `HTTP ${res.status}` };
-      const json = (await res.json()) as {
-        status: string;
-        error_message?: string;
-        result?: {
-          formatted_address?: string;
-          place_id?: string;
-          geometry?: { location?: { lat: number; lng: number }; location_type?: string };
-        };
-      };
-      if (json.status !== "OK" || !json.result?.geometry?.location) {
-        return { ok: false, error: json.error_message ?? json.status };
+      const res = await fetch(`https://places.googleapis.com/v1/places/${encodeURIComponent(data.placeId)}?languageCode=pt-BR`, {
+        headers: {
+          "X-Goog-Api-Key": apiKey,
+          "X-Goog-FieldMask": "id,formattedAddress,location",
+        },
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        return { ok: false, error: `HTTP ${res.status}: ${text.slice(0, 200)}` };
       }
+      const json = (await res.json()) as {
+        id?: string;
+        formattedAddress?: string;
+        location?: { latitude: number; longitude: number };
+      };
+      if (!json.location) return { ok: false, error: "Sem location no resultado" };
       return {
         ok: true,
-        lat: json.result.geometry.location.lat,
-        lng: json.result.geometry.location.lng,
-        displayName: json.result.formatted_address ?? "",
-        placeId: json.result.place_id,
-        locationType: json.result.geometry.location_type ?? "ROOFTOP",
+        lat: json.location.latitude,
+        lng: json.location.longitude,
+        displayName: json.formattedAddress ?? "",
+        placeId: json.id,
+        locationType: "ROOFTOP",
         partialMatch: false,
       };
     } catch (e) {
