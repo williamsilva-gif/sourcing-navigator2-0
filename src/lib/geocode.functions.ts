@@ -71,35 +71,47 @@ export const placesAutocompleteFn = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<PlacesAutocompleteResult> => {
     const apiKey = process.env.GOOGLE_MAPS_API_KEY;
     if (!apiKey) return { ok: false, predictions: [], error: "GOOGLE_MAPS_API_KEY ausente" };
-    const params = new URLSearchParams({
-      input: data.query,
-      language: "pt-BR",
-      components: "country:br",
-      key: apiKey,
-    });
-    if (data.sessionToken) params.set("sessiontoken", data.sessionToken);
     try {
-      const res = await fetch(`https://maps.googleapis.com/maps/api/place/autocomplete/json?${params.toString()}`);
-      if (!res.ok) return { ok: false, predictions: [], error: `HTTP ${res.status}` };
+      const res = await fetch("https://places.googleapis.com/v1/places:autocomplete", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Goog-Api-Key": apiKey,
+        },
+        body: JSON.stringify({
+          input: data.query,
+          languageCode: "pt-BR",
+          regionCode: "br",
+          includedRegionCodes: ["br"],
+          sessionToken: data.sessionToken,
+        }),
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        return { ok: false, predictions: [], error: `HTTP ${res.status}: ${text.slice(0, 200)}` };
+      }
       const json = (await res.json()) as {
-        status: string;
-        error_message?: string;
-        predictions?: Array<{
-          description: string;
-          place_id: string;
-          structured_formatting?: { main_text?: string; secondary_text?: string };
+        suggestions?: Array<{
+          placePrediction?: {
+            placeId: string;
+            text?: { text: string };
+            structuredFormat?: {
+              mainText?: { text: string };
+              secondaryText?: { text: string };
+            };
+          };
         }>;
       };
-      if (json.status === "ZERO_RESULTS") return { ok: true, predictions: [] };
-      if (json.status !== "OK") return { ok: false, predictions: [], error: json.error_message ?? json.status };
       return {
         ok: true,
-        predictions: (json.predictions ?? []).map((p) => ({
-          description: p.description,
-          placeId: p.place_id,
-          mainText: p.structured_formatting?.main_text,
-          secondaryText: p.structured_formatting?.secondary_text,
-        })),
+        predictions: (json.suggestions ?? [])
+          .filter((s) => s.placePrediction)
+          .map((s) => ({
+            description: s.placePrediction!.text?.text ?? "",
+            placeId: s.placePrediction!.placeId,
+            mainText: s.placePrediction!.structuredFormat?.mainText?.text,
+            secondaryText: s.placePrediction!.structuredFormat?.secondaryText?.text,
+          })),
       };
     } catch (e) {
       return { ok: false, predictions: [], error: (e as Error).message };
@@ -113,34 +125,30 @@ export const placeDetailsFn = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<GeocodeServerResult> => {
     const apiKey = process.env.GOOGLE_MAPS_API_KEY;
     if (!apiKey) return { ok: false, error: "GOOGLE_MAPS_API_KEY ausente" };
-    const params = new URLSearchParams({
-      place_id: data.placeId,
-      fields: "geometry,formatted_address,place_id",
-      language: "pt-BR",
-      key: apiKey,
-    });
     try {
-      const res = await fetch(`https://maps.googleapis.com/maps/api/place/details/json?${params.toString()}`);
-      if (!res.ok) return { ok: false, error: `HTTP ${res.status}` };
-      const json = (await res.json()) as {
-        status: string;
-        error_message?: string;
-        result?: {
-          formatted_address?: string;
-          place_id?: string;
-          geometry?: { location?: { lat: number; lng: number }; location_type?: string };
-        };
-      };
-      if (json.status !== "OK" || !json.result?.geometry?.location) {
-        return { ok: false, error: json.error_message ?? json.status };
+      const res = await fetch(`https://places.googleapis.com/v1/places/${encodeURIComponent(data.placeId)}?languageCode=pt-BR`, {
+        headers: {
+          "X-Goog-Api-Key": apiKey,
+          "X-Goog-FieldMask": "id,formattedAddress,location",
+        },
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        return { ok: false, error: `HTTP ${res.status}: ${text.slice(0, 200)}` };
       }
+      const json = (await res.json()) as {
+        id?: string;
+        formattedAddress?: string;
+        location?: { latitude: number; longitude: number };
+      };
+      if (!json.location) return { ok: false, error: "Sem location no resultado" };
       return {
         ok: true,
-        lat: json.result.geometry.location.lat,
-        lng: json.result.geometry.location.lng,
-        displayName: json.result.formatted_address ?? "",
-        placeId: json.result.place_id,
-        locationType: json.result.geometry.location_type ?? "ROOFTOP",
+        lat: json.location.latitude,
+        lng: json.location.longitude,
+        displayName: json.formattedAddress ?? "",
+        placeId: json.id,
+        locationType: "ROOFTOP",
         partialMatch: false,
       };
     } catch (e) {
