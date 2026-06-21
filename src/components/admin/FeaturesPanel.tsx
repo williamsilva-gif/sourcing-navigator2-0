@@ -46,10 +46,10 @@ export function FeaturesPanel() {
     <section className="rounded-lg border border-border bg-card p-6 shadow-[var(--shadow-card)]">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="text-base font-semibold text-foreground">Funcionalidades por módulo</h2>
+          <h2 className="text-base font-semibold text-foreground">Funcionalidades por módulo — template do cliente</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Desative ações específicas (ex.: "Novo RFP") sem desligar o módulo inteiro. O usuário continua vendo
-            o módulo e os detalhes, mas as ações desligadas somem.
+            Define o <strong>padrão</strong> aplicado a novos usuários deste cliente (ex.: "Novo RFP" desligado para todos).
+            Para sobrescrever por pessoa, use <em>Usuários do cliente</em>.
           </p>
         </div>
         <label className="flex items-center gap-2 text-xs">
