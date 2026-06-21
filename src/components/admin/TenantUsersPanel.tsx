@@ -296,7 +296,14 @@ export function TenantUsersPanel() {
                       </button>
                     </td>
                     <td className="px-4 py-2.5">
-                      <p className="font-medium text-foreground">{u.fullName || u.email.split("@")[0]}</p>
+                      <p className="flex items-center gap-2 font-medium text-foreground">
+                        {u.fullName || u.email.split("@")[0]}
+                        {u.mustSetPassword && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-600">
+                            Senha pendente
+                          </span>
+                        )}
+                      </p>
                       <p className="flex items-center gap-1 text-[11px] text-muted-foreground">
                         <Mail className="h-3 w-3" />
                         {u.email}
@@ -308,10 +315,21 @@ export function TenantUsersPanel() {
                       </span>
                     </td>
                     <td className="px-4 py-2.5">
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex items-center justify-end gap-1">
+                        {u.mustSetPassword && (
+                          <button
+                            onClick={() => handleResend(u.userId)}
+                            title="Reenviar link de definição de senha"
+                            className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1 text-[11px] font-medium text-muted-foreground hover:bg-muted"
+                          >
+                            <Send className="h-3 w-3" />
+                            Reenviar convite
+                          </button>
+                        )}
                         <button
                           onClick={() => handleRemove(u.userId)}
                           className="rounded-md p-1.5 text-muted-foreground hover:bg-destructive-soft hover:text-destructive"
+                          title="Remover acesso"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
