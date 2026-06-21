@@ -547,7 +547,58 @@ function UserAccessEditor({ tenantId, userId, templateModules, templateFeatures 
     );
   }
 
+  function reasonModule(key: string): { source: "override" | "template" | "default"; explain: string } {
+    const tpl = templateModules?.[key];
+    if (key in modOverrides) {
+      const v = modOverrides[key];
+      return {
+        source: "override",
+        explain: v
+          ? "Override individual: ATIVO para este usuário (sobrescreve o template)."
+          : "Override individual: DESATIVADO para este usuário (sobrescreve o template). Para reativar, ligue o toggle ou clique em 'Resetar para template'.",
+      };
+    }
+    if (tpl !== undefined) {
+      return {
+        source: "template",
+        explain: tpl
+          ? "Vem do template do cliente: ATIVO. Sem override individual."
+          : "Vem do template do cliente: DESATIVADO. Para liberar só para este usuário, ligue o toggle (cria um override). Para liberar para todos, altere o template em 'Módulos & ambiente'.",
+      };
+    }
+    return { source: "default", explain: "Padrão do sistema: ATIVO. Nenhum override nem template configurado." };
+  }
+
+  function reasonFeature(key: string, modKey: string): { source: "override" | "template" | "module" | "default"; explain: string } {
+    if (!modEnabled(modKey)) {
+      return {
+        source: "module",
+        explain: `O módulo '${modKey}' está desligado para este usuário, então nenhuma funcionalidade dele fica disponível. Ative o módulo acima para liberar.`,
+      };
+    }
+    const tpl = templateFeatures?.[key];
+    if (key in featOverrides) {
+      const v = featOverrides[key];
+      return {
+        source: "override",
+        explain: v
+          ? "Override individual: ATIVO (sobrescreve o template)."
+          : "Override individual: DESATIVADO. Para reativar, ligue o toggle.",
+      };
+    }
+    if (tpl !== undefined) {
+      return {
+        source: "template",
+        explain: tpl
+          ? "Vem do template do cliente: ATIVO."
+          : "Vem do template do cliente: DESATIVADO. Para liberar só para este usuário, ligue o toggle. Para liberar para todos, ajuste o template em 'Funcionalidades por módulo'.",
+      };
+    }
+    return { source: "default", explain: "Padrão do sistema: ATIVO." };
+  }
+
   return (
+    <TooltipProvider delayDuration={150}>
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -570,6 +621,7 @@ function UserAccessEditor({ tenantId, userId, templateModules, templateFeatures 
           {ALL_MODULES.map((m) => {
             const on = modEnabled(m.key);
             const overridden = m.key in modOverrides;
+            const reason = reasonModule(m.key);
             return (
               <label
                 key={m.key}
@@ -577,6 +629,17 @@ function UserAccessEditor({ tenantId, userId, templateModules, templateFeatures 
               >
                 <span className="flex items-center gap-2">
                   {m.label}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button type="button" className="rounded-full p-0.5 text-muted-foreground hover:text-foreground">
+                        <AlertCircle className="h-3 w-3" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-xs text-xs">
+                      <p className="font-semibold capitalize">Origem: {reason.source}</p>
+                      <p className="mt-1 leading-relaxed">{reason.explain}</p>
+                    </TooltipContent>
+                  </Tooltip>
                   {overridden && <span className="rounded-full bg-primary-soft px-1.5 py-0.5 text-[9px] font-semibold text-primary">override</span>}
                 </span>
                 <input
@@ -606,10 +669,22 @@ function UserAccessEditor({ tenantId, userId, templateModules, templateFeatures 
                   {feats.map((f) => {
                     const on = featEnabled(f.key);
                     const overridden = f.key in featOverrides;
+                    const reason = reasonFeature(f.key, modKey);
                     return (
                       <label key={f.key} className="flex items-center justify-between gap-2 text-xs">
                         <span className="flex items-center gap-1.5">
                           {f.label}
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button type="button" className="rounded-full p-0.5 text-muted-foreground hover:text-foreground">
+                                <AlertCircle className="h-3 w-3" />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="max-w-xs text-xs">
+                              <p className="font-semibold capitalize">Origem: {reason.source}</p>
+                              <p className="mt-1 leading-relaxed">{reason.explain}</p>
+                            </TooltipContent>
+                          </Tooltip>
                           {overridden && <span className="rounded-full bg-primary-soft px-1.5 py-0.5 text-[9px] font-semibold text-primary">override</span>}
                         </span>
                         <input
