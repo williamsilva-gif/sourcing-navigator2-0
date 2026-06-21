@@ -1,5 +1,10 @@
 import { create } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
+
+/**
+ * IMPORTANTE: ações executadas vivem na tabela `client_actions` no banco.
+ * NÃO reintroduzir middleware `persist`/localStorage aqui — fonte da verdade
+ * é o DB. Cache em LS criava janelas de inconsistência entre dispositivos.
+ */
 import { createActionFn, updateActionFn, listActionsFn, deleteActionFn } from "./actions.functions";
 import { useClientsStore } from "./clientsStore";
 
