@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as WikiRouteImport } from './routes/wiki'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as SignupRouteImport } from './routes/signup'
+import { Route as SetPasswordRouteImport } from './routes/set-password'
 import { Route as SelecaoRouteImport } from './routes/selecao'
 import { Route as RfpRouteImport } from './routes/rfp'
 import { Route as PrivacyRouteImport } from './routes/privacy'
@@ -48,6 +49,11 @@ const TermsRoute = TermsRouteImport.update({
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SetPasswordRoute = SetPasswordRouteImport.update({
+  id: '/set-password',
+  path: '/set-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SelecaoRoute = SelecaoRouteImport.update({
@@ -175,6 +181,7 @@ export interface FileRoutesByFullPath {
   '/privacy': typeof PrivacyRoute
   '/rfp': typeof RfpRoute
   '/selecao': typeof SelecaoRoute
+  '/set-password': typeof SetPasswordRoute
   '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
   '/wiki': typeof WikiRouteWithChildren
@@ -201,6 +208,7 @@ export interface FileRoutesByTo {
   '/privacy': typeof PrivacyRoute
   '/rfp': typeof RfpRoute
   '/selecao': typeof SelecaoRoute
+  '/set-password': typeof SetPasswordRoute
   '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
   '/account/privacy': typeof AccountPrivacyRoute
@@ -228,6 +236,7 @@ export interface FileRoutesById {
   '/privacy': typeof PrivacyRoute
   '/rfp': typeof RfpRoute
   '/selecao': typeof SelecaoRoute
+  '/set-password': typeof SetPasswordRoute
   '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
   '/wiki': typeof WikiRouteWithChildren
@@ -256,6 +265,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/rfp'
     | '/selecao'
+    | '/set-password'
     | '/signup'
     | '/terms'
     | '/wiki'
@@ -282,6 +292,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/rfp'
     | '/selecao'
+    | '/set-password'
     | '/signup'
     | '/terms'
     | '/account/privacy'
@@ -308,6 +319,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/rfp'
     | '/selecao'
+    | '/set-password'
     | '/signup'
     | '/terms'
     | '/wiki'
@@ -336,6 +348,7 @@ export interface RootRouteChildren {
   PrivacyRoute: typeof PrivacyRoute
   RfpRoute: typeof RfpRoute
   SelecaoRoute: typeof SelecaoRoute
+  SetPasswordRoute: typeof SetPasswordRoute
   SignupRoute: typeof SignupRoute
   TermsRoute: typeof TermsRoute
   WikiRoute: typeof WikiRouteWithChildren
@@ -366,6 +379,13 @@ declare module '@tanstack/react-router' {
       path: '/signup'
       fullPath: '/signup'
       preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/set-password': {
+      id: '/set-password'
+      path: '/set-password'
+      fullPath: '/set-password'
+      preLoaderRoute: typeof SetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/selecao': {
@@ -565,6 +585,7 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacyRoute: PrivacyRoute,
   RfpRoute: RfpRoute,
   SelecaoRoute: SelecaoRoute,
+  SetPasswordRoute: SetPasswordRoute,
   SignupRoute: SignupRoute,
   TermsRoute: TermsRoute,
   WikiRoute: WikiRouteWithChildren,
