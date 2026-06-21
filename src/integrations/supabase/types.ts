@@ -1352,6 +1352,70 @@ export type Database = {
           },
         ]
       }
+      user_feature_overrides: {
+        Row: {
+          enabled: boolean
+          feature_key: string
+          tenant_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          enabled?: boolean
+          feature_key: string
+          tenant_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          enabled?: boolean
+          feature_key?: string
+          tenant_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_feature_overrides_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_module_overrides: {
+        Row: {
+          enabled: boolean
+          module_key: string
+          tenant_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          enabled?: boolean
+          module_key: string
+          tenant_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          enabled?: boolean
+          module_key?: string
+          tenant_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_module_overrides_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -1452,6 +1516,14 @@ export type Database = {
         }[]
       }
       cleanup_rate_limit_buckets: { Args: never; Returns: undefined }
+      effective_user_access: {
+        Args: { _tenant_id: string; _user_id: string }
+        Returns: {
+          enabled: boolean
+          key: string
+          kind: string
+        }[]
+      }
       has_feature: {
         Args: { _key: string; _tenant_id: string }
         Returns: boolean
@@ -1471,8 +1543,16 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_feature_enabled_for_user: {
+        Args: { _key: string; _tenant_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_hotel_member: {
         Args: { _hotel_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_module_enabled_for_user: {
+        Args: { _key: string; _tenant_id: string; _user_id: string }
         Returns: boolean
       }
       is_ta_master: { Args: { _user_id: string }; Returns: boolean }
