@@ -7,22 +7,30 @@ import {
   inviteTenantUserFn,
   listTenantUsersFn,
   removeTenantUserFn,
+  resendInviteFn,
 } from "@/lib/tenantUsers.functions";
 import {
   getUserOverridesFn,
   setUserModuleFn,
   setUserFeatureFn,
   resetUserOverridesFn,
+  resetAllTenantOverridesFn,
+  listAccessAuditFn,
 } from "@/lib/userAccess.functions";
-import { FEATURE_CATALOG } from "@/lib/featureCatalog";
+import { FEATURE_CATALOG, featureLabel } from "@/lib/featureCatalog";
 import { toast } from "sonner";
-import { Loader2, UserPlus, Trash2, Mail, ChevronRight, ChevronDown, RotateCcw } from "lucide-react";
+import {
+  Loader2, UserPlus, Trash2, Mail, ChevronRight, ChevronDown,
+  RotateCcw, AlertCircle, Send, History,
+} from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface TenantUser {
   userId: string;
   email: string;
   fullName: string;
   role: string;
+  mustSetPassword?: boolean;
 }
 
 const ROLE_OPTIONS_BY_TYPE: Record<string, Array<{ value: string; label: string }>> = {
