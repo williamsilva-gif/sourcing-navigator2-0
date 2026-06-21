@@ -355,11 +355,103 @@ export function TenantUsersPanel() {
         </table>
       </div>
 
+      {showAudit && <AccessAuditLog tenantId={editId} />}
+
       <p className="mt-4 text-[11px] text-muted-foreground">
         Configurando: <span className="font-semibold text-foreground">{editName}</span>
       </p>
     </section>
   );
+}
+
+interface AuditRow {
+  id: string;
+  target_user_id: string;
+  actor_user_id: string | null;
+  kind: "module" | "feature";
+  key: string;
+  action: "set" | "reset";
+  previous_value: boolean | null;
+  new_value: boolean | null;
+  created_at: string;
+  target_name: string;
+  actor_name: string;
+}
+
+function AccessAuditLog({ tenantId }: { tenantId: string }) {
+  const list = useServerFn(listAccessAuditFn);
+  const [rows, setRows] = useState<AuditRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    list({ data: { tenantId, limit: 50 } })
+      .then((r) => setRows(r as AuditRow[]))
+      .catch((e: Error) => toast.error(e.message))
+      .finally(() => setLoading(false));
+  }, [tenantId, list]);
+
+  function fmtVal(v: boolean | null) {
+    if (v === null) return "—";
+    return v ? "ON" : "OFF";
+  }
+
+  return (
+    <section className="mt-5 rounded-lg border border-border bg-background p-4">
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+          <History className="h-4 w-4" />
+          Histórico de alterações de acesso
+        </h3>
+        <span className="text-[11px] text-muted-foreground">Últimas 50 alterações</span>
+      </div>
+      {loading ? (
+        <div className="flex justify-center py-4"><Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /></div>
+      ) : rows.length === 0 ? (
+        <p className="py-4 text-center text-xs text-muted-foreground">Nenhuma alteração registrada ainda.</p>
+      ) : (
+        <div className="max-h-96 overflow-auto">
+          <table className="w-full text-xs">
+            <thead className="sticky top-0 bg-background text-left text-[10px] uppercase tracking-wider text-muted-foreground">
+              <tr>
+                <th className="py-1.5 pr-2 font-medium">Quando</th>
+                <th className="py-1.5 pr-2 font-medium">Quem mudou</th>
+                <th className="py-1.5 pr-2 font-medium">Usuário afetado</th>
+                <th className="py-1.5 pr-2 font-medium">Tipo</th>
+                <th className="py-1.5 pr-2 font-medium">Chave</th>
+                <th className="py-1.5 pr-2 font-medium">Antes</th>
+                <th className="py-1.5 pr-2 font-medium">Depois</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.id} className="border-t border-border">
+                  <td className="py-1.5 pr-2 text-muted-foreground">{new Date(r.created_at).toLocaleString()}</td>
+                  <td className="py-1.5 pr-2 font-medium text-foreground">{r.actor_name}</td>
+                  <td className="py-1.5 pr-2">{r.target_name}</td>
+                  <td className="py-1.5 pr-2">
+                    <span className="rounded bg-muted px-1.5 py-0.5 text-[9px] uppercase">{r.kind}</span>
+                  </td>
+                  <td className="py-1.5 pr-2 font-mono text-[11px]">{r.kind === "feature" ? featureLabel(r.key) : r.key}</td>
+                  <td className="py-1.5 pr-2"><Pill v={r.previous_value} text={fmtVal(r.previous_value)} /></td>
+                  <td className="py-1.5 pr-2"><Pill v={r.new_value} text={r.action === "reset" ? "RESET" : fmtVal(r.new_value)} /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function Pill({ v, text }: { v: boolean | null; text: string }) {
+  const cls = v === null
+    ? "bg-muted text-muted-foreground"
+    : v
+      ? "bg-emerald-500/10 text-emerald-600"
+      : "bg-rose-500/10 text-rose-600";
+  return <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${cls}`}>{text}</span>;
 }
 
 interface AccessEditorProps {
