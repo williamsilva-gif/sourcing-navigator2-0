@@ -204,13 +204,30 @@ export const useAppConfigStore = create<AppConfigState>()(
 
 // ============== Helpers — sempre via cliente ativo ==============
 
+/**
+ * ID do cliente ativo no momento.
+ * - Se o TA está em "modo cliente", retorna esse id (pode ser TA_WORKSPACE_ID).
+ * - Caso contrário, retorna o cliente selecionado no `clientsStore`.
+ */
+export function useActiveClientId(): string {
+  const imp = useAppConfigStore((s) => s.impersonatingClientId);
+  const sel = useClientsStore((s) => s.selectedClientId);
+  return imp ?? sel;
+}
+
+export function getActiveClientId(): string {
+  const imp = useAppConfigStore.getState().impersonatingClientId;
+  const sel = useClientsStore.getState().selectedClientId;
+  return imp ?? sel;
+}
+
 export function getActiveClientConfig(): ClientConfig {
-  const id = useClientsStore.getState().selectedClientId;
+  const id = getActiveClientId();
   return useAppConfigStore.getState().configByClient[id] ?? makeDefaultClientConfig();
 }
 
 export function useActiveClientConfig(): ClientConfig {
-  const id = useClientsStore((s) => s.selectedClientId);
+  const id = useActiveClientId();
   const cfg = useAppConfigStore((s) => s.configByClient[id]);
   return cfg ?? makeDefaultClientConfig();
 }
@@ -241,4 +258,9 @@ export function useCanConfigure(): boolean {
 
 export function useModuleEnabled(key: ModuleKey): boolean {
   return useEnabledModules()[key];
+}
+
+/** True quando o contexto ativo é o workspace pessoal do TA */
+export function useIsTaWorkspace(): boolean {
+  return useActiveClientId() === TA_WORKSPACE_ID;
 }
