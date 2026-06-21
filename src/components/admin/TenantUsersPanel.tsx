@@ -7,22 +7,30 @@ import {
   inviteTenantUserFn,
   listTenantUsersFn,
   removeTenantUserFn,
+  resendInviteFn,
 } from "@/lib/tenantUsers.functions";
 import {
   getUserOverridesFn,
   setUserModuleFn,
   setUserFeatureFn,
   resetUserOverridesFn,
+  resetAllTenantOverridesFn,
+  listAccessAuditFn,
 } from "@/lib/userAccess.functions";
-import { FEATURE_CATALOG } from "@/lib/featureCatalog";
+import { FEATURE_CATALOG, featureLabel } from "@/lib/featureCatalog";
 import { toast } from "sonner";
-import { Loader2, UserPlus, Trash2, Mail, ChevronRight, ChevronDown, RotateCcw } from "lucide-react";
+import {
+  Loader2, UserPlus, Trash2, Mail, ChevronRight, ChevronDown,
+  RotateCcw, AlertCircle, Send, History,
+} from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface TenantUser {
   userId: string;
   email: string;
   fullName: string;
   role: string;
+  mustSetPassword?: boolean;
 }
 
 const ROLE_OPTIONS_BY_TYPE: Record<string, Array<{ value: string; label: string }>> = {
@@ -81,6 +89,10 @@ export function TenantUsersPanel() {
   const list = useServerFn(listTenantUsersFn);
   const invite = useServerFn(inviteTenantUserFn);
   const remove = useServerFn(removeTenantUserFn);
+  const resend = useServerFn(resendInviteFn);
+  const resetAll = useServerFn(resetAllTenantOverridesFn);
+  const [showAudit, setShowAudit] = useState(false);
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   useEffect(() => {
     if (!editId || !isTa) return;
@@ -132,6 +144,28 @@ export function TenantUsersPanel() {
     }
   }
 
+  async function handleResend(uid: string) {
+    try {
+      const r = await resend({ data: { tenantId: editId, userId: uid } });
+      toast.success(`Convite reenviado para ${r.email}.`);
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  }
+
+  async function handleBulkReset() {
+    if (!confirm(`Remover TODOS os overrides de módulos/funcionalidades de TODOS os usuários de ${client?.name}? Eles voltam ao template padrão do cliente.`)) return;
+    setBulkBusy(true);
+    try {
+      const r = await resetAll({ data: { tenantId: editId } });
+      toast.success(`${r.reset} overrides removidos. Todos os usuários estão no template do cliente.`);
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBulkBusy(false);
+    }
+  }
+
   const editName = useMemo(() => client?.name ?? "—", [client]);
 
   if (!isTa) {
@@ -152,18 +186,35 @@ export function TenantUsersPanel() {
             usuários; overrides personalizam acesso individual.
           </p>
         </div>
-        <label className="flex items-center gap-2 text-xs">
-          <span className="font-semibold uppercase tracking-wider text-muted-foreground">Cliente</span>
-          <select
-            value={editId}
-            onChange={(e) => setEditId(e.target.value)}
-            className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+        <div className="flex flex-wrap items-end gap-2">
+          <label className="flex items-center gap-2 text-xs">
+            <span className="font-semibold uppercase tracking-wider text-muted-foreground">Cliente</span>
+            <select
+              value={editId}
+              onChange={(e) => setEditId(e.target.value)}
+              className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+            >
+              {clients.map((c) => (
+                <option key={c.id} value={c.id}>{c.name} · {c.type}</option>
+              ))}
+            </select>
+          </label>
+          <button
+            onClick={() => setShowAudit((v) => !v)}
+            className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border bg-background px-3 text-xs font-medium text-muted-foreground hover:bg-muted"
           >
-            {clients.map((c) => (
-              <option key={c.id} value={c.id}>{c.name} · {c.type}</option>
-            ))}
-          </select>
-        </label>
+            <History className="h-3.5 w-3.5" />
+            {showAudit ? "Ocultar histórico" : "Ver histórico"}
+          </button>
+          <button
+            onClick={handleBulkReset}
+            disabled={bulkBusy}
+            className="inline-flex h-9 items-center gap-1.5 rounded-md border border-destructive/30 bg-destructive-soft px-3 text-xs font-semibold text-destructive hover:bg-destructive/10 disabled:opacity-50"
+          >
+            {bulkBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />}
+            Resetar overrides do cliente
+          </button>
+        </div>
       </div>
 
       <form onSubmit={handleInvite} className="mt-5 grid grid-cols-1 gap-3 rounded-md border border-border bg-background p-4 md:grid-cols-[1fr_1fr_180px_auto]">
@@ -245,7 +296,14 @@ export function TenantUsersPanel() {
                       </button>
                     </td>
                     <td className="px-4 py-2.5">
-                      <p className="font-medium text-foreground">{u.fullName || u.email.split("@")[0]}</p>
+                      <p className="flex items-center gap-2 font-medium text-foreground">
+                        {u.fullName || u.email.split("@")[0]}
+                        {u.mustSetPassword && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-600">
+                            Senha pendente
+                          </span>
+                        )}
+                      </p>
                       <p className="flex items-center gap-1 text-[11px] text-muted-foreground">
                         <Mail className="h-3 w-3" />
                         {u.email}
@@ -257,10 +315,21 @@ export function TenantUsersPanel() {
                       </span>
                     </td>
                     <td className="px-4 py-2.5">
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex items-center justify-end gap-1">
+                        {u.mustSetPassword && (
+                          <button
+                            onClick={() => handleResend(u.userId)}
+                            title="Reenviar link de definição de senha"
+                            className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1 text-[11px] font-medium text-muted-foreground hover:bg-muted"
+                          >
+                            <Send className="h-3 w-3" />
+                            Reenviar convite
+                          </button>
+                        )}
                         <button
                           onClick={() => handleRemove(u.userId)}
                           className="rounded-md p-1.5 text-muted-foreground hover:bg-destructive-soft hover:text-destructive"
+                          title="Remover acesso"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
@@ -286,11 +355,103 @@ export function TenantUsersPanel() {
         </table>
       </div>
 
+      {showAudit && <AccessAuditLog tenantId={editId} />}
+
       <p className="mt-4 text-[11px] text-muted-foreground">
         Configurando: <span className="font-semibold text-foreground">{editName}</span>
       </p>
     </section>
   );
+}
+
+interface AuditRow {
+  id: string;
+  target_user_id: string;
+  actor_user_id: string | null;
+  kind: "module" | "feature";
+  key: string;
+  action: "set" | "reset";
+  previous_value: boolean | null;
+  new_value: boolean | null;
+  created_at: string;
+  target_name: string;
+  actor_name: string;
+}
+
+function AccessAuditLog({ tenantId }: { tenantId: string }) {
+  const list = useServerFn(listAccessAuditFn);
+  const [rows, setRows] = useState<AuditRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    list({ data: { tenantId, limit: 50 } })
+      .then((r) => setRows(r as AuditRow[]))
+      .catch((e: Error) => toast.error(e.message))
+      .finally(() => setLoading(false));
+  }, [tenantId, list]);
+
+  function fmtVal(v: boolean | null) {
+    if (v === null) return "—";
+    return v ? "ON" : "OFF";
+  }
+
+  return (
+    <section className="mt-5 rounded-lg border border-border bg-background p-4">
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+          <History className="h-4 w-4" />
+          Histórico de alterações de acesso
+        </h3>
+        <span className="text-[11px] text-muted-foreground">Últimas 50 alterações</span>
+      </div>
+      {loading ? (
+        <div className="flex justify-center py-4"><Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /></div>
+      ) : rows.length === 0 ? (
+        <p className="py-4 text-center text-xs text-muted-foreground">Nenhuma alteração registrada ainda.</p>
+      ) : (
+        <div className="max-h-96 overflow-auto">
+          <table className="w-full text-xs">
+            <thead className="sticky top-0 bg-background text-left text-[10px] uppercase tracking-wider text-muted-foreground">
+              <tr>
+                <th className="py-1.5 pr-2 font-medium">Quando</th>
+                <th className="py-1.5 pr-2 font-medium">Quem mudou</th>
+                <th className="py-1.5 pr-2 font-medium">Usuário afetado</th>
+                <th className="py-1.5 pr-2 font-medium">Tipo</th>
+                <th className="py-1.5 pr-2 font-medium">Chave</th>
+                <th className="py-1.5 pr-2 font-medium">Antes</th>
+                <th className="py-1.5 pr-2 font-medium">Depois</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.id} className="border-t border-border">
+                  <td className="py-1.5 pr-2 text-muted-foreground">{new Date(r.created_at).toLocaleString()}</td>
+                  <td className="py-1.5 pr-2 font-medium text-foreground">{r.actor_name}</td>
+                  <td className="py-1.5 pr-2">{r.target_name}</td>
+                  <td className="py-1.5 pr-2">
+                    <span className="rounded bg-muted px-1.5 py-0.5 text-[9px] uppercase">{r.kind}</span>
+                  </td>
+                  <td className="py-1.5 pr-2 font-mono text-[11px]">{r.kind === "feature" ? featureLabel(r.key) : r.key}</td>
+                  <td className="py-1.5 pr-2"><Pill v={r.previous_value} text={fmtVal(r.previous_value)} /></td>
+                  <td className="py-1.5 pr-2"><Pill v={r.new_value} text={r.action === "reset" ? "RESET" : fmtVal(r.new_value)} /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function Pill({ v, text }: { v: boolean | null; text: string }) {
+  const cls = v === null
+    ? "bg-muted text-muted-foreground"
+    : v
+      ? "bg-emerald-500/10 text-emerald-600"
+      : "bg-rose-500/10 text-rose-600";
+  return <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${cls}`}>{text}</span>;
 }
 
 interface AccessEditorProps {
@@ -386,7 +547,58 @@ function UserAccessEditor({ tenantId, userId, templateModules, templateFeatures 
     );
   }
 
+  function reasonModule(key: string): { source: "override" | "template" | "default"; explain: string } {
+    const tpl = templateModules?.[key];
+    if (key in modOverrides) {
+      const v = modOverrides[key];
+      return {
+        source: "override",
+        explain: v
+          ? "Override individual: ATIVO para este usuário (sobrescreve o template)."
+          : "Override individual: DESATIVADO para este usuário (sobrescreve o template). Para reativar, ligue o toggle ou clique em 'Resetar para template'.",
+      };
+    }
+    if (tpl !== undefined) {
+      return {
+        source: "template",
+        explain: tpl
+          ? "Vem do template do cliente: ATIVO. Sem override individual."
+          : "Vem do template do cliente: DESATIVADO. Para liberar só para este usuário, ligue o toggle (cria um override). Para liberar para todos, altere o template em 'Módulos & ambiente'.",
+      };
+    }
+    return { source: "default", explain: "Padrão do sistema: ATIVO. Nenhum override nem template configurado." };
+  }
+
+  function reasonFeature(key: string, modKey: string): { source: "override" | "template" | "module" | "default"; explain: string } {
+    if (!modEnabled(modKey)) {
+      return {
+        source: "module",
+        explain: `O módulo '${modKey}' está desligado para este usuário, então nenhuma funcionalidade dele fica disponível. Ative o módulo acima para liberar.`,
+      };
+    }
+    const tpl = templateFeatures?.[key];
+    if (key in featOverrides) {
+      const v = featOverrides[key];
+      return {
+        source: "override",
+        explain: v
+          ? "Override individual: ATIVO (sobrescreve o template)."
+          : "Override individual: DESATIVADO. Para reativar, ligue o toggle.",
+      };
+    }
+    if (tpl !== undefined) {
+      return {
+        source: "template",
+        explain: tpl
+          ? "Vem do template do cliente: ATIVO."
+          : "Vem do template do cliente: DESATIVADO. Para liberar só para este usuário, ligue o toggle. Para liberar para todos, ajuste o template em 'Funcionalidades por módulo'.",
+      };
+    }
+    return { source: "default", explain: "Padrão do sistema: ATIVO." };
+  }
+
   return (
+    <TooltipProvider delayDuration={150}>
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -409,6 +621,7 @@ function UserAccessEditor({ tenantId, userId, templateModules, templateFeatures 
           {ALL_MODULES.map((m) => {
             const on = modEnabled(m.key);
             const overridden = m.key in modOverrides;
+            const reason = reasonModule(m.key);
             return (
               <label
                 key={m.key}
@@ -416,6 +629,17 @@ function UserAccessEditor({ tenantId, userId, templateModules, templateFeatures 
               >
                 <span className="flex items-center gap-2">
                   {m.label}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button type="button" className="rounded-full p-0.5 text-muted-foreground hover:text-foreground">
+                        <AlertCircle className="h-3 w-3" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-xs text-xs">
+                      <p className="font-semibold capitalize">Origem: {reason.source}</p>
+                      <p className="mt-1 leading-relaxed">{reason.explain}</p>
+                    </TooltipContent>
+                  </Tooltip>
                   {overridden && <span className="rounded-full bg-primary-soft px-1.5 py-0.5 text-[9px] font-semibold text-primary">override</span>}
                 </span>
                 <input
@@ -445,10 +669,22 @@ function UserAccessEditor({ tenantId, userId, templateModules, templateFeatures 
                   {feats.map((f) => {
                     const on = featEnabled(f.key);
                     const overridden = f.key in featOverrides;
+                    const reason = reasonFeature(f.key, modKey);
                     return (
                       <label key={f.key} className="flex items-center justify-between gap-2 text-xs">
                         <span className="flex items-center gap-1.5">
                           {f.label}
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button type="button" className="rounded-full p-0.5 text-muted-foreground hover:text-foreground">
+                                <AlertCircle className="h-3 w-3" />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="max-w-xs text-xs">
+                              <p className="font-semibold capitalize">Origem: {reason.source}</p>
+                              <p className="mt-1 leading-relaxed">{reason.explain}</p>
+                            </TooltipContent>
+                          </Tooltip>
                           {overridden && <span className="rounded-full bg-primary-soft px-1.5 py-0.5 text-[9px] font-semibold text-primary">override</span>}
                         </span>
                         <input
@@ -468,5 +704,6 @@ function UserAccessEditor({ tenantId, userId, templateModules, templateFeatures 
         </div>
       </div>
     </div>
+    </TooltipProvider>
   );
 }

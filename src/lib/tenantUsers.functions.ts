@@ -95,13 +95,20 @@ export const listTenantUsersFn = createServerFn({ method: "POST" })
       .select("id, email, full_name")
       .in("id", userIds);
 
+    // Fetch auth metadata to surface must_set_password flag
+    const authList = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 200 });
+    const authById = new Map(authList.data?.users.map((u) => [u.id, u]) ?? []);
+
     return (rolesRows ?? []).map((r) => {
       const p = profs?.find((x) => x.id === r.user_id);
+      const au = authById.get(r.user_id);
+      const mustSetPassword = (au?.user_metadata as any)?.must_set_password === true;
       return {
         userId: r.user_id,
         role: r.role as string,
-        email: p?.email ?? "",
+        email: p?.email ?? au?.email ?? "",
         fullName: p?.full_name ?? "",
+        mustSetPassword,
       };
     });
   });
@@ -122,4 +129,36 @@ export const removeTenantUserFn = createServerFn({ method: "POST" })
       .eq("user_id", data.userId);
     if (error) throw new Error(error.message);
     return { ok: true };
+  });
+
+const resendSchema = z.object({ tenantId: z.string().uuid(), userId: z.string().uuid() });
+
+/** Re-send the set-password invite link to a user who hasn't set a password yet. */
+export const resendInviteFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => resendSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: isTa } = await context.supabase.rpc("is_ta_master", { _user_id: context.userId });
+    if (!isTa) throw new Error("Apenas TA pode reenviar convites.");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: u, error: getErr } = await supabaseAdmin.auth.admin.getUserById(data.userId);
+    if (getErr || !u.user?.email) throw new Error(getErr?.message ?? "Usuário não encontrado");
+    const meta = (u.user.user_metadata ?? {}) as Record<string, unknown>;
+    if (meta.must_set_password !== true) {
+      throw new Error("Esse usuário já definiu uma senha. Use 'Esqueci minha senha' no login.");
+    }
+
+    const origin =
+      (typeof process !== "undefined" && process.env.PUBLIC_SITE_URL) ||
+      "https://navigator.travelacademy.com.br";
+    const redirectTo = `${origin}/set-password`;
+
+    // Generate a fresh invite link
+    const { error } = await supabaseAdmin.auth.admin.inviteUserByEmail(u.user.email, {
+      data: { ...meta, must_set_password: true },
+      redirectTo,
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true, email: u.user.email };
   });
