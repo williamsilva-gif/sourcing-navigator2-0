@@ -8,6 +8,11 @@ export const Route = createFileRoute("/_authenticated")({
       const redirectTo = location.href && location.href !== "/login" ? location.href : "/";
       throw redirect({ to: "/login", search: { redirect: redirectTo } });
     }
+    // Force password setup if the user was invited and never created one
+    const meta = data.session.user.user_metadata ?? {};
+    if (meta.must_set_password === true && location.pathname !== "/set-password") {
+      throw redirect({ to: "/set-password" });
+    }
   },
   component: () => <Outlet />,
 });
