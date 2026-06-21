@@ -95,13 +95,20 @@ export const listTenantUsersFn = createServerFn({ method: "POST" })
       .select("id, email, full_name")
       .in("id", userIds);
 
+    // Fetch auth metadata to surface must_set_password flag
+    const authList = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 200 });
+    const authById = new Map(authList.data?.users.map((u) => [u.id, u]) ?? []);
+
     return (rolesRows ?? []).map((r) => {
       const p = profs?.find((x) => x.id === r.user_id);
+      const au = authById.get(r.user_id);
+      const mustSetPassword = (au?.user_metadata as any)?.must_set_password === true;
       return {
         userId: r.user_id,
         role: r.role as string,
-        email: p?.email ?? "",
+        email: p?.email ?? au?.email ?? "",
         fullName: p?.full_name ?? "",
+        mustSetPassword,
       };
     });
   });
