@@ -14,6 +14,53 @@ export type Database = {
   }
   public: {
     Tables: {
+      access_audit_log: {
+        Row: {
+          action: string
+          actor_user_id: string | null
+          created_at: string
+          id: string
+          key: string
+          kind: string
+          new_value: boolean | null
+          previous_value: boolean | null
+          target_user_id: string
+          tenant_id: string
+        }
+        Insert: {
+          action: string
+          actor_user_id?: string | null
+          created_at?: string
+          id?: string
+          key: string
+          kind: string
+          new_value?: boolean | null
+          previous_value?: boolean | null
+          target_user_id: string
+          tenant_id: string
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string | null
+          created_at?: string
+          id?: string
+          key?: string
+          kind?: string
+          new_value?: boolean | null
+          previous_value?: boolean | null
+          target_user_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "access_audit_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       account_deletion_requests: {
         Row: {
           id: string
@@ -1556,6 +1603,10 @@ export type Database = {
         Returns: boolean
       }
       is_ta_master: { Args: { _user_id: string }; Returns: boolean }
+      reset_all_user_overrides_for_tenant: {
+        Args: { _actor: string; _tenant_id: string }
+        Returns: number
+      }
       visible_tenant_ids: { Args: { _user_id: string }; Returns: string[] }
     }
     Enums: {
