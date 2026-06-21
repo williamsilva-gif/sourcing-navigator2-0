@@ -106,21 +106,21 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
-  const { user } = useAuth();
+  const { user, ready } = useAuth();
   const syncClients = useClientsStore((s) => s.syncFromDb);
   const selectedClientId = useClientsStore((s) => s.selectedClientId);
   const hydrateBaseline = useBaselineStore((s) => s.hydrateFromDb);
   const hydrateActions = useActionStore((s) => s.hydrateFromDb);
   const [queryClient] = useState(() => new QueryClient());
   useEffect(() => {
-    if (user) syncClients();
-  }, [user, syncClients]);
+    if (ready && user) syncClients();
+  }, [ready, user, syncClients]);
   useEffect(() => {
-    if (user && selectedClientId) {
+    if (ready && user && selectedClientId) {
       hydrateBaseline(selectedClientId);
       hydrateActions(selectedClientId);
     }
-  }, [user, selectedClientId, hydrateBaseline, hydrateActions]);
+  }, [ready, user, selectedClientId, hydrateBaseline, hydrateActions]);
 
 
   return (

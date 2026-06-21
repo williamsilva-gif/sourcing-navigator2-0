@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { listVisibleTenants, migrateLocalClients } from "@/lib/tenantsRepo";
 import { useServerFn } from "@tanstack/react-start";
 import { seedDemoDataFn, wipeDemoDataFn } from "@/lib/demoSeed.functions";
+import { useAuth } from "@/hooks/useAuth";
 
 export function ClientsPanel() {
   const clients = useClientsStore((s) => s.clients);
@@ -17,6 +18,7 @@ export function ClientsPanel() {
   const updateClient = useClientsStore((s) => s.updateClient);
   const syncFromDb = useClientsStore((s) => s.syncFromDb);
   const loaded = useClientsStore((s) => s.loaded);
+  const { ready, user } = useAuth();
 
   const [name, setName] = useState("");
   const [type, setType] = useState<ClientType>("Corporate");
@@ -25,9 +27,14 @@ export function ClientsPanel() {
   const [refreshing, setRefreshing] = useState(false);
   const [dbNames, setDbNames] = useState<Set<string> | null>(null);
 
-  // Detect which local clients aren't in the DB yet (case-insensitive name match).
+  // Wait for the Supabase session to be hydrated before querying — otherwise
+  // the request goes out with the anon key only, RLS hides every tenant and
+  // the UI looks "empty" even though the data is intact.
   useEffect(() => {
+    if (!ready || !user) return;
     let mounted = true;
+    // Make sure the clients store is also synced once the session exists.
+    syncFromDb();
     listVisibleTenants()
       .then((rows) => {
         if (mounted) setDbNames(new Set(rows.map((r) => r.name.toLowerCase())));
@@ -36,7 +43,7 @@ export function ClientsPanel() {
     return () => {
       mounted = false;
     };
-  }, [loaded]);
+  }, [ready, user, loaded, syncFromDb]);
 
   const localOnly = useMemo(() => {
     if (!dbNames) return [];
