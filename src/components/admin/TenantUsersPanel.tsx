@@ -144,6 +144,28 @@ export function TenantUsersPanel() {
     }
   }
 
+  async function handleResend(uid: string) {
+    try {
+      const r = await resend({ data: { tenantId: editId, userId: uid } });
+      toast.success(`Convite reenviado para ${r.email}.`);
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  }
+
+  async function handleBulkReset() {
+    if (!confirm(`Remover TODOS os overrides de módulos/funcionalidades de TODOS os usuários de ${client?.name}? Eles voltam ao template padrão do cliente.`)) return;
+    setBulkBusy(true);
+    try {
+      const r = await resetAll({ data: { tenantId: editId } });
+      toast.success(`${r.reset} overrides removidos. Todos os usuários estão no template do cliente.`);
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBulkBusy(false);
+    }
+  }
+
   const editName = useMemo(() => client?.name ?? "—", [client]);
 
   if (!isTa) {
