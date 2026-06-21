@@ -40,7 +40,10 @@ export function Sidebar() {
   const { roles } = useAuth();
   const authRole = getPrimaryRole(roles);
   const isTa = authRole === "ta_master" || authRole === "ta_staff";
+  // Rotas sempre visíveis (catálogo global / docs)
+  const alwaysOn = new Set(["/hoteis", "/wiki"]);
   const visible = modules.filter((m) => {
+    if (alwaysOn.has(m.to)) return true;
     if (m.key === "admin") return isTa || (enabledModules.admin && role === "admin");
     return enabledModules[m.key];
   });

@@ -1227,6 +1227,35 @@ export type Database = {
         }
         Relationships: []
       }
+      tenant_features: {
+        Row: {
+          enabled: boolean
+          feature_key: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          enabled?: boolean
+          feature_key: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          enabled?: boolean
+          feature_key?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_features_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_modules: {
         Row: {
           enabled: boolean
@@ -1423,6 +1452,10 @@ export type Database = {
         }[]
       }
       cleanup_rate_limit_buckets: { Args: never; Returns: undefined }
+      has_feature: {
+        Args: { _key: string; _tenant_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

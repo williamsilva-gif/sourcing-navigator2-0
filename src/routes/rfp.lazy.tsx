@@ -8,6 +8,7 @@ import { HotelResponseTracker } from "@/components/rfp/HotelResponseTracker";
 import { CreateRfpWizard } from "@/components/rfp/CreateRfpWizard";
 import { RfpDetailModal } from "@/components/rfp/RfpDetailModal";
 import { ActionInboxBanner } from "@/components/layout/ActionInboxBanner";
+import { Feature } from "@/components/common/Feature";
 import { useRfps } from "@/lib/rfpRepo";
 import { useActionStore } from "@/lib/actionStore";
 
@@ -70,10 +71,12 @@ function RfpPage() {
             gestão centralizada de respostas com prazos e lembretes.
           </p>
         </div>
-        <Button onClick={() => { setPrefill(undefined); setWizardOpen(true); }}>
-          <Plus className="mr-1.5 h-4 w-4" />
-          Novo RFP
-        </Button>
+        <Feature flag="rfp.create">
+          <Button onClick={() => { setPrefill(undefined); setWizardOpen(true); }}>
+            <Plus className="mr-1.5 h-4 w-4" />
+            Novo RFP
+          </Button>
+        </Feature>
       </div>
 
       <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">

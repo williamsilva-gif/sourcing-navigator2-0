@@ -1,6 +1,10 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { useClientsStore } from "./clientsStore";
+import { defaultFeatures } from "./featureCatalog";
+
+/** ID virtual do workspace pessoal do TA (William). Não é um tenant real no DB. */
+export const TA_WORKSPACE_ID = "__ta_workspace__";
 
 export type Role = "admin" | "manager" | "viewer";
 
@@ -31,12 +35,19 @@ export interface ClientConfig {
   defaultCap: number;
   enabledModules: Record<ModuleKey, boolean>;
   environment: Environment;
+  /** Feature flags por funcionalidade (rfp.create, negociacao.createLot, etc.) */
+  features: Record<string, boolean>;
 }
 
 interface AppConfigState {
   user: { id: string; name: string; role: Role };
   // Config por cliente — chave é clientId do useClientsStore
   configByClient: Record<string, ClientConfig>;
+  /**
+   * Quando o TA "entra" em um cliente para visualizar/editar como ele.
+   * Null = TA está no próprio workspace. Não-TA ignora este campo.
+   */
+  impersonatingClientId: string | null;
 
   setRole: (role: Role) => void;
   setUserName: (name: string) => void;
@@ -46,6 +57,10 @@ interface AppConfigState {
   setDefaultCap: (clientId: string, cap: number) => void;
   setEnvironment: (clientId: string, env: Environment) => void;
   ensureClientConfig: (clientId: string, env?: Environment) => void;
+  setFeature: (clientId: string, key: string, enabled: boolean) => void;
+
+  enterClientMode: (clientId: string) => void;
+  exitClientMode: () => void;
 }
 
 const ALL_MODULES: ModuleKey[] = [
@@ -57,6 +72,21 @@ const FULL_MODULES: Record<ModuleKey, boolean> = ALL_MODULES.reduce(
   (acc, k) => ({ ...acc, [k]: true }),
   {} as Record<ModuleKey, boolean>,
 );
+
+/** Workspace TA: só Admin + Documentação(dashboard cobre) + Hotéis(diagnostico). Tudo mais desligado. */
+const TA_WORKSPACE_MODULES: Record<ModuleKey, boolean> = {
+  dashboard: false,
+  diagnostico: true, // /hoteis usa key diagnostico
+  estrategia: false,
+  rfp: false,
+  analise: false,
+  negociacao: false,
+  selecao: false,
+  implementacao: false,
+  monitoramento: false,
+  monetizacao: false,
+  admin: true,
+};
 
 const DEFAULT_THRESHOLDS: Thresholds = {
   adrGapPct: 8,
@@ -78,6 +108,17 @@ export function makeDefaultClientConfig(env: Environment = "TMC"): ClientConfig 
     defaultCap: 280,
     enabledModules: defaultModulesForEnv(env),
     environment: env,
+    features: defaultFeatures(),
+  };
+}
+
+export function makeTaWorkspaceConfig(): ClientConfig {
+  return {
+    thresholds: { ...DEFAULT_THRESHOLDS },
+    defaultCap: 280,
+    enabledModules: { ...TA_WORKSPACE_MODULES },
+    environment: "TMC",
+    features: defaultFeatures(),
   };
 }
 
@@ -86,9 +127,11 @@ export const useAppConfigStore = create<AppConfigState>()(
     (set) => ({
   user: { id: "u1", name: "Marina Reis", role: "admin" },
   configByClient: {
+    [TA_WORKSPACE_ID]: makeTaWorkspaceConfig(),
     kontik: makeDefaultClientConfig("TMC"),
     acme: makeDefaultClientConfig("Corporate"),
   },
+  impersonatingClientId: null,
 
   setRole: (role) => set((s) => ({ user: { ...s.user, role } })),
   setUserName: (name) => set((s) => ({ user: { ...s.user, name } })),
@@ -133,6 +176,20 @@ export const useAppConfigStore = create<AppConfigState>()(
       const cfg = s.configByClient[clientId] ?? makeDefaultClientConfig(env);
       return { configByClient: { ...s.configByClient, [clientId]: { ...cfg, environment: env } } };
     }),
+
+  setFeature: (clientId, key, enabled) =>
+    set((s) => {
+      const cfg = s.configByClient[clientId] ?? makeDefaultClientConfig();
+      return {
+        configByClient: {
+          ...s.configByClient,
+          [clientId]: { ...cfg, features: { ...(cfg.features ?? {}), [key]: enabled } },
+        },
+      };
+    }),
+
+  enterClientMode: (clientId) => set({ impersonatingClientId: clientId }),
+  exitClientMode: () => set({ impersonatingClientId: null }),
 }),
     {
       name: "sourcinghub.appconfig.v1",
@@ -147,13 +204,30 @@ export const useAppConfigStore = create<AppConfigState>()(
 
 // ============== Helpers — sempre via cliente ativo ==============
 
+/**
+ * ID do cliente ativo no momento.
+ * - Se o TA está em "modo cliente", retorna esse id (pode ser TA_WORKSPACE_ID).
+ * - Caso contrário, retorna o cliente selecionado no `clientsStore`.
+ */
+export function useActiveClientId(): string {
+  const imp = useAppConfigStore((s) => s.impersonatingClientId);
+  const sel = useClientsStore((s) => s.selectedClientId);
+  return imp ?? sel;
+}
+
+export function getActiveClientId(): string {
+  const imp = useAppConfigStore.getState().impersonatingClientId;
+  const sel = useClientsStore.getState().selectedClientId;
+  return imp ?? sel;
+}
+
 export function getActiveClientConfig(): ClientConfig {
-  const id = useClientsStore.getState().selectedClientId;
+  const id = getActiveClientId();
   return useAppConfigStore.getState().configByClient[id] ?? makeDefaultClientConfig();
 }
 
 export function useActiveClientConfig(): ClientConfig {
-  const id = useClientsStore((s) => s.selectedClientId);
+  const id = useActiveClientId();
   const cfg = useAppConfigStore((s) => s.configByClient[id]);
   return cfg ?? makeDefaultClientConfig();
 }
@@ -184,4 +258,9 @@ export function useCanConfigure(): boolean {
 
 export function useModuleEnabled(key: ModuleKey): boolean {
   return useEnabledModules()[key];
+}
+
+/** True quando o contexto ativo é o workspace pessoal do TA */
+export function useIsTaWorkspace(): boolean {
+  return useActiveClientId() === TA_WORKSPACE_ID;
 }
