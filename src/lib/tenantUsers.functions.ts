@@ -5,6 +5,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 const inviteSchema = z.object({
   tenantId: z.string().uuid(),
   email: z.string().email(),
+  fullName: z.string().min(1, "Nome obrigatório"),
   role: z.enum(["tmc_admin", "tmc_user", "corp_admin", "corp_user", "hotel_admin", "hotel_user"]),
 });
 
@@ -24,15 +25,26 @@ export const inviteTenantUserFn = createServerFn({ method: "POST" })
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
+    // Determine redirect target for the magic/invite link
+    const origin =
+      (typeof process !== "undefined" && process.env.PUBLIC_SITE_URL) ||
+      "https://navigator.travelacademy.com.br";
+    const redirectTo = `${origin}/set-password`;
+
     // Tenta criar o usuário; se já existir, pega o id.
     let userId: string | null = null;
     const created = await supabaseAdmin.auth.admin.inviteUserByEmail(data.email, {
-      data: { invited_to_tenant: data.tenantId, invited_role: data.role },
+      data: {
+        invited_to_tenant: data.tenantId,
+        invited_role: data.role,
+        full_name: data.fullName,
+        must_set_password: true,
+      },
+      redirectTo,
     });
     if (created.error) {
       const msg = created.error.message ?? "";
       if (/already|exists|registered/i.test(msg)) {
-        // Busca usuário existente
         const list = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 200 });
         const found = list.data?.users.find((u) => u.email?.toLowerCase() === data.email.toLowerCase());
         if (!found) throw new Error(`Usuário existe mas não foi encontrado: ${msg}`);
@@ -44,6 +56,11 @@ export const inviteTenantUserFn = createServerFn({ method: "POST" })
       userId = created.data.user?.id ?? null;
     }
     if (!userId) throw new Error("Não foi possível obter user id.");
+
+    // Atualiza/cria profile com o nome
+    await supabaseAdmin
+      .from("profiles")
+      .upsert({ id: userId, email: data.email, full_name: data.fullName }, { onConflict: "id" });
 
     const { error: roleErr } = await supabaseAdmin
       .from("user_roles")

@@ -39,9 +39,10 @@ export function ModulesPanel() {
     <section className="rounded-lg border border-border bg-card p-6 shadow-[var(--shadow-card)]">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="text-base font-semibold text-foreground">Módulos & ambiente</h2>
+          <h2 className="text-base font-semibold text-foreground">Módulos & ambiente — template do cliente</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Selecione qual cliente está sendo configurado. As alterações afetam apenas esse cliente.
+            Define o <strong>padrão</strong> aplicado a novos usuários deste cliente. Para personalizar acesso de um
+            usuário específico, use <em>Usuários do cliente</em>.
           </p>
         </div>
         <div className="flex items-end gap-2">
