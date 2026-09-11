@@ -141,8 +141,8 @@ export const Route = createFileRoute("/api/public/rate-loading/result")({
         const billable = BILLABLE_RESULT_CODES.includes(resultCode as never);
         const retryable =
           !billable &&
-          body.errorCode != null &&
-          RETRYABLE_ERROR_CODES.includes(body.errorCode) &&
+          technicalError != null &&
+          RETRYABLE_ERROR_CODES.includes(technicalError) &&
           attemptNumber < (job.max_attempts ?? 3);
 
         // ---- attempt -------------------------------------------------------
@@ -153,7 +153,7 @@ export const Route = createFileRoute("/api/public/rate-loading/result")({
             check_id: job.check_id,
             attempt_number: attemptNumber,
             job_id: job.id,
-            status: body.errorCode ? "failed" : "completed",
+            status: technicalError ? "failed" : "completed",
             worker_id: (body.workerId ?? "worker").slice(0, 64),
             correlation_id: body.correlationId ?? job.idempotency_key,
             portal_adapter_key: conn?.portal_adapter_key ?? null,
@@ -239,7 +239,7 @@ export const Route = createFileRoute("/api/public/rate-loading/result")({
               locked_by: null,
               lease_expires_at: null,
               available_at: new Date(Date.now() + backoffMinutes * 60_000).toISOString(),
-              last_error: body.errorCode,
+              last_error: technicalError,
             })
             .eq("id", job.id);
           await supabaseAdmin
@@ -251,7 +251,7 @@ export const Route = createFileRoute("/api/public/rate-loading/result")({
 
         await supabaseAdmin
           .from("rate_loading_jobs")
-          .update({ status: body.errorCode ? "failed" : "completed", finished_at: now, last_error: body.errorCode ?? null })
+          .update({ status: technicalError ? "failed" : "completed", finished_at: now, last_error: technicalError })
           .eq("id", job.id);
 
         await supabaseAdmin
