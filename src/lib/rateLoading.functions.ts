@@ -448,7 +448,7 @@ export const updateFinalTermsFn = createServerFn({ method: "POST" })
     const patch: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(data.patch)) if (allowed.includes(k)) patch[k] = v;
     if (Object.keys(patch).length === 0) return { ok: true };
-    const { error } = await supabase.from("final_agreed_terms").update(patch).eq("id", data.id);
+    const { error } = await supabase.from("final_agreed_terms").update(patch as never).eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -677,7 +677,7 @@ export const createCampaignFn = createServerFn({ method: "POST" })
         rfp_id: data.rfpId ?? null,
         portal_connection_id: data.portalConnectionId,
         status: "draft",
-        validation_rules: data.rules as unknown as Record<string, unknown>,
+        validation_rules: data.rules as never,
         created_by: userId,
       })
       .select("id")
@@ -791,7 +791,7 @@ export const createCampaignFn = createServerFn({ method: "POST" })
 
     const { data: createdChecks, error: chkErr } = await supabase
       .from("rate_loading_checks")
-      .insert(checkRows)
+      .insert(checkRows as never)
       .select("id");
     if (chkErr) throw new Error(chkErr.message);
 
@@ -904,7 +904,7 @@ export const getCampaignDetailFn = createServerFn({ method: "GET" })
           .select("*")
           .in("check_id", checkIds)
           .order("attempt_number", { ascending: false })
-      : { data: [] as Record<string, unknown>[] };
+      : { data: [] as never[] };
     return { campaign, checks: checks ?? [], attempts: attempts ?? [] };
   });
 
