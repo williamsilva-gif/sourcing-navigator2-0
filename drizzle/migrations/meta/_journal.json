@@ -15,6 +15,13 @@
       "when": 1789151439149,
       "tag": "0001_rate_loading_credentials_vault",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789151692293,
+      "tag": "0002_rate_loading_evidence_bucket_policies",
+      "breakpoints": true
     }
   ]
 }
