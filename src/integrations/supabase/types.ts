@@ -2510,6 +2510,19 @@ export type Database = {
           kind: string
         }[]
       }
+      finalize_feature_usage: {
+        Args: {
+          _attempt_id: string
+          _billable: boolean
+          _campaign_id: string
+          _check_id: string
+          _feature_key: string
+          _period_key: string
+          _reason?: string
+          _tenant_id: string
+        }
+        Returns: undefined
+      }
       has_feature: {
         Args: { _key: string; _tenant_id: string }
         Returns: boolean

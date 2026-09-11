@@ -22,6 +22,13 @@
       "when": 1789151692293,
       "tag": "0002_rate_loading_evidence_bucket_policies",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1789151726491,
+      "tag": "0003_finalize_feature_usage",
+      "breakpoints": true
     }
   ]
 }
