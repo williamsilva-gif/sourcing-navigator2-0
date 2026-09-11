@@ -97,15 +97,26 @@ export const Route = createFileRoute("/api/public/rate-loading/result")({
         let warnings: unknown[] = [];
         let comparison: unknown = null;
 
-        if (body.errorCode) {
-          resultCode =
-            body.errorCode === "LOGIN_FAILED" || body.errorCode === "MFA_REQUIRED"
-              ? "LOGIN_FAILED"
-              : body.errorCode === "PORTAL_UNAVAILABLE" || body.errorCode === "PORTAL_LAYOUT_CHANGED"
-                ? "PORTAL_ERROR"
-                : "AUTOMATION_ERROR";
-          summary = `Falha técnica: ${body.errorCode}`;
+        // "hotel/rate not found" are business outcomes, not technical failures:
+        // they go through the comparator with an empty offer.
+        const businessNotFound =
+          body.errorCode === "HOTEL_NOT_FOUND" || body.errorCode === "RATE_NOT_FOUND";
+        const technicalError = body.errorCode && !businessNotFound ? body.errorCode : null;
+
+        if (technicalError) {
+          const authFailure =
+            technicalError === "AUTH_INVALID_CREDENTIALS" ||
+            technicalError === "AUTH_MFA_REQUIRED" ||
+            technicalError === "AUTH_CAPTCHA" ||
+            technicalError === "AUTH_ACCESS_DENIED";
+          const portalFailure =
+            technicalError === "PORTAL_UNAVAILABLE" ||
+            technicalError === "PORTAL_LAYOUT_CHANGED" ||
+            technicalError === "PORTAL_TIMEOUT";
+          resultCode = authFailure ? "LOGIN_FAILED" : portalFailure ? "PORTAL_ERROR" : "AUTOMATION_ERROR";
+          summary = `Falha técnica: ${technicalError}`;
         } else {
+
           const snapshot = check.expected_snapshot as unknown as ExpectedRateSnapshot;
           const result = compareRateLoading(snapshot, body.offer ?? null, {
             tolerance: {
