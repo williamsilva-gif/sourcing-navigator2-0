@@ -36,11 +36,6 @@ function periodKeyFor(period: string): string {
 async function audit(
   supabase: Db,
   row: {
-    from: (t: string) => {
-      insert: (v: Record<string, unknown>) => Promise<{ error: unknown }>;
-    };
-  },
-  row: {
     tenant_id: string;
     target_user_id: string;
     actor_user_id: string;
