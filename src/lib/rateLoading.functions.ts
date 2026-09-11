@@ -12,19 +12,16 @@ export const RATE_LOADING_FEATURE_KEY = "RATE_LOADING";
 
 // ---------------------------------------------------------------- helpers
 
-async function assertTenantVisible(
-  supabase: { rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown }> },
-  userId: string,
-  tenantId: string,
-) {
+// The middleware-provided client is fully typed; helpers accept it loosely.
+/* eslint-disable @typescript-eslint/no-explicit-any */
+type Db = any;
+
+async function assertTenantVisible(supabase: Db, userId: string, tenantId: string) {
   const { data } = await supabase.rpc("can_see_tenant", { _user_id: userId, _tenant_id: tenantId });
   if (data !== true) throw new Error("Acesso negado para este cliente.");
 }
 
-async function assertTaMaster(
-  supabase: { rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown }> },
-  userId: string,
-) {
+async function assertTaMaster(supabase: Db, userId: string) {
   const { data } = await supabase.rpc("is_ta_master", { _user_id: userId });
   if (data !== true) throw new Error("Apenas a Travel Academy pode executar esta ação.");
 }
@@ -37,7 +34,8 @@ function periodKeyFor(period: string): string {
 }
 
 async function audit(
-  supabase: {
+  supabase: Db,
+  row: {
     from: (t: string) => {
       insert: (v: Record<string, unknown>) => Promise<{ error: unknown }>;
     };
