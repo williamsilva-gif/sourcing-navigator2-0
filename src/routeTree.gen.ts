@@ -35,6 +35,7 @@ import { Route as AccountPrivacyRouteImport } from './routes/account.privacy'
 import { Route as ApiPublicHealthRouteImport } from './routes/api/public/health'
 import { Route as ApiPublicBackupRouteImport } from './routes/api/public/backup'
 import { Route as AuthenticatedTaClientsRouteImport } from './routes/_authenticated/ta.clients'
+import { Route as ApiPublicRateLoadingResultRouteImport } from './routes/api/public/rate-loading/result'
 import { Route as ApiPublicRateLoadingClaimRouteImport } from './routes/api/public/rate-loading/claim'
 
 const WikiRoute = WikiRouteImport.update({
@@ -166,6 +167,12 @@ const AuthenticatedTaClientsRoute = AuthenticatedTaClientsRouteImport.update({
   path: '/ta/clients',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const ApiPublicRateLoadingResultRoute =
+  ApiPublicRateLoadingResultRouteImport.update({
+    id: '/api/public/rate-loading/result',
+    path: '/api/public/rate-loading/result',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicRateLoadingClaimRoute =
   ApiPublicRateLoadingClaimRouteImport.update({
     id: '/api/public/rate-loading/claim',
@@ -200,6 +207,7 @@ export interface FileRoutesByFullPath {
   '/api/public/backup': typeof ApiPublicBackupRoute
   '/api/public/health': typeof ApiPublicHealthRoute
   '/api/public/rate-loading/claim': typeof ApiPublicRateLoadingClaimRoute
+  '/api/public/rate-loading/result': typeof ApiPublicRateLoadingResultRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -227,6 +235,7 @@ export interface FileRoutesByTo {
   '/api/public/backup': typeof ApiPublicBackupRoute
   '/api/public/health': typeof ApiPublicHealthRoute
   '/api/public/rate-loading/claim': typeof ApiPublicRateLoadingClaimRoute
+  '/api/public/rate-loading/result': typeof ApiPublicRateLoadingResultRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -257,6 +266,7 @@ export interface FileRoutesById {
   '/api/public/backup': typeof ApiPublicBackupRoute
   '/api/public/health': typeof ApiPublicHealthRoute
   '/api/public/rate-loading/claim': typeof ApiPublicRateLoadingClaimRoute
+  '/api/public/rate-loading/result': typeof ApiPublicRateLoadingResultRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -287,6 +297,7 @@ export interface FileRouteTypes {
     | '/api/public/backup'
     | '/api/public/health'
     | '/api/public/rate-loading/claim'
+    | '/api/public/rate-loading/result'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -314,6 +325,7 @@ export interface FileRouteTypes {
     | '/api/public/backup'
     | '/api/public/health'
     | '/api/public/rate-loading/claim'
+    | '/api/public/rate-loading/result'
   id:
     | '__root__'
     | '/'
@@ -343,6 +355,7 @@ export interface FileRouteTypes {
     | '/api/public/backup'
     | '/api/public/health'
     | '/api/public/rate-loading/claim'
+    | '/api/public/rate-loading/result'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -370,6 +383,7 @@ export interface RootRouteChildren {
   ApiPublicBackupRoute: typeof ApiPublicBackupRoute
   ApiPublicHealthRoute: typeof ApiPublicHealthRoute
   ApiPublicRateLoadingClaimRoute: typeof ApiPublicRateLoadingClaimRoute
+  ApiPublicRateLoadingResultRoute: typeof ApiPublicRateLoadingResultRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -556,6 +570,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedTaClientsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/api/public/rate-loading/result': {
+      id: '/api/public/rate-loading/result'
+      path: '/api/public/rate-loading/result'
+      fullPath: '/api/public/rate-loading/result'
+      preLoaderRoute: typeof ApiPublicRateLoadingResultRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/rate-loading/claim': {
       id: '/api/public/rate-loading/claim'
       path: '/api/public/rate-loading/claim'
@@ -615,6 +636,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicBackupRoute: ApiPublicBackupRoute,
   ApiPublicHealthRoute: ApiPublicHealthRoute,
   ApiPublicRateLoadingClaimRoute: ApiPublicRateLoadingClaimRoute,
+  ApiPublicRateLoadingResultRoute: ApiPublicRateLoadingResultRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
