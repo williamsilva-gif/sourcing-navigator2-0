@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { getPrimaryRole, landingForRole } from "@/hooks/useAuth";
 
 export const Route = createFileRoute("/login")({
-  validateSearch: (search: Record<string, unknown>) => ({
+  validateSearch: (search: Record<string, unknown>): { redirect?: string } => ({
     redirect: normalizeRedirect(typeof search.redirect === "string" ? search.redirect : ""),
   }),
   head: () => ({ meta: [{ title: "Entrar — Navigator Sourcing CoPilot" }] }),
@@ -48,7 +48,7 @@ function LoginPage() {
         .select("tenant_id, role")
         .eq("user_id", data.user.id);
       const primary = getPrimaryRole((roles ?? []) as { tenant_id: string; role: import("@/hooks/useAuth").AppRole }[]);
-      const dest = normalizeRedirect(search.redirect) || landingForRole(primary);
+      const dest = normalizeRedirect(search.redirect ?? "") || landingForRole(primary);
       toast.success("Bem-vindo!");
       // Hard redirect — escapa de iframes da preview onde router.navigate
       // às vezes não troca de rota antes da sessão propagar.

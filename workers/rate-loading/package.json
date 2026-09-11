@@ -1,0 +1,14 @@
+{
+  "name": "navigator-rate-loading-worker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "worker": "node src/index.js",
+    "mock-portal": "node src/mockPortal.js",
+    "test": "node --test tests/"
+  },
+  "dependencies": {
+    "playwright": "^1.49.0"
+  }
+}

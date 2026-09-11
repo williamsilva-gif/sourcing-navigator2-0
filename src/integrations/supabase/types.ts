@@ -104,6 +104,7 @@ export type Database = {
           contract_start: string | null
           created_at: string
           final_adr: number
+          hotel_id: string | null
           hotel_name: string
           id: string
           quality_score: number
@@ -125,6 +126,7 @@ export type Database = {
           contract_start?: string | null
           created_at?: string
           final_adr?: number
+          hotel_id?: string | null
           hotel_name: string
           id?: string
           quality_score?: number
@@ -146,6 +148,7 @@ export type Database = {
           contract_start?: string | null
           created_at?: string
           final_adr?: number
+          hotel_id?: string | null
           hotel_name?: string
           id?: string
           quality_score?: number
@@ -710,6 +713,271 @@ export type Database = {
         }
         Relationships: []
       }
+      feature_entitlements: {
+        Row: {
+          allow_overage: boolean
+          bonus_units: number
+          client_tenant_id: string
+          configured_by: string | null
+          created_at: string
+          effective_from: string | null
+          effective_until: string | null
+          enabled: boolean
+          feature_key: string
+          id: string
+          internal_note: string | null
+          overage_limit: number | null
+          quota_limit: number | null
+          quota_period: string
+          updated_at: string
+          usage_mode: string
+        }
+        Insert: {
+          allow_overage?: boolean
+          bonus_units?: number
+          client_tenant_id: string
+          configured_by?: string | null
+          created_at?: string
+          effective_from?: string | null
+          effective_until?: string | null
+          enabled?: boolean
+          feature_key: string
+          id?: string
+          internal_note?: string | null
+          overage_limit?: number | null
+          quota_limit?: number | null
+          quota_period?: string
+          updated_at?: string
+          usage_mode?: string
+        }
+        Update: {
+          allow_overage?: boolean
+          bonus_units?: number
+          client_tenant_id?: string
+          configured_by?: string | null
+          created_at?: string
+          effective_from?: string | null
+          effective_until?: string | null
+          enabled?: boolean
+          feature_key?: string
+          id?: string
+          internal_note?: string | null
+          overage_limit?: number | null
+          quota_limit?: number | null
+          quota_period?: string
+          updated_at?: string
+          usage_mode?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feature_entitlements_client_tenant_id_fkey"
+            columns: ["client_tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feature_usage_ledger: {
+        Row: {
+          attempt_id: string | null
+          campaign_id: string | null
+          check_id: string | null
+          client_tenant_id: string
+          created_at: string
+          feature_key: string
+          finalized_at: string | null
+          id: string
+          period_key: string
+          usage_reason: string | null
+          usage_status: string
+          usage_units: number
+        }
+        Insert: {
+          attempt_id?: string | null
+          campaign_id?: string | null
+          check_id?: string | null
+          client_tenant_id: string
+          created_at?: string
+          feature_key: string
+          finalized_at?: string | null
+          id?: string
+          period_key: string
+          usage_reason?: string | null
+          usage_status?: string
+          usage_units?: number
+        }
+        Update: {
+          attempt_id?: string | null
+          campaign_id?: string | null
+          check_id?: string | null
+          client_tenant_id?: string
+          created_at?: string
+          feature_key?: string
+          finalized_at?: string | null
+          id?: string
+          period_key?: string
+          usage_reason?: string | null
+          usage_status?: string
+          usage_units?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feature_usage_ledger_client_tenant_id_fkey"
+            columns: ["client_tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      final_agreed_terms: {
+        Row: {
+          awarded_program_id: string | null
+          breakfast: boolean | null
+          cancellation_hours: number | null
+          cancellation_policy: string | null
+          city: string | null
+          client_tenant_id: string
+          corporate_rate_code: string | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          double_rate: number | null
+          hotel_id: string | null
+          hotel_name: string
+          id: string
+          inclusions: Json
+          lra: boolean | null
+          mandatory_amenities: string[]
+          negotiation_thread_id: string | null
+          notes: string | null
+          optional_amenities: string[]
+          parking: boolean | null
+          rate_basis: string
+          rate_plan: string | null
+          refundable: boolean | null
+          rfp_id: string | null
+          room_type: string | null
+          service_charge_pct: number | null
+          single_rate: number | null
+          source: string
+          taxes_included: boolean | null
+          updated_at: string
+          valid_from: string | null
+          valid_to: string | null
+          wifi: boolean | null
+        }
+        Insert: {
+          awarded_program_id?: string | null
+          breakfast?: boolean | null
+          cancellation_hours?: number | null
+          cancellation_policy?: string | null
+          city?: string | null
+          client_tenant_id: string
+          corporate_rate_code?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          double_rate?: number | null
+          hotel_id?: string | null
+          hotel_name: string
+          id?: string
+          inclusions?: Json
+          lra?: boolean | null
+          mandatory_amenities?: string[]
+          negotiation_thread_id?: string | null
+          notes?: string | null
+          optional_amenities?: string[]
+          parking?: boolean | null
+          rate_basis?: string
+          rate_plan?: string | null
+          refundable?: boolean | null
+          rfp_id?: string | null
+          room_type?: string | null
+          service_charge_pct?: number | null
+          single_rate?: number | null
+          source?: string
+          taxes_included?: boolean | null
+          updated_at?: string
+          valid_from?: string | null
+          valid_to?: string | null
+          wifi?: boolean | null
+        }
+        Update: {
+          awarded_program_id?: string | null
+          breakfast?: boolean | null
+          cancellation_hours?: number | null
+          cancellation_policy?: string | null
+          city?: string | null
+          client_tenant_id?: string
+          corporate_rate_code?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          double_rate?: number | null
+          hotel_id?: string | null
+          hotel_name?: string
+          id?: string
+          inclusions?: Json
+          lra?: boolean | null
+          mandatory_amenities?: string[]
+          negotiation_thread_id?: string | null
+          notes?: string | null
+          optional_amenities?: string[]
+          parking?: boolean | null
+          rate_basis?: string
+          rate_plan?: string | null
+          refundable?: boolean | null
+          rfp_id?: string | null
+          room_type?: string | null
+          service_charge_pct?: number | null
+          single_rate?: number | null
+          source?: string
+          taxes_included?: boolean | null
+          updated_at?: string
+          valid_from?: string | null
+          valid_to?: string | null
+          wifi?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "final_agreed_terms_awarded_program_id_fkey"
+            columns: ["awarded_program_id"]
+            isOneToOne: false
+            referencedRelation: "awarded_program"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "final_agreed_terms_client_tenant_id_fkey"
+            columns: ["client_tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "final_agreed_terms_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "final_agreed_terms_negotiation_thread_id_fkey"
+            columns: ["negotiation_thread_id"]
+            isOneToOne: false
+            referencedRelation: "negotiation_threads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "final_agreed_terms_rfp_id_fkey"
+            columns: ["rfp_id"]
+            isOneToOne: false
+            referencedRelation: "rfps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hotel_members: {
         Row: {
           created_at: string
@@ -970,6 +1238,643 @@ export type Database = {
           window_start?: string
         }
         Relationships: []
+      }
+      rate_loading_attempts: {
+        Row: {
+          adapter_version: string | null
+          attempt_number: number
+          check_id: string
+          client_tenant_id: string
+          correlation_id: string | null
+          created_at: string
+          duration_ms: number | null
+          error_code: string | null
+          error_message_sanitized: string | null
+          finished_at: string | null
+          found_offer: Json | null
+          id: string
+          job_id: string | null
+          login_status: string | null
+          mismatches: Json
+          page_url: string | null
+          portal_adapter_key: string | null
+          result_code: string | null
+          result_summary: string | null
+          search_status: string | null
+          started_at: string | null
+          status: string
+          warnings: Json
+          worker_id: string | null
+        }
+        Insert: {
+          adapter_version?: string | null
+          attempt_number: number
+          check_id: string
+          client_tenant_id: string
+          correlation_id?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          error_code?: string | null
+          error_message_sanitized?: string | null
+          finished_at?: string | null
+          found_offer?: Json | null
+          id?: string
+          job_id?: string | null
+          login_status?: string | null
+          mismatches?: Json
+          page_url?: string | null
+          portal_adapter_key?: string | null
+          result_code?: string | null
+          result_summary?: string | null
+          search_status?: string | null
+          started_at?: string | null
+          status?: string
+          warnings?: Json
+          worker_id?: string | null
+        }
+        Update: {
+          adapter_version?: string | null
+          attempt_number?: number
+          check_id?: string
+          client_tenant_id?: string
+          correlation_id?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          error_code?: string | null
+          error_message_sanitized?: string | null
+          finished_at?: string | null
+          found_offer?: Json | null
+          id?: string
+          job_id?: string | null
+          login_status?: string | null
+          mismatches?: Json
+          page_url?: string | null
+          portal_adapter_key?: string | null
+          result_code?: string | null
+          result_summary?: string | null
+          search_status?: string | null
+          started_at?: string | null
+          status?: string
+          warnings?: Json
+          worker_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rate_loading_attempts_check_id_fkey"
+            columns: ["check_id"]
+            isOneToOne: false
+            referencedRelation: "rate_loading_checks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rate_loading_attempts_client_tenant_id_fkey"
+            columns: ["client_tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rate_loading_campaigns: {
+        Row: {
+          client_tenant_id: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          finished_at: string | null
+          id: string
+          name: string
+          portal_connection_id: string | null
+          rfp_id: string | null
+          started_at: string | null
+          status: string
+          updated_at: string
+          validation_rules: Json
+        }
+        Insert: {
+          client_tenant_id: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          finished_at?: string | null
+          id?: string
+          name: string
+          portal_connection_id?: string | null
+          rfp_id?: string | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          validation_rules?: Json
+        }
+        Update: {
+          client_tenant_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          finished_at?: string | null
+          id?: string
+          name?: string
+          portal_connection_id?: string | null
+          rfp_id?: string | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          validation_rules?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rate_loading_campaigns_client_tenant_id_fkey"
+            columns: ["client_tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rate_loading_campaigns_portal_connection_id_fkey"
+            columns: ["portal_connection_id"]
+            isOneToOne: false
+            referencedRelation: "rate_loading_portal_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rate_loading_campaigns_rfp_id_fkey"
+            columns: ["rfp_id"]
+            isOneToOne: false
+            referencedRelation: "rfps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rate_loading_checks: {
+        Row: {
+          adults: number
+          awarded_program_id: string | null
+          campaign_id: string
+          check_in: string
+          check_out: string
+          children: number
+          city: string | null
+          client_tenant_id: string
+          created_at: string
+          expected_amenities: Json
+          expected_breakfast: boolean | null
+          expected_cancellation_policy: string | null
+          expected_currency: string | null
+          expected_lra: boolean | null
+          expected_parking: boolean | null
+          expected_rate_amount: number | null
+          expected_rate_basis: string
+          expected_rate_code: string | null
+          expected_rate_plan: string | null
+          expected_refundable: boolean | null
+          expected_room_type: string | null
+          expected_snapshot: Json
+          expected_snapshot_hash: string
+          expected_taxes_included: boolean | null
+          expected_wifi: boolean | null
+          final_agreed_terms_id: string | null
+          hotel_id: string | null
+          hotel_name: string
+          id: string
+          last_checked_at: string | null
+          latest_attempt_id: string | null
+          latest_result_code: string | null
+          number_of_nights: number
+          rate_tolerance_amount: number
+          rate_tolerance_percent: number
+          rooms: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          adults?: number
+          awarded_program_id?: string | null
+          campaign_id: string
+          check_in: string
+          check_out: string
+          children?: number
+          city?: string | null
+          client_tenant_id: string
+          created_at?: string
+          expected_amenities?: Json
+          expected_breakfast?: boolean | null
+          expected_cancellation_policy?: string | null
+          expected_currency?: string | null
+          expected_lra?: boolean | null
+          expected_parking?: boolean | null
+          expected_rate_amount?: number | null
+          expected_rate_basis?: string
+          expected_rate_code?: string | null
+          expected_rate_plan?: string | null
+          expected_refundable?: boolean | null
+          expected_room_type?: string | null
+          expected_snapshot: Json
+          expected_snapshot_hash: string
+          expected_taxes_included?: boolean | null
+          expected_wifi?: boolean | null
+          final_agreed_terms_id?: string | null
+          hotel_id?: string | null
+          hotel_name: string
+          id?: string
+          last_checked_at?: string | null
+          latest_attempt_id?: string | null
+          latest_result_code?: string | null
+          number_of_nights: number
+          rate_tolerance_amount?: number
+          rate_tolerance_percent?: number
+          rooms?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          adults?: number
+          awarded_program_id?: string | null
+          campaign_id?: string
+          check_in?: string
+          check_out?: string
+          children?: number
+          city?: string | null
+          client_tenant_id?: string
+          created_at?: string
+          expected_amenities?: Json
+          expected_breakfast?: boolean | null
+          expected_cancellation_policy?: string | null
+          expected_currency?: string | null
+          expected_lra?: boolean | null
+          expected_parking?: boolean | null
+          expected_rate_amount?: number | null
+          expected_rate_basis?: string
+          expected_rate_code?: string | null
+          expected_rate_plan?: string | null
+          expected_refundable?: boolean | null
+          expected_room_type?: string | null
+          expected_snapshot?: Json
+          expected_snapshot_hash?: string
+          expected_taxes_included?: boolean | null
+          expected_wifi?: boolean | null
+          final_agreed_terms_id?: string | null
+          hotel_id?: string | null
+          hotel_name?: string
+          id?: string
+          last_checked_at?: string | null
+          latest_attempt_id?: string | null
+          latest_result_code?: string | null
+          number_of_nights?: number
+          rate_tolerance_amount?: number
+          rate_tolerance_percent?: number
+          rooms?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rate_loading_checks_awarded_program_id_fkey"
+            columns: ["awarded_program_id"]
+            isOneToOne: false
+            referencedRelation: "awarded_program"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rate_loading_checks_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "rate_loading_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rate_loading_checks_client_tenant_id_fkey"
+            columns: ["client_tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rate_loading_checks_final_agreed_terms_id_fkey"
+            columns: ["final_agreed_terms_id"]
+            isOneToOne: false
+            referencedRelation: "final_agreed_terms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rate_loading_checks_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rate_loading_evidence: {
+        Row: {
+          attempt_id: string | null
+          campaign_id: string | null
+          captured_at: string
+          check_id: string | null
+          client_tenant_id: string
+          created_at: string
+          evidence_type: string
+          id: string
+          metadata: Json
+          page_url: string | null
+          retention_policy_days: number | null
+          sha256: string
+          storage_path: string
+          viewport: string | null
+        }
+        Insert: {
+          attempt_id?: string | null
+          campaign_id?: string | null
+          captured_at?: string
+          check_id?: string | null
+          client_tenant_id: string
+          created_at?: string
+          evidence_type: string
+          id?: string
+          metadata?: Json
+          page_url?: string | null
+          retention_policy_days?: number | null
+          sha256: string
+          storage_path: string
+          viewport?: string | null
+        }
+        Update: {
+          attempt_id?: string | null
+          campaign_id?: string | null
+          captured_at?: string
+          check_id?: string | null
+          client_tenant_id?: string
+          created_at?: string
+          evidence_type?: string
+          id?: string
+          metadata?: Json
+          page_url?: string | null
+          retention_policy_days?: number | null
+          sha256?: string
+          storage_path?: string
+          viewport?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rate_loading_evidence_attempt_id_fkey"
+            columns: ["attempt_id"]
+            isOneToOne: false
+            referencedRelation: "rate_loading_attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rate_loading_evidence_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "rate_loading_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rate_loading_evidence_check_id_fkey"
+            columns: ["check_id"]
+            isOneToOne: false
+            referencedRelation: "rate_loading_checks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rate_loading_evidence_client_tenant_id_fkey"
+            columns: ["client_tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rate_loading_jobs: {
+        Row: {
+          attempts: number
+          available_at: string
+          campaign_id: string
+          check_id: string
+          client_tenant_id: string
+          created_at: string
+          finished_at: string | null
+          id: string
+          idempotency_key: string
+          last_error: string | null
+          lease_expires_at: string | null
+          locked_at: string | null
+          locked_by: string | null
+          max_attempts: number
+          portal_connection_id: string | null
+          started_at: string | null
+          status: string
+        }
+        Insert: {
+          attempts?: number
+          available_at?: string
+          campaign_id: string
+          check_id: string
+          client_tenant_id: string
+          created_at?: string
+          finished_at?: string | null
+          id?: string
+          idempotency_key: string
+          last_error?: string | null
+          lease_expires_at?: string | null
+          locked_at?: string | null
+          locked_by?: string | null
+          max_attempts?: number
+          portal_connection_id?: string | null
+          started_at?: string | null
+          status?: string
+        }
+        Update: {
+          attempts?: number
+          available_at?: string
+          campaign_id?: string
+          check_id?: string
+          client_tenant_id?: string
+          created_at?: string
+          finished_at?: string | null
+          id?: string
+          idempotency_key?: string
+          last_error?: string | null
+          lease_expires_at?: string | null
+          locked_at?: string | null
+          locked_by?: string | null
+          max_attempts?: number
+          portal_connection_id?: string | null
+          started_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rate_loading_jobs_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "rate_loading_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rate_loading_jobs_check_id_fkey"
+            columns: ["check_id"]
+            isOneToOne: false
+            referencedRelation: "rate_loading_checks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rate_loading_jobs_client_tenant_id_fkey"
+            columns: ["client_tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rate_loading_jobs_portal_connection_id_fkey"
+            columns: ["portal_connection_id"]
+            isOneToOne: false
+            referencedRelation: "rate_loading_portal_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rate_loading_portal_connections: {
+        Row: {
+          adapter_version: string | null
+          auth_type: string
+          authorization_confirmed_at: string | null
+          authorization_confirmed_by: string | null
+          authorized_by_client: boolean
+          base_url: string
+          client_tenant_id: string
+          consecutive_failures: number
+          created_at: string
+          created_by: string | null
+          credential_secret_ref: string | null
+          disabled_at: string | null
+          display_name: string
+          id: string
+          last_connection_test_at: string | null
+          last_connection_test_status: string | null
+          last_error_code: string | null
+          last_failure_at: string | null
+          last_success_at: string | null
+          max_concurrent_sessions: number
+          mfa_mode: string
+          portal_adapter_key: string
+          portal_name: string
+          read_only_confirmed: boolean
+          status: string
+          updated_at: string
+          username_hint: string | null
+        }
+        Insert: {
+          adapter_version?: string | null
+          auth_type?: string
+          authorization_confirmed_at?: string | null
+          authorization_confirmed_by?: string | null
+          authorized_by_client?: boolean
+          base_url: string
+          client_tenant_id: string
+          consecutive_failures?: number
+          created_at?: string
+          created_by?: string | null
+          credential_secret_ref?: string | null
+          disabled_at?: string | null
+          display_name: string
+          id?: string
+          last_connection_test_at?: string | null
+          last_connection_test_status?: string | null
+          last_error_code?: string | null
+          last_failure_at?: string | null
+          last_success_at?: string | null
+          max_concurrent_sessions?: number
+          mfa_mode?: string
+          portal_adapter_key: string
+          portal_name: string
+          read_only_confirmed?: boolean
+          status?: string
+          updated_at?: string
+          username_hint?: string | null
+        }
+        Update: {
+          adapter_version?: string | null
+          auth_type?: string
+          authorization_confirmed_at?: string | null
+          authorization_confirmed_by?: string | null
+          authorized_by_client?: boolean
+          base_url?: string
+          client_tenant_id?: string
+          consecutive_failures?: number
+          created_at?: string
+          created_by?: string | null
+          credential_secret_ref?: string | null
+          disabled_at?: string | null
+          display_name?: string
+          id?: string
+          last_connection_test_at?: string | null
+          last_connection_test_status?: string | null
+          last_error_code?: string | null
+          last_failure_at?: string | null
+          last_success_at?: string | null
+          max_concurrent_sessions?: number
+          mfa_mode?: string
+          portal_adapter_key?: string
+          portal_name?: string
+          read_only_confirmed?: boolean
+          status?: string
+          updated_at?: string
+          username_hint?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rate_loading_portal_connections_client_tenant_id_fkey"
+            columns: ["client_tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rate_loading_portal_credentials: {
+        Row: {
+          ciphertext: string
+          client_tenant_id: string
+          connection_id: string
+          created_at: string
+          rotated_at: string
+          rotated_by: string | null
+          secret_ref: string
+        }
+        Insert: {
+          ciphertext: string
+          client_tenant_id: string
+          connection_id: string
+          created_at?: string
+          rotated_at?: string
+          rotated_by?: string | null
+          secret_ref?: string
+        }
+        Update: {
+          ciphertext?: string
+          client_tenant_id?: string
+          connection_id?: string
+          created_at?: string
+          rotated_at?: string
+          rotated_by?: string | null
+          secret_ref?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rate_loading_portal_credentials_client_tenant_id_fkey"
+            columns: ["client_tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rate_loading_portal_credentials_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "rate_loading_portal_connections"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       rfp_analysis_rows: {
         Row: {
@@ -1568,6 +2473,34 @@ export type Database = {
           retry_after_seconds: number
         }[]
       }
+      claim_rate_loading_job: {
+        Args: { _lease_seconds?: number; _worker_id: string }
+        Returns: {
+          attempts: number
+          available_at: string
+          campaign_id: string
+          check_id: string
+          client_tenant_id: string
+          created_at: string
+          finished_at: string | null
+          id: string
+          idempotency_key: string
+          last_error: string | null
+          lease_expires_at: string | null
+          locked_at: string | null
+          locked_by: string | null
+          max_attempts: number
+          portal_connection_id: string | null
+          started_at: string | null
+          status: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "rate_loading_jobs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       cleanup_rate_limit_buckets: { Args: never; Returns: undefined }
       effective_user_access: {
         Args: { _tenant_id: string; _user_id: string }
@@ -1576,6 +2509,19 @@ export type Database = {
           key: string
           kind: string
         }[]
+      }
+      finalize_feature_usage: {
+        Args: {
+          _attempt_id: string
+          _billable: boolean
+          _campaign_id: string
+          _check_id: string
+          _feature_key: string
+          _period_key: string
+          _reason?: string
+          _tenant_id: string
+        }
+        Returns: undefined
       }
       has_feature: {
         Args: { _key: string; _tenant_id: string }
@@ -1609,6 +2555,20 @@ export type Database = {
         Returns: boolean
       }
       is_ta_master: { Args: { _user_id: string }; Returns: boolean }
+      reserve_feature_quota: {
+        Args: {
+          _campaign_id: string
+          _feature_key: string
+          _period_key: string
+          _tenant_id: string
+          _units: number
+        }
+        Returns: {
+          allowed: boolean
+          available: number
+          reason: string
+        }[]
+      }
       reset_all_user_overrides_for_tenant: {
         Args: { _actor: string; _tenant_id: string }
         Returns: number
