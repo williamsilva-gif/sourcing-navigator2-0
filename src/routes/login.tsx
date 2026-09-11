@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { getPrimaryRole, landingForRole } from "@/hooks/useAuth";
 
 export const Route = createFileRoute("/login")({
-  validateSearch: (search: Record<string, unknown>) => ({
+  validateSearch: (search: Record<string, unknown>): { redirect?: string } => ({
     redirect: normalizeRedirect(typeof search.redirect === "string" ? search.redirect : ""),
   }),
   head: () => ({ meta: [{ title: "Entrar — Navigator Sourcing CoPilot" }] }),
