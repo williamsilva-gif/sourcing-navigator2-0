@@ -8,6 +8,13 @@
       "when": 1789151201728,
       "tag": "0000_rate_loading_foundation",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1789151439149,
+      "tag": "0001_rate_loading_credentials_vault",
+      "breakpoints": true
     }
   ]
 }

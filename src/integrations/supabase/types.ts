@@ -1831,6 +1831,51 @@ export type Database = {
           },
         ]
       }
+      rate_loading_portal_credentials: {
+        Row: {
+          ciphertext: string
+          client_tenant_id: string
+          connection_id: string
+          created_at: string
+          rotated_at: string
+          rotated_by: string | null
+          secret_ref: string
+        }
+        Insert: {
+          ciphertext: string
+          client_tenant_id: string
+          connection_id: string
+          created_at?: string
+          rotated_at?: string
+          rotated_by?: string | null
+          secret_ref?: string
+        }
+        Update: {
+          ciphertext?: string
+          client_tenant_id?: string
+          connection_id?: string
+          created_at?: string
+          rotated_at?: string
+          rotated_by?: string | null
+          secret_ref?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rate_loading_portal_credentials_client_tenant_id_fkey"
+            columns: ["client_tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rate_loading_portal_credentials_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "rate_loading_portal_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rfp_analysis_rows: {
         Row: {
           amenities: string[]
