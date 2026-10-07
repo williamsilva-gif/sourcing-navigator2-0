@@ -1,14 +1,15 @@
-FROM mcr.microsoft.com/playwright:v1.49.0-jammy
+# Default image: Browserbase provides the remote browser, so no Chromium needed.
+FROM node:22-slim
 
 WORKDIR /app
 COPY package.json ./
-RUN npm install --omit=dev
+RUN npm install --omit=dev --omit=optional
 
 COPY src ./src
 
 ENV NODE_ENV=production
+ENV BROWSER_PROVIDER=browserbase
 # Required at runtime:
-#   NAVIGATOR_API_BASE=https://project--<id>.lovable.app
-#   RATE_LOADING_WORKER_TOKEN=<same value stored in the app secrets>
-# Optional: WORKER_ID, POLL_INTERVAL_MS, MAX_CONCURRENCY, NAV_TIMEOUT_MS
+#   APP_BASE_URL, RATE_LOADING_WORKER_KEY, BROWSERBASE_API_KEY, BROWSERBASE_PROJECT_ID
+# Optional: RATE_LOADING_MODEL (default auto), INFOTRAVEL_EXTRA_DOMAINS, WORKER_ID, POLL_INTERVAL_MS
 CMD ["node", "src/index.js"]
