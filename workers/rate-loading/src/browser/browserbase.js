@@ -5,7 +5,9 @@ import * as infotravel from "../adapters/infotravel.js";
 import { buildAllowlist } from "../domains.js";
 import { log } from "../redact.js";
 
-const ADAPTERS = { [infotravel.key]: infotravel };
+// POC: the app only registers "mock" and "generic-obt"; a Infotravel connection is
+// created as "generic-obt" with the Infotravel URL (no app change in this stage).
+const ADAPTERS = { [infotravel.key]: infotravel, "generic-obt": infotravel };
 
 export const name = "browserbase";
 
