@@ -1,23 +1,23 @@
-// Navigator Rate Loading worker.
-// Polls the app queue, drives Playwright read-only against an approved portal,
-// captures evidence and posts observations back. It NEVER decides pass/fail —
-// the backend runs the deterministic comparison.
-import { chromium } from "playwright";
-import * as mockAdapter from "./adapters/mock.js";
+// Navigator Rate Loading worker (orchestrator).
+// Claims a job from the existing queue, runs the selected browser engine
+// read-only against the portal and posts observations to the existing /result
+// endpoint. It NEVER decides pass/fail — the backend comparator does.
+//
+// BROWSER_PROVIDER=browserbase (default) -> Browserbase + Stagehand v4
+// BROWSER_PROVIDER=local                 -> local Playwright (mock portal / regression)
+import { log, scrub } from "./redact.js";
 
-const API_BASE = (process.env.NAVIGATOR_API_BASE ?? "").replace(/\/$/, "");
-const TOKEN = process.env.RATE_LOADING_WORKER_TOKEN ?? "";
+const API_BASE = (process.env.APP_BASE_URL ?? process.env.NAVIGATOR_API_BASE ?? "").replace(/\/$/, "");
+const TOKEN = process.env.RATE_LOADING_WORKER_KEY ?? process.env.RATE_LOADING_WORKER_TOKEN ?? "";
 const WORKER_ID = process.env.WORKER_ID ?? `worker-${process.pid}`;
 const POLL_MS = Number(process.env.POLL_INTERVAL_MS ?? 5000);
-const NAV_TIMEOUT = Number(process.env.NAV_TIMEOUT_MS ?? 30000);
-const MAX_CONCURRENCY = Number(process.env.MAX_CONCURRENCY ?? 1);
+const PROVIDER = (process.env.BROWSER_PROVIDER ?? "browserbase").toLowerCase();
 
-if (!API_BASE || !TOKEN) {
-  console.error("NAVIGATOR_API_BASE and RATE_LOADING_WORKER_TOKEN are required");
-  process.exit(1);
+async function loadEngine() {
+  if (PROVIDER === "local") return import("./browser/local.js");
+  if (PROVIDER === "browserbase") return import("./browser/browserbase.js");
+  throw new Error(`unknown BROWSER_PROVIDER: ${PROVIDER}`);
 }
-
-const ADAPTERS = { [mockAdapter.key]: mockAdapter };
 
 async function api(path, body) {
   const res = await fetch(`${API_BASE}/api/public/rate-loading/${path}`, {
@@ -25,11 +25,12 @@ async function api(path, body) {
     headers: { "content-type": "application/json", "x-worker-token": TOKEN },
     body: JSON.stringify(body),
   });
-  if (!res.ok) throw new Error(`${path} -> ${res.status} ${await res.text()}`);
+  if (!res.ok) throw new Error(`${path} -> ${res.status} ${(await res.text()).slice(0, 200)}`);
   return res.json();
 }
 
 function classify(err) {
+  if (err?.code === "DOMAIN_NOT_ALLOWED") return "PORTAL_LAYOUT_CHANGED";
   if (err?.code) return err.code;
   const m = String(err?.message ?? "").toLowerCase();
   if (m.includes("timeout")) return "PORTAL_TIMEOUT";
@@ -39,21 +40,11 @@ function classify(err) {
   return "UNKNOWN_ERROR";
 }
 
-async function runJob(browser, payload) {
+export async function runJob(engine, payload) {
   const { job, connection, check } = payload;
-  const adapter = ADAPTERS[connection.adapterKey];
   const started = Date.now();
-  const evidence = [];
+  const secrets = [connection.credential?.password, connection.credential?.username];
 
-  if (!adapter) {
-    return api("result", {
-      jobId: job.id,
-      workerId: WORKER_ID,
-      errorCode: "UNKNOWN_ERROR",
-      errorMessage: `no adapter for ${connection.adapterKey}`,
-      durationMs: Date.now() - started,
-    });
-  }
   if (!connection.credential) {
     return api("result", {
       jobId: job.id,
@@ -64,97 +55,94 @@ async function runJob(browser, payload) {
     });
   }
 
-  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
-  context.setDefaultTimeout(NAV_TIMEOUT);
-  const page = await context.newPage();
-
   try {
-    await adapter.login(page, connection.baseUrl, connection.credential);
-    const offer = await adapter.search(page, connection.baseUrl, check);
-
-    const shot = await page.screenshot();
-    evidence.push({
-      type: offer.found ? "result_screenshot" : "error_screenshot",
-      contentBase64: shot.toString("base64"),
-      contentType: "image/png",
-      pageUrl: page.url(),
-      viewport: "1440x900",
-    });
-
-    const errorCode = !offer.hotel_found ? "HOTEL_NOT_FOUND" : !offer.found ? "RATE_NOT_FOUND" : null;
-
-    await api("result", {
+    const r = await engine.execute({ connection, check });
+    const errorCode = !r.offer.hotel_found ? "HOTEL_NOT_FOUND" : !r.offer.found ? "RATE_NOT_FOUND" : null;
+    log.info("job done", { jobId: job.id, engine: engine.name, execution: r.execution, errorCode });
+    return await api("result", {
       jobId: job.id,
       workerId: WORKER_ID,
       correlationId: job.idempotencyKey,
       loginStatus: "success",
-      searchStatus: offer.found ? "success" : "not_found",
-      offer: offer.found ? offer : null,
+      searchStatus: r.offer.found ? "success" : "not_found",
+      offer: r.offer.found ? r.offer : null,
       errorCode,
-      pageUrl: page.url(),
+      pageUrl: r.pageUrl,
       durationMs: Date.now() - started,
-      evidence,
+      evidence: r.evidence,
     });
   } catch (err) {
     const code = classify(err);
-    try {
-      const shot = await page.screenshot();
-      evidence.push({
-        type: "error_screenshot",
-        contentBase64: shot.toString("base64"),
-        contentType: "image/png",
-        pageUrl: page.url(),
-        viewport: "1440x900",
-      });
-    } catch {
-      /* screenshot is best effort */
-    }
-    await api("result", {
+    const message = scrub(String(err?.message ?? err), secrets).slice(0, 300);
+    log.error("job failed", { jobId: job.id, engine: engine.name, code, message });
+    return api("result", {
       jobId: job.id,
       workerId: WORKER_ID,
       correlationId: job.idempotencyKey,
       loginStatus: code.startsWith("AUTH_") ? "failed" : "success",
       searchStatus: "error",
       errorCode: code,
-      errorMessage: String(err?.message ?? err).slice(0, 300),
-      pageUrl: page.url(),
+      errorMessage: message,
+      pageUrl: err?.pageUrl ?? null,
       durationMs: Date.now() - started,
-      evidence,
+      evidence: err?.evidence ?? [],
     });
   } finally {
-    await context.close().catch(() => {});
+    // Drop the credential reference as soon as the job ends.
+    if (connection.credential) {
+      connection.credential.password = "";
+      connection.credential = null;
+    }
   }
 }
 
-async function main() {
-  const browser = await chromium.launch({ headless: true });
-  console.log(`Rate Loading worker ${WORKER_ID} polling ${API_BASE}`);
+function assertConfig() {
+  if (!API_BASE || !TOKEN) {
+    console.error("APP_BASE_URL and RATE_LOADING_WORKER_KEY are required");
+    process.exit(1);
+  }
+}
+
+export async function runOnce() {
+  assertConfig();
+  const engine = await loadEngine();
+  try {
+    const payload = await api("claim", { workerId: WORKER_ID, leaseSeconds: 600 });
+    if (!payload?.job) {
+      log.info("no job in queue");
+      return null;
+    }
+    log.info("claimed job", { jobId: payload.job.id, adapter: payload.connection?.adapterKey });
+    return await runJob(engine, payload);
+  } finally {
+    await engine.shutdown();
+  }
+}
+
+async function loop() {
+  assertConfig();
+  const engine = await loadEngine();
+  log.info(`Rate Loading worker ${WORKER_ID} (${PROVIDER}) polling ${API_BASE}`);
   let stopping = false;
   process.on("SIGTERM", () => (stopping = true));
   process.on("SIGINT", () => (stopping = true));
-
+  // POC: one job at a time, no mass processing.
   while (!stopping) {
     try {
-      const batch = [];
-      for (let i = 0; i < MAX_CONCURRENCY; i++) {
-        const payload = await api("claim", { workerId: WORKER_ID, leaseSeconds: 300 });
-        if (!payload?.job) break;
-        batch.push(runJob(browser, payload));
-      }
-      if (batch.length === 0) {
-        await new Promise((r) => setTimeout(r, POLL_MS));
-      } else {
-        await Promise.allSettled(batch);
-      }
+      const payload = await api("claim", { workerId: WORKER_ID, leaseSeconds: 600 });
+      if (!payload?.job) await new Promise((r) => setTimeout(r, POLL_MS));
+      else await runJob(engine, payload);
     } catch (err) {
-      console.error("poll error:", err.message);
+      log.error("poll error", { message: String(err?.message ?? err).slice(0, 200) });
       await new Promise((r) => setTimeout(r, POLL_MS));
     }
   }
-  await browser.close();
+  await engine.shutdown();
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+if (import.meta.url === `file://${process.argv[1]}`) {
+  loop().catch((e) => {
+    log.error("fatal", { message: String(e?.message ?? e) });
+    process.exit(1);
+  });
+}
