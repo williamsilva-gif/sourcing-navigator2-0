@@ -18,8 +18,7 @@ observations + screenshot to the existing `/api/public/rate-loading/result`
 | --- | --- | --- |
 | `APP_BASE_URL` | yes | e.g. `https://project--<id>.lovable.app` (alias: `NAVIGATOR_API_BASE`) |
 | `RATE_LOADING_WORKER_KEY` | yes | same value as the app secret `RATE_LOADING_WORKER_TOKEN` (alias accepted) |
-| `BROWSERBASE_API_KEY` | browserbase | |
-| `BROWSERBASE_PROJECT_ID` | browserbase | |
+| `BROWSERBASE_API_KEY` | browserbase | resolves the project automatically |
 | `RATE_LOADING_MODEL` | no | Claude id supported by the Browserbase Model Gateway, or `auto` (default) |
 | `INFOTRAVEL_EXTRA_DOMAINS` | no | comma-separated SSO/login domains beyond the connection host |
 | `BROWSER_PROVIDER` | no | `browserbase` / `local` |

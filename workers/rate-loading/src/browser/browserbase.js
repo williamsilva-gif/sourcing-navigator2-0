@@ -25,10 +25,11 @@ export async function execute({ connection, check }) {
     err.code = "UNKNOWN_ERROR";
     throw Object.assign(err, { evidence: [] });
   }
+  // BROWSERBASE_API_KEY resolves the project automatically (projectId is no
+  // longer required by the Browserbase onboarding).
   const apiKey = process.env.BROWSERBASE_API_KEY;
-  const projectId = process.env.BROWSERBASE_PROJECT_ID;
-  if (!apiKey || !projectId) {
-    const err = new Error("BROWSERBASE_API_KEY / BROWSERBASE_PROJECT_ID not configured");
+  if (!apiKey) {
+    const err = new Error("BROWSERBASE_API_KEY not configured");
     err.code = "UNKNOWN_ERROR";
     throw Object.assign(err, { evidence: [] });
   }
@@ -40,7 +41,7 @@ export async function execute({ connection, check }) {
   let sessionId = null;
 
   try {
-    browser = await browserbase.launch({ apiKey, projectId });
+    browser = await browserbase.launch({ apiKey });
     sessionId = browser.sessionId ?? null;
     log.info("browserbase session opened", { sessionId, allowlist });
 
