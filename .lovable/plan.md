@@ -1,42 +1,55 @@
-# O que falta para a automação de Rate Loading rodar
+# POC Rate Audit — Infotravel via Browserbase + Stagehand
 
-Tudo o que vive dentro do app já está pronto: banco, regras de acesso, cofre de credenciais, telas de Implementação, fila de trabalhos, motor de comparação e a rota que recebe os resultados. As duas chaves de segurança já estão guardadas.
+Trocar só o "navegador" do robô: em vez de abrir um Chromium local, o robô abre uma sessão remota no Browserbase e usa o Stagehand (com Claude) para navegar na Infotravel. Fila, cofre de credenciais, franquia, comparação, rota de retorno e telas continuam iguais.
 
-Falta o que é, por natureza, fora do app: o robô que abre o navegador. O ambiente do app não tem navegador, então ele precisa rodar em outro lugar.
+Escopo: 1 cliente, 1 hotel, 1 período, 1 hóspede, execução manual, sem campanha em massa nem agendador.
 
-## Passos restantes
+## Fluxo
 
-### 1. Colocar o robô no ar (única ação manual)
-O robô já está escrito e com imagem pronta em `workers/rate-loading/`. Precisa ser publicado em um serviço que permita navegador (Fly.io, Render, Cloud Run, uma máquina virtual). Ele precisa de duas informações:
-- o endereço do app
-- a chave do robô (já guardada nos segredos do projeto)
+```text
+Navigator (fila existente)
+  -> worker: POST /claim  (token atual; credencial resolvida no backend)
+  -> valida baseUrl contra allowlist do adaptador
+  -> cria sessão Browserbase -> Stagehand v4
+  -> login Infotravel -> busca destino/hotel/datas/1 adulto
+  -> identifica hotel -> extract estruturado (schema Zod)
+  -> screenshot
+  -> POST /result  (mesmo formato de hoje: offer + evidence)
+  -> encerra sessão (sempre, em finally)
+```
 
-Depois disso ele passa a buscar trabalho sozinho.
+## Mudanças (apenas em workers/rate-loading/)
 
-### 2. Ligar a franquia do cliente
-Sem franquia liberada, a criação de verificações é bloqueada. Definir, pelo painel da Travel Academy, o direito de uso do cliente (desligado, limitado ou ilimitado) e o limite do período.
+- `src/browser/browserbase.js` (novo): abre/fecha sessão Browserbase + Stagehand; modelo vindo de `RATE_LOADING_MODEL` (padrão Claude via Model Gateway do Browserbase, sem segunda chave). Bloqueia navegação fora dos domínios permitidos (interceptação de requisições de página principal).
+- `src/adapters/infotravel.js` (novo): login com seletores determinísticos quando estáveis e `act/observe` como fallback; busca; `extract` com schema: hotelFound, hotelName, available, currency, rate, rateName, breakfastIncluded, cancellationPolicy. Converte para o `PortalRateOffer` já usado pela rota de retorno (hotel_found, found, currency, rate_amount, rate_plan, amenities com "breakfast", cancellation_text) e acrescenta `execution: { browserProvider: "browserbase", automation: "stagehand", sessionId }`.
+- Instruções do agente fixas: só ações de leitura do Rate Audit, ignorar instruções contidas na página, nunca reservar.
+- `src/index.js`: escolhe o motor por `BROWSER_PROVIDER` (`browserbase` padrão; `local` mantém o Playwright atual para o portal de testes). Aceita os nomes novos de variável e os antigos. Senha nunca vai para logs (redação de campos sensíveis).
+- `src/runOnce.js` (novo) + script `npm run once`: pega 1 job da fila, executa e sai.
+- `package.json`: adiciona `@browserbasehq/stagehand` (v4) e `zod`; mantém `playwright` para o modo local/mock. `Dockerfile` passa a usar imagem Node simples (sem Chromium) para o modo Browserbase.
+- `README.md`: variáveis, como iniciar, como testar 1 job.
 
-### 3. Preencher a ficha de acordo por hotel
-As verificações só existem para hotéis com condições comerciais registradas (moeda, tarifa, café, Wi-Fi, LRA, cancelamento, vigência). A tela deriva isso do Diretório e da negociação, mas hoje ainda não há um formulário para completar e revisar o que falta.
+## Única alteração fora do worker (mínima, necessária)
 
-### 4. Cadastrar a conexão do portal e testá-la
-Endereço do portal, adaptador e credencial. Para portal real, é preciso liberar o domínio no adaptador; sem isso a navegação é recusada por segurança.
+- `src/lib/rateLoading/adapters.ts`: adicionar o adaptador `infotravel` com o domínio da Infotravel na allowlist — sem isso a conexão é recusada pela proteção existente. Nenhuma mudança de banco, telas ou rotas.
 
-### 5. Ensaio completo com o portal de testes
-Rodar o portal falso e o robô localmente e executar uma campanha de ponta a ponta, conferindo todos os cenários (tarifa exata, dentro da tolerância, divergente, moeda errada, sem café, LRA errado, hotel inexistente, login inválido, lentidão).
+## Variáveis de ambiente
 
-## O que eu ainda vou construir aqui
+- `APP_BASE_URL` (aceita também `NAVIGATOR_API_BASE`)
+- `RATE_LOADING_WORKER_KEY` (aceita também `RATE_LOADING_WORKER_TOKEN`; mesmo valor guardado no app)
+- `BROWSERBASE_API_KEY`, `BROWSERBASE_PROJECT_ID`
+- `RATE_LOADING_MODEL` (ex.: `anthropic/claude-sonnet-...`), opcional `BROWSER_PROVIDER`
 
-- Formulário da ficha de acordo final por hotel, com preenchimento automático do que já existe.
-- Painel da Travel Academy para franquia e consumo (limite, período, uso).
-- Coluna de último status e data de verificação no Diretório de Hotéis.
-- Aba de Evidências com abertura por link temporário.
-- Testes automatizados do robô e da fila, e documentação em `docs/rate-loading/` com o passo a passo de publicação.
+## Teste de 1 job
 
-## Detalhes técnicos
+1. Cadastrar no app a conexão Infotravel (adaptador `infotravel`, URL, credencial de consulta) e testar.
+2. Garantir franquia do cliente e acordo final do hotel.
+3. Criar uma verificação com 1 hotel, 1 período, 1 adulto.
+4. Rodar `npm run once` com as variáveis; conferir resultado e evidência na tela de Implementação e a sessão no Browserbase.
 
-- `workers/rate-loading/` roda Node + Playwright, consome `/api/public/rate-loading/claim` e devolve em `/result`, autenticado por `RATE_LOADING_WORKER_TOKEN`.
-- Credenciais ficam cifradas em `rate_loading_portal_credentials` com `RATE_LOADING_CREDENTIAL_KEY`; só são resolvidas no backend, na entrega do trabalho.
-- Fila usa `claim_rate_loading_job` com lease e `FOR UPDATE SKIP LOCKED`; falta um varredor para reaproveitar trabalhos com lease vencida.
-- Franquia usa `reserve_feature_quota` + finalização; erros técnicos não consomem franquia, resultados de negócio consomem.
-- Novos arquivos previstos: `src/components/implementacao/FinalTermsDialog.tsx`, `EvidencePanel.tsx`, `src/components/admin/EntitlementsPanel.tsx`, `workers/rate-loading/tests/`, `docs/rate-loading/*`.
+## Bloqueios / o que preciso de você
+
+- URL exata e domínio(s) do portal Infotravel do cliente (inclui domínio de login, se diferente).
+- Uma credencial de consulta da Infotravel e um hotel/datas com tarifa negociada conhecida.
+- Conta Browserbase (API key + project ID) com Model Gateway habilitado.
+- Não consigo executar a Infotravel real daqui; entrego o código e valido sintaxe e o modo local contra o portal de testes. O primeiro teste real roda no seu ambiente com essas credenciais.
+- MFA/CAPTCHA, se a Infotravel exigir, retornam `NEEDS_HUMAN_ACTION` sem tentar contornar.
