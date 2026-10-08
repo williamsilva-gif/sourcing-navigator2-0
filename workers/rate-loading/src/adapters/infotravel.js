@@ -48,14 +48,50 @@ async function shoot(page, evidence, type) {
   });
 }
 
-async function detectBlockers(stagehand, page) {
-  const { data } = await stagehand.extract(
-    `${GUARDRAIL} Is the page asking for a one-time code / MFA, a CAPTCHA, or showing a login error?`,
-    z.object({ mfa: z.boolean(), captcha: z.boolean(), loginError: z.boolean() }),
-    { page },
-  );
+// TEMPORARY TEST-ONLY: manual MFA handoff. Enabled only with MFA_MANUAL_FILE set.
+// The worker waits for an operator to write the one-time code into that file.
+// Not a permanent rule — to be replaced by a definitive solution after first tests.
+async function waitManualMfaCode() {
+  const file = process.env.MFA_MANUAL_FILE;
+  if (!file) return null;
+  const fs = await import("node:fs/promises");
+  await fs.rm(file, { force: true });
+  const deadline = Date.now() + Number(process.env.MFA_MANUAL_TIMEOUT_MS ?? 480000);
+  console.log("[MFA_WAITING] portal asked for a verification code; waiting for operator input");
+  while (Date.now() < deadline) {
+    const v = (await fs.readFile(file, "utf8").catch(() => "")).trim();
+    if (v) {
+      await fs.rm(file, { force: true });
+      return v;
+    }
+    await new Promise((r) => setTimeout(r, 2000));
+  }
+  return null;
+}
+
+async function detectBlockers(stagehand, page, allowlist) {
+  const ask = () =>
+    stagehand.extract(
+      `${GUARDRAIL} Is the page asking for a one-time code / MFA, a CAPTCHA, or showing a login error?`,
+      z.object({ mfa: z.boolean(), captcha: z.boolean(), loginError: z.boolean() }),
+      { page },
+    );
+  let { data } = await ask();
   if (data.captcha) throw Object.assign(new Error("captcha required"), { code: "AUTH_CAPTCHA" });
-  if (data.mfa) throw Object.assign(new Error("mfa required"), { code: "AUTH_MFA_REQUIRED" });
+  if (data.mfa) {
+    const code = await waitManualMfaCode();
+    if (!code) throw Object.assign(new Error("mfa required"), { code: "AUTH_MFA_REQUIRED" });
+    await stagehand.act(`${GUARDRAIL} Type %otp% into the verification code field`, {
+      page,
+      variables: { otp: { value: code, description: "one-time verification code" } },
+    });
+    await stagehand.act(`${GUARDRAIL} Click the button that confirms / validates the verification code`, { page });
+    await page.waitForLoadState("domcontentloaded").catch(() => {});
+    await guard(page, allowlist);
+    console.log("[MFA_SUBMITTED]");
+    ({ data } = await ask());
+    if (data.mfa) throw Object.assign(new Error("mfa code rejected"), { code: "AUTH_MFA_REQUIRED" });
+  }
   if (data.loginError)
     throw Object.assign(new Error("login rejected by portal"), { code: "AUTH_INVALID_CREDENTIALS" });
 }
@@ -81,7 +117,7 @@ export async function run({ stagehand, page, connection, check, allowlist, evide
     await stagehand.act(`${GUARDRAIL} Click the button that signs in / logs in`, { page });
     await page.waitForLoadState("domcontentloaded").catch(() => {});
     await guard(page, allowlist);
-    await detectBlockers(stagehand, page);
+    await detectBlockers(stagehand, page, allowlist);
 
     // 3. Hotel search: destination / hotel / dates / 1 guest
     await stagehand.act(`${GUARDRAIL} Open the hotel search (hotéis / hospedagem) if not already open`, { page });
