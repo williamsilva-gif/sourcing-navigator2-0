@@ -55,14 +55,20 @@ async function waitManualMfaCode(page) {
   const file = process.env.MFA_MANUAL_FILE;
   if (!file) return null;
   const fs = await import("node:fs/promises");
-  await fs.rm(file, { force: true });
+  // Watch both the configured path and its hyphen/underscore variants to
+  // avoid operator/tooling filename mismatches during manual tests.
+  const variants = new Set([file, file.replace(/_/g, "-"), file.replace(/-/g, "_")]);
+  const files = [...variants];
+  for (const f of files) await fs.rm(f, { force: true });
   const deadline = Date.now() + Number(process.env.MFA_MANUAL_TIMEOUT_MS ?? 480000);
   console.log("[MFA_WAITING] portal asked for a verification code; waiting for operator input");
   while (Date.now() < deadline) {
-    const v = (await fs.readFile(file, "utf8").catch(() => "")).trim();
-    if (v) {
-      await fs.rm(file, { force: true });
-      return v;
+    for (const f of files) {
+      const v = (await fs.readFile(f, "utf8").catch(() => "")).trim();
+      if (v) {
+        for (const g of files) await fs.rm(g, { force: true });
+        return v;
+      }
     }
     await new Promise((r) => setTimeout(r, 2000));
     // keep-alive: touch the remote page so the Browserbase session stays active
