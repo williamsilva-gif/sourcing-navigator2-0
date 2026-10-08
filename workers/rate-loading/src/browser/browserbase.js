@@ -41,7 +41,7 @@ export async function execute({ connection, check }) {
   let sessionId = null;
 
   try {
-    browser = await browserbase.launch({ apiKey });
+    browser = await browserbase.launch({ apiKey, keepAlive: true, timeout: 900 });
     sessionId = browser.sessionId ?? null;
     log.info("browserbase session opened", { sessionId, allowlist });
 

@@ -51,7 +51,7 @@ async function shoot(page, evidence, type) {
 // TEMPORARY TEST-ONLY: manual MFA handoff. Enabled only with MFA_MANUAL_FILE set.
 // The worker waits for an operator to write the one-time code into that file.
 // Not a permanent rule — to be replaced by a definitive solution after first tests.
-async function waitManualMfaCode() {
+async function waitManualMfaCode(page) {
   const file = process.env.MFA_MANUAL_FILE;
   if (!file) return null;
   const fs = await import("node:fs/promises");
@@ -65,6 +65,8 @@ async function waitManualMfaCode() {
       return v;
     }
     await new Promise((r) => setTimeout(r, 2000));
+    // keep-alive: touch the remote page so the Browserbase session stays active
+    if (page && Date.now() % 15000 < 2100) await page.evaluate(() => document.title).catch(() => {});
   }
   return null;
 }
@@ -79,7 +81,7 @@ async function detectBlockers(stagehand, page, allowlist) {
   let { data } = await ask();
   if (data.captcha) throw Object.assign(new Error("captcha required"), { code: "AUTH_CAPTCHA" });
   if (data.mfa) {
-    const code = await waitManualMfaCode();
+    const code = await waitManualMfaCode(page);
     if (!code) throw Object.assign(new Error("mfa required"), { code: "AUTH_MFA_REQUIRED" });
     await stagehand.act(`${GUARDRAIL} Type %otp% into the verification code field`, {
       page,
