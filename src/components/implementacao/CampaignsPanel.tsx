@@ -12,6 +12,17 @@ import { useCampaignDetail, useCampaigns, useRateLoadingMutations } from "@/lib/
 function CampaignDetail({ campaignId, tenantId }: { campaignId: string; tenantId: string }) {
   const { data, isLoading } = useCampaignDetail(campaignId);
   const m = useRateLoadingMutations(tenantId);
+  const openEvidence = async (id: string) => {
+    const win = window.open("", "_blank");
+    try {
+      const { url } = await m.getEvidenceUrl(id);
+      if (win) win.location.href = url;
+      else window.open(url, "_blank");
+    } catch (e) {
+      win?.close();
+      toast.error((e as Error).message);
+    }
+  };
   if (isLoading || !data) return <p className="text-sm text-muted-foreground">Carregando…</p>;
 
   return (
@@ -38,6 +49,7 @@ function CampaignDetail({ campaignId, tenantId }: { campaignId: string; tenantId
             <TableHead>Esperado</TableHead>
             <TableHead>Encontrado</TableHead>
             <TableHead>Resultado</TableHead>
+            <TableHead>Evidência</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -64,6 +76,30 @@ function CampaignDetail({ campaignId, tenantId }: { campaignId: string; tenantId
                   {attempt?.result_summary && (
                     <div className="mt-1 max-w-xs text-xs text-muted-foreground">{attempt.result_summary}</div>
                   )}
+                </TableCell>
+                <TableCell>
+                  <div className="flex flex-col gap-1">
+                    {data.evidence
+                      .filter((e) => e.check_id === c.id)
+                      .slice(0, 4)
+                      .map((e) => (
+                        <Button
+                          key={e.id}
+                          size="sm"
+                          variant="outline"
+                          className="h-7 justify-start text-xs"
+                          onClick={() => openEvidence(e.id)}
+                        >
+                          {e.evidence_type === "comparison_report" ? "Relatório" : "Captura de tela"}
+                          <span className="ml-1 text-muted-foreground">
+                            {new Date(e.captured_at).toLocaleDateString("pt-BR")}
+                          </span>
+                        </Button>
+                      ))}
+                    {!data.evidence.some((e) => e.check_id === c.id) && (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
+                  </div>
                 </TableCell>
               </TableRow>
             );

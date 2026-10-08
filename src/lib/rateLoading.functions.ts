@@ -905,7 +905,14 @@ export const getCampaignDetailFn = createServerFn({ method: "GET" })
           .in("check_id", checkIds)
           .order("attempt_number", { ascending: false })
       : { data: [] as never[] };
-    return { campaign, checks: checks ?? [], attempts: attempts ?? [] };
+    const { data: evidence } = checkIds.length
+      ? await supabase
+          .from("rate_loading_evidence")
+          .select("id, check_id, attempt_id, evidence_type, captured_at")
+          .in("check_id", checkIds)
+          .order("captured_at", { ascending: false })
+      : { data: [] as never[] };
+    return { campaign, checks: checks ?? [], attempts: attempts ?? [], evidence: evidence ?? [] };
   });
 
 export const rerunChecksFn = createServerFn({ method: "POST" })
