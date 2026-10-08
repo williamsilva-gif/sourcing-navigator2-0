@@ -6,6 +6,7 @@ import { ModulesPanel } from "@/components/admin/ModulesPanel";
 import { FeaturesPanel } from "@/components/admin/FeaturesPanel";
 import { RolesPanel } from "@/components/admin/RolesPanel";
 import { TenantUsersPanel } from "@/components/admin/TenantUsersPanel";
+import { RateLoadingEntitlementPanel } from "@/components/admin/RateLoadingEntitlementPanel";
 import { BusinessRulesPanel } from "@/components/admin/BusinessRulesPanel";
 import { useAppConfigStore, useModuleEnabled } from "@/lib/appConfigStore";
 import { useAuth, getPrimaryRole } from "@/hooks/useAuth";
@@ -62,6 +63,7 @@ function AdminPage() {
           <TabsTrigger value="modules">Módulos</TabsTrigger>
           <TabsTrigger value="features">Funcionalidades</TabsTrigger>
           {isTa && <TabsTrigger value="users">Usuários do cliente</TabsTrigger>}
+          {isTa && <TabsTrigger value="rateloading">Rate Loading</TabsTrigger>}
           <TabsTrigger value="roles">Meu perfil</TabsTrigger>
           <TabsTrigger value="rules">Regras de Negócio</TabsTrigger>
         </TabsList>
@@ -69,6 +71,7 @@ function AdminPage() {
         <TabsContent value="modules"><ModulesPanel /></TabsContent>
         <TabsContent value="features"><FeaturesPanel /></TabsContent>
         {isTa && <TabsContent value="users"><TenantUsersPanel /></TabsContent>}
+        {isTa && <TabsContent value="rateloading"><RateLoadingEntitlementPanel /></TabsContent>}
         <TabsContent value="roles"><RolesPanel /></TabsContent>
         <TabsContent value="rules"><BusinessRulesPanel /></TabsContent>
       </Tabs>
