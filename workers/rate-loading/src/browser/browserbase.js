@@ -45,11 +45,11 @@ export async function execute({ connection, check }) {
     sessionId = browser.sessionId ?? null;
     log.info("browserbase session opened", { sessionId, allowlist });
 
-    // Native domain policy enforced by the Stagehand runtime inside the browser.
-    await browser.context.setDomainPolicy({ allowedDomains: allowlist });
-
     const model = modelConfig();
     stagehand = await Stagehand.create(model ? { browser, model } : { browser });
+
+    // Native domain policy enforced by the Stagehand runtime inside the browser.
+    await browser.context.setDomainPolicy({ allowedDomains: allowlist });
 
     const [existing] = await browser.context.pages();
     const page = existing ?? (await browser.context.newPage());
