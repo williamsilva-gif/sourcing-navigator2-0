@@ -121,11 +121,14 @@ export async function run({ stagehand, page, connection, check, allowlist, evide
     await guard(page, allowlist);
     await detectBlockers(stagehand, page, allowlist);
 
-    // 3. Hotel search: destination / hotel / dates / 1 guest
-    await stagehand.act(`${GUARDRAIL} Open the hotel search (hotéis / hospedagem) if not already open`, { page });
-    await stagehand.act(`${GUARDRAIL} Type %destination% into the destination or hotel field and pick the matching suggestion`, {
+    // 3. Hotel search: Reservar (shopping cart, left menu) -> Hospedagem tab -> fields
+    await stagehand.act(`${GUARDRAIL} In the left side menu, click the shopping cart icon labeled 'Reservar'`, { page });
+    await page.waitForLoadState("domcontentloaded").catch(() => {});
+    await guard(page, allowlist);
+    await stagehand.act(`${GUARDRAIL} Click the 'Hospedagem' tab (building icon) at the top of the booking area, if it is not already active`, { page });
+    await stagehand.act(`${GUARDRAIL} Type %destination% into the 'Cidade ou hotel de destino' input and click the matching item from the dropdown list`, {
       page,
-      variables: { destination: `${check.hotelName}${check.city ? `, ${check.city}` : ""}` },
+      variables: { destination: check.hotelName },
     });
     await stagehand.act(`${GUARDRAIL} Set check-in date to %checkin% and check-out date to %checkout%`, {
       page,
