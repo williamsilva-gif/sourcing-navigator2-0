@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import * as XLSX from 'xlsx';
-import { chargeValue, compareRate, detectField, parseSheet, readWorkbook, sheetPreview, statusValue, validateWorkbookBytes, type Mapping, type Row } from '../src/lib/taxImpact/core';
+import { buildRevisionRows, chargeValue, compareRate, compareRevisions, createSheet, detectField, parseSheet, readWorkbook, sheetPreview, statusValue, validateWorkbookBytes, type Mapping, type Row } from '../src/lib/taxImpact/core';
 
 // Fixture QA transcrita do arquivo real "2026_RFP_Deloitte_Propostas_revisada.xlsx" (651 KB, 15 abas).
 // Os bytes originais NÃO foram transferidos ao ambiente; esta fixture reproduz a estrutura
