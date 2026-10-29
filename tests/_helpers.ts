@@ -12,7 +12,7 @@ const clientUrl = SUPABASE_URL || "http://127.0.0.1:54321";
 const serviceKey = SERVICE_KEY || "missing-service-role-key";
 const anonKey = ANON_KEY || "missing-publishable-key";
 
-export const PASSWORD = "Test!12345";
+export const PASSWORD = "Xq9#mTz4!vL2pRw8";
 export const RUN_ID = Math.random().toString(36).slice(2, 8);
 
 export const admin = createClient(clientUrl, serviceKey, {

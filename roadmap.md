@@ -4,4 +4,4 @@
 - [x] Deterministic matching/comparison and immutable saved revisions.
 - [x] Dedicated navigation, tenant-scoped analysis list and filtered results.
 - [x] Unit/security tests and authenticated end-to-end preview check.
-- [x] Report actual capabilities and remaining tax/export work; do not publish.
+- [x] Report actual capabilities and remaining tax/export work; do not publish.- [x] QA/regressão Fase 1: fixture Deloitte 2026 (valores reais transcritos), correções de parser/status, aviso de mesmo ano; 89/89 testes, tsgo e build OK.

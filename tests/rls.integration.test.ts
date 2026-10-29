@@ -26,7 +26,7 @@ const admin = createClient(SUPABASE_URL || "http://127.0.0.1:54321", SERVICE_KEY
 });
 
 const RUN_ID = Math.random().toString(36).slice(2, 8);
-const PASSWORD = "Test!12345";
+const PASSWORD = "Xq9#mTz4!vL2pRw8";
 
 type AccountType = "HOTEL" | "TMC" | "CORP" | "TA";
 const created: { id: string; email: string }[] = [];

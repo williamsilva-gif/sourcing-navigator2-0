@@ -16,7 +16,7 @@ export type Row = {
   id: string; hash: string; network: string; hotel: string; cnpj: string; city: string; state: string; currency: string;
   single: number | null; double: number | null; floatingDiscount: Charge; iss: Charge; service: Charge;
   lra: string; breakfast: string; wifi: string; parking: string; minibar: string; start: string; end: string;
-  status: 'renegotiated' | 'pending' | 'approved' | 'rejected' | 'absent'; rateType: 'fixed' | 'floating' | 'missing';
+  status: 'renegotiated' | 'pending' | 'approved' | 'rejected' | 'absent'; statusRaw: string; rateType: 'fixed' | 'floating' | 'missing';
   chargeBasis: 'quoted' | 'net' | 'inclusive'; source: { file: string; sheet: string; row: number; columns: Partial<Record<Field, string>> };
 };
 export type SheetPreview = { name: string; headerRow: number; columns: { index: number; name: string; leaf: string }[]; suggested: Mapping; grid: unknown[][] };
@@ -25,7 +25,7 @@ export const clean = (v: unknown) => String(v ?? '').replace(/[\u0000-\u0008\u00
 export const normalize = (v: unknown) => clean(v).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 const aliases: Record<Field, string[]> = {
   network: ['rede', 'bandeira', 'brand', 'network'], hotel: ['hotel', 'nome fantasia', 'nome do hotel', 'hotel name'],
-  cnpj: ['cnpj', 'cnpj hotel'], city: ['cidade', 'municipio', 'city'], state: ['estado', 'uf', 'state'], currency: ['moeda', 'currency'],
+  cnpj: ['cnpj', 'cnpj hotel'], city: ['cidade', 'cidades', 'municipio', 'municipios', 'city'], state: ['estado', 'uf', 'state'], currency: ['moeda', 'currency'],
   single: ['tarifa single', 'single rate', 'tarifa single renegociada'], double: ['tarifa double', 'double rate', 'tarifa double renegociada'],
   status: ['status renegociacao', 'status proposta', 'status da proposta', 'status'], floatingDiscount: ['desconto tarifa flutuante', 'desconto flutuante', 'desconto bar'],
   iss: ['taxa iss', 'iss'], service: ['taxa de servico', 'taxa servico', 'service charge'], lra: ['tipo lra nlra', 'lra nlra', 'tipo lra', 'lra'],
@@ -61,6 +61,8 @@ export function statusValue(v: unknown): Row['status'] {
   const n = normalize(v);
   if (!n) return 'absent';
   if (/reprov|rejeit|reject|nao aprovad/.test(n)) return 'rejected';
+  // "Para aprovação Cliente" é proposta AGUARDANDO aprovação, não tarifa contratada.
+  if (/para aprovacao|aguardando|pendente|em analise|awaiting/.test(n)) return 'pending';
   if (/aprov|aceit|approved/.test(n)) return 'approved';
   if (/renegociad/.test(n)) return 'renegotiated';
   return 'pending';
@@ -179,7 +181,7 @@ export async function parseSheet(wb: XLSX.WorkBook, sheet: string, options: Impo
       currency: clean(get('currency')).toUpperCase().replace(/^R\$$/, 'BRL').replace(/^US\$$/, 'USD'), single, double,
       floatingDiscount, iss, service, lra: normalize(get('lra')).includes('nlra') ? 'NLRA' : normalize(get('lra')).includes('lra') ? 'LRA' : clean(get('lra')),
       breakfast: benefit(get('breakfast')), wifi: benefit(get('wifi')), parking: benefit(get('parking')), minibar: benefit(get('minibar')),
-      start, end, status: statusValue(get('status')), rateType: single !== null || double !== null ? 'fixed' : floatingDiscount.kind === 'percent' ? 'floating' : 'missing',
+      start, end, status: statusValue(get('status')), statusRaw: clean(get('status')), rateType: single !== null || double !== null ? 'fixed' : floatingDiscount.kind === 'percent' ? 'floating' : 'missing',
       chargeBasis: options.chargeBasis, source: { file: clean(options.filename), sheet, row: i + 1, columns: sourceColumns },
     };
     row.hash = await sha256(new TextEncoder().encode(JSON.stringify({ ...row, id: undefined, hash: undefined })));

@@ -76,7 +76,8 @@ export const compareTaxAnalysisFn = createServerFn({ method: 'POST' }).middlewar
   if (versionError) throw new Error('Falha ao obter versão.');
   const { data: revision, error: insertError } = await context.supabase.from('tax_impact_revisions').insert({ analysis_id: data.analysisId, client_tenant_id: data.tenantId, version: (latest?.[0]?.version ?? 0) + 1, baseline_import_id: baseline.id, proposal_import_id: proposal.id, manual_matches: json(data.manualMatches), results: json(results), status: results.some(r => r.match === 'ambiguous') ? 'needs_review' : 'compared', created_by: context.userId }).select().single();
   if (insertError) throw new Error('Não foi possível salvar versão; atualize e tente novamente.');
-  return revision;
+  const warning = baseline.period_year === proposal.period_year ? 'As duas bases têm o mesmo ano: isto é apenas um smoke test, não um comparativo anual verdadeiro.' : '';
+  return { ...revision, warning };
 });
 export const taxOriginalUrlFn = createServerFn({ method: 'POST' }).middleware([requireSupabaseAuth]).inputValidator((d: unknown) => analysisScope.extend({ importId: z.string().uuid() }).parse(d)).handler(async ({ data, context }) => {
   await authorize(context.supabase, data.tenantId);

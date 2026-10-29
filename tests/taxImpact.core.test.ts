@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import * as XLSX from 'xlsx';
 import { chargeValue, comparePrograms, compareRate, indicators, numberValue, parseSheet, readWorkbook, sheetPreview, statusValue, type Row } from '../src/lib/taxImpact/core';
 const charge = chargeValue('Inclusa na tarifa');
-const row = (changes: Partial<Row> = {}): Row => ({ id: 'b:3', hash: 'hash', network: 'Rede', hotel: 'Hotel X', cnpj: '01234567000189', city: 'São Paulo', state: 'SP', currency: 'BRL', single: 400, double: null, floatingDiscount: chargeValue(''), iss: charge, service: charge, lra: 'LRA', breakfast: 'yes', wifi: 'yes', parking: '', minibar: '', start: '', end: '', status: 'approved', rateType: 'fixed', chargeBasis: 'quoted', source: { file: 'b.xlsx', sheet: 'Tarifas', row: 3, columns: {} }, ...changes });
+const row = (changes: Partial<Row> = {}): Row => ({ id: 'b:3', hash: 'hash', network: 'Rede', hotel: 'Hotel X', cnpj: '01234567000189', city: 'São Paulo', state: 'SP', currency: 'BRL', single: 400, double: null, floatingDiscount: chargeValue(''), iss: charge, service: charge, lra: 'LRA', breakfast: 'yes', wifi: 'yes', parking: '', minibar: '', start: '', end: '', status: 'approved', statusRaw: 'Aprovado', rateType: 'fixed', chargeBasis: 'quoted', source: { file: 'b.xlsx', sheet: 'Tarifas', row: 3, columns: {} }, ...changes });
 function workbook() {
  const wb = XLSX.utils.book_new(); const ws = XLSX.utils.aoa_to_sheet([
   Array.from({length:44},(_,i)=>i===26?'Tarifas a serem aprovadas ou reprovadas':''),
