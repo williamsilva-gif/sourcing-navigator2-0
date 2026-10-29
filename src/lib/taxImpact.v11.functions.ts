@@ -31,8 +31,11 @@ export const commitTaxVolumeFn=createServerFn({method:'POST'}).middleware([requi
 });
 export const checkTaxSourcesFn=createServerFn({method:'POST'}).middleware([requireSupabaseAuth]).inputValidator((v:unknown)=>scope.parse(v)).handler(async({data,context})=>{
  await authorize(context.supabase,data.tenantId,data.analysisId);const day=saoPauloDay();
- const claim=await context.supabase.rpc('claim_tax_impact_source_check',{_tenant_id:data.tenantId,_day:day});if(claim.error)throw new Error('Verificação indisponível; não verificado.');
- if(claim.data?.[0]){const token=claim.data[0].claim_token,result=await fetchOfficialSources();const saved=await context.supabase.from('tax_impact_source_checks').update({result:json(result),state:result.tcu.status==='validated'?'checked':'failed',checked_at:result.checkedAt}).eq('client_tenant_id',data.tenantId).eq('day',day).eq('claim_token',token);if(saved.error)throw new Error('Consulta realizada mas registro indisponível; não verificado.');return {state:result.tcu.status==='validated'?'checked':'failed',result:json(result),lastValidated:null};}
+ // Verification-cache writes are privileged, unlike all ordinary analysis/volume operations.
+ // Caller role and tenant access have already been verified through the caller's RLS client.
+ const {supabaseAdmin}=await import('@/integrations/supabase/client.server');
+ const claim=await supabaseAdmin.rpc('claim_tax_impact_source_check',{_tenant_id:data.tenantId,_day:day});if(claim.error)throw new Error('Verificação indisponível; não verificado.');
+ if(claim.data?.[0]){const token=claim.data[0].claim_token,result=await fetchOfficialSources();const saved=await supabaseAdmin.from('tax_impact_source_checks').update({result:json(result),state:result.tcu.status==='validated'?'checked':'failed',checked_at:result.checkedAt}).eq('client_tenant_id',data.tenantId).eq('day',day).eq('claim_token',token);if(saved.error)throw new Error('Consulta realizada mas registro indisponível; não verificado.');return {state:result.tcu.status==='validated'?'checked':'failed',result:json(result),lastValidated:null};}
  const [today,last]=await Promise.all([context.supabase.from('tax_impact_source_checks').select('state,result').eq('client_tenant_id',data.tenantId).eq('day',day).maybeSingle(),context.supabase.from('tax_impact_source_checks').select('result').eq('client_tenant_id',data.tenantId).eq('state','checked').lt('day',day).order('day',{ascending:false}).limit(1)]);
  return {state:today.data?.state??'failed',result:today.data?.result??null,lastValidated:last.data?.[0]?.result??null};
 });
