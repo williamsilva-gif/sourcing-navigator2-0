@@ -1,4 +1,11 @@
 # Tax Impact Check — Phase 1
+- [x] v1.1 per-night tax hypotheses, objective negotiation rules and persisted analysis assumptions.
+- [x] Historical XLSX/CSV volume import, weighted ADR, seasonality/projection and explicit mix; synthetic 13,279-row upload saved under TA only.
+- [x] Daily official-source fetch/cache and database lease; browser cannot forge verified status. Live TCU not validated; Senate definitive rate not confirmed, safe warning preserved.
+- [x] Filtered PDF/Excel downloads exercised authenticated, original comparison reopened and assumptions persisted.
+- [x] Focused tests, lint and automated build signal; actual scope and limitations in docs/tax-impact-v11.md.
+- [ ] Real Deloitte volume validation — blocked: original workbook bytes not uploaded.
+- [ ] Definitive Senate resolution verification — blocked: applicable published resolution not confirmed; UI/export remain unverified.
 - [x] Isolated tenant/TA-authorized schema and private originals.
 - [x] XLSX sheet/header detection, explicit mapping, previews and validation.
 - [x] Deterministic matching/comparison and immutable saved revisions.
