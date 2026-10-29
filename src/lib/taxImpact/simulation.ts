@@ -18,7 +18,7 @@ export const defaultScenario = scenarioSchema.parse({});
 export const roundMoney = (n: number) => Math.round((n + Number.EPSILON)*100)/100;
 export const referenceRates = () => ({ cbs: (11.30-0.10)*0.60, ibs: (0.05+0.05)*0.60 });
 export const LIMITATIONS = 'Hipótese, não tributo definitivo nem causalidade do reajuste. Senado/enquadramento, créditos do fornecedor, base ISS, regime do serviço, custos/margem e alimentação separada podem alterar o resultado. Sem crédito de hotelaria para adquirente (art. 283). Serviço comercial e TMC não são IBS/CBS de hospedagem. Não estima imposto líquido pago pelo hotel.';
-export type Night = { total: number; quoted: number; iss: number; pis: number; cbs: number; ibs: number; service: number; percent: {iss:number;pis:number;cbs:number;ibs:number}; model: string };
+export type Night = { total: number; quoted: number; iss: number; pis: number; cbs: number; ibs: number; service: number | null; percent: {iss:number;pis:number;cbs:number;ibs:number}; model: string };
 function issRate(row: Row, s: Scenario) {
   if(row.iss.kind==='percent') return row.iss.value;
   if(row.iss.kind==='not_applicable') return 0;
@@ -36,7 +36,7 @@ export function nightComposition(row: Row | null, occupancy: 'single'|'double', 
   // Inclusive proxy: nominal shares of quoted gross, not a statutory gross-up or net liability.
   // Extra: user expressly assumes quoted net lodging, taxes each on net base, commercial service separate.
   const total=s.inclusion==='inclusive'?price:price*(1+(iss+pis+cbs+ibs+servicePct)/100);
-  return {quoted:price,total:roundMoney(total),iss:roundMoney(price*iss/100),pis:roundMoney(price*pis/100),cbs:roundMoney(price*cbs/100),ibs:roundMoney(price*ibs/100),service:roundMoney(price*servicePct/100),percent:{iss,pis,cbs,ibs},model:s.inclusion==='inclusive'?'Proxy de participações nominais sobre tarifa bruta; não adicionar novamente ao total.':'Hipótese de base líquida comum; ISS/PIS/CBS/IBS e serviço extra sobre cotação líquida, sem gross-up.'};
+  return {quoted:price,total:roundMoney(total),iss:roundMoney(price*iss/100),pis:roundMoney(price*pis/100),cbs:roundMoney(price*cbs/100),ibs:roundMoney(price*ibs/100),service:row.service.kind==='included'?null:roundMoney(price*servicePct/100),percent:{iss,pis,cbs,ibs},model:s.inclusion==='inclusive'?'Proxy de participações nominais sobre tarifa bruta; não adicionar novamente ao total. Serviço incluso: valor embutido não segregado, não zero.':'Hipótese de base líquida comum; ISS/PIS/CBS/IBS e serviço extra sobre cotação líquida, sem gross-up. Serviço incluso não é adicionado novamente.'};
 }
 export function simulateNight(r:Comparison,occupancy:'single'|'double',s:Scenario){
   const before=nightComposition(r.baseline,occupancy,2026,s),after=nightComposition(r.proposal,occupancy,2027,s);
@@ -61,6 +61,7 @@ export function negotiate(r:Comparison,s:Scenario,benchmark:number|null){
   if(cap!==undefined&&p.single!==null&&p.single>cap)reasons.push('Tarifa Single supera teto definido para a cidade.');
   if(s.maxIncrease!==null&&delta!==null&&delta>s.maxIncrease)reasons.push('Reajuste supera limite do gestor.');
   if(r.changes.some(c=>c.includes('perda de benefício')))reasons.push('Perda de benefício no programa.');
+  if(s.negotiateNeutral&&sim.neutral===null)return {action:'INSUFICIENTE',reasons:['Objetivo fiscal neutro exige hipótese comparável confirmada.'],counter:null,benchmark};
   if(s.negotiateNeutral&&sim.residual!==null&&sim.residual>0)reasons.push('Tarifa supera proxy fiscal neutro escolhido.');
   const targets=[cap,s.maxIncrease!==null&&r.baseline?.single!==null&&r.baseline?.single!==undefined?r.baseline.single*(1+s.maxIncrease/100):undefined,s.negotiateNeutral?sim.neutral:undefined].filter((v):v is number=>typeof v==='number'&&v>0);
   return {action:reasons.length?'RENEGOCIAR':s.maxIncrease===null&&cap===undefined&&!s.negotiateNeutral?'INSUFICIENTE':'RECOMENDAR APROVAR',reasons:reasons.length?reasons:['Sem violação dos objetivos selecionados; recomendação não altera status pendente.'],counter:targets.length?roundMoney(Math.min(...targets)):null,benchmark};
