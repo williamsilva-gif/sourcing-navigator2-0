@@ -200,7 +200,9 @@ export function matchVolumes(program: Row[], volume: VolumeRow[]) {
         );
     if (candidates.length === 1) {
       const id = candidates[0].id;
-      assignments.set(id, [...(assignments.get(id) ?? []), v]);
+      const assigned = assignments.get(id);
+      if (assigned) assigned.push(v);
+      else assignments.set(id, [v]);
     } else if (candidates.length > 1) ambiguous.push(v);
     else unmatched.push(v);
   }
