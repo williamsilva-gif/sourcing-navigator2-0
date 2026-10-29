@@ -2393,6 +2393,129 @@ export type Database = {
           },
         ]
       }
+      tax_impact_scenarios: {
+        Row: {
+          analysis_id: string
+          client_tenant_id: string
+          parameters: Json
+          updated_at: string
+          updated_by: string
+        }
+        Insert: {
+          analysis_id: string
+          client_tenant_id: string
+          parameters?: Json
+          updated_at?: string
+          updated_by?: string
+        }
+        Update: {
+          analysis_id?: string
+          client_tenant_id?: string
+          parameters?: Json
+          updated_at?: string
+          updated_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tax_impact_scenarios_analysis_id_client_tenant_id_fkey"
+            columns: ["analysis_id", "client_tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tax_impact_analyses"
+            referencedColumns: ["id", "client_tenant_id"]
+          },
+        ]
+      }
+      tax_impact_source_checks: {
+        Row: {
+          checked_at: string | null
+          claim_token: string
+          client_tenant_id: string
+          day: string
+          lease_until: string
+          result: Json
+          state: string
+        }
+        Insert: {
+          checked_at?: string | null
+          claim_token?: string
+          client_tenant_id: string
+          day: string
+          lease_until?: string
+          result?: Json
+          state?: string
+        }
+        Update: {
+          checked_at?: string | null
+          claim_token?: string
+          client_tenant_id?: string
+          day?: string
+          lease_until?: string
+          result?: Json
+          state?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tax_impact_source_checks_client_tenant_id_fkey"
+            columns: ["client_tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tax_impact_volume_imports: {
+        Row: {
+          analysis_id: string
+          client_tenant_id: string
+          created_at: string
+          created_by: string
+          errors: Json
+          file_hash: string
+          filename: string
+          id: string
+          mapping: Json
+          rows: Json
+          sheet: string
+          storage_path: string
+        }
+        Insert: {
+          analysis_id: string
+          client_tenant_id: string
+          created_at?: string
+          created_by?: string
+          errors?: Json
+          file_hash: string
+          filename: string
+          id: string
+          mapping: Json
+          rows: Json
+          sheet: string
+          storage_path: string
+        }
+        Update: {
+          analysis_id?: string
+          client_tenant_id?: string
+          created_at?: string
+          created_by?: string
+          errors?: Json
+          file_hash?: string
+          filename?: string
+          id?: string
+          mapping?: Json
+          rows?: Json
+          sheet?: string
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tax_impact_volume_imports_analysis_id_client_tenant_id_fkey"
+            columns: ["analysis_id", "client_tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tax_impact_analyses"
+            referencedColumns: ["id", "client_tenant_id"]
+          },
+        ]
+      }
       tenant_features: {
         Row: {
           enabled: boolean
@@ -2711,6 +2834,24 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "rate_loading_jobs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      claim_tax_impact_source_check: {
+        Args: { _day: string; _tenant_id: string }
+        Returns: {
+          checked_at: string | null
+          claim_token: string
+          client_tenant_id: string
+          day: string
+          lease_until: string
+          result: Json
+          state: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "tax_impact_source_checks"
           isOneToOne: false
           isSetofReturn: true
         }

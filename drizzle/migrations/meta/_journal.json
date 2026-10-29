@@ -43,6 +43,13 @@
       "when": 1793247904516,
       "tag": "0005_tax_impact_storage_scope_qualification",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793253944973,
+      "tag": "0006_tax_impact_v11",
+      "breakpoints": true
     }
   ]
 }
