@@ -2179,6 +2179,202 @@ export type Database = {
         }
         Relationships: []
       }
+      tax_impact_analyses: {
+        Row: {
+          client_tenant_id: string
+          created_at: string
+          created_by: string
+          id: string
+          name: string
+        }
+        Insert: {
+          client_tenant_id: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          client_tenant_id?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tax_impact_analyses_client_tenant_id_fkey"
+            columns: ["client_tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tax_impact_imports: {
+        Row: {
+          analysis_id: string
+          client_tenant_id: string
+          created_at: string
+          created_by: string
+          errors: Json
+          file_hash: string
+          filename: string
+          header_row: number
+          id: string
+          mapping: Json
+          period_year: number
+          role: string
+          rows: Json
+          sheet: string
+          storage_path: string
+        }
+        Insert: {
+          analysis_id: string
+          client_tenant_id: string
+          created_at?: string
+          created_by?: string
+          errors?: Json
+          file_hash: string
+          filename: string
+          header_row: number
+          id: string
+          mapping: Json
+          period_year: number
+          role: string
+          rows: Json
+          sheet: string
+          storage_path: string
+        }
+        Update: {
+          analysis_id?: string
+          client_tenant_id?: string
+          created_at?: string
+          created_by?: string
+          errors?: Json
+          file_hash?: string
+          filename?: string
+          header_row?: number
+          id?: string
+          mapping?: Json
+          period_year?: number
+          role?: string
+          rows?: Json
+          sheet?: string
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tax_impact_imports_analysis_id_client_tenant_id_fkey"
+            columns: ["analysis_id", "client_tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tax_impact_analyses"
+            referencedColumns: ["id", "client_tenant_id"]
+          },
+        ]
+      }
+      tax_impact_mapping_profiles: {
+        Row: {
+          client_tenant_id: string
+          created_at: string
+          created_by: string
+          id: string
+          mapping: Json
+          name: string
+          role: string
+        }
+        Insert: {
+          client_tenant_id: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          mapping: Json
+          name: string
+          role: string
+        }
+        Update: {
+          client_tenant_id?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          mapping?: Json
+          name?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tax_impact_mapping_profiles_client_tenant_id_fkey"
+            columns: ["client_tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tax_impact_revisions: {
+        Row: {
+          analysis_id: string
+          baseline_import_id: string
+          client_tenant_id: string
+          created_at: string
+          created_by: string
+          id: string
+          manual_matches: Json
+          proposal_import_id: string
+          results: Json
+          status: string
+          version: number
+        }
+        Insert: {
+          analysis_id: string
+          baseline_import_id: string
+          client_tenant_id: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          manual_matches?: Json
+          proposal_import_id: string
+          results: Json
+          status?: string
+          version: number
+        }
+        Update: {
+          analysis_id?: string
+          baseline_import_id?: string
+          client_tenant_id?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          manual_matches?: Json
+          proposal_import_id?: string
+          results?: Json
+          status?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tax_impact_revisions_analysis_id_client_tenant_id_fkey"
+            columns: ["analysis_id", "client_tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tax_impact_analyses"
+            referencedColumns: ["id", "client_tenant_id"]
+          },
+          {
+            foreignKeyName: "tax_impact_revisions_baseline_import_id_analysis_id_client_fkey"
+            columns: ["baseline_import_id", "analysis_id", "client_tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tax_impact_imports"
+            referencedColumns: ["id", "analysis_id", "client_tenant_id"]
+          },
+          {
+            foreignKeyName: "tax_impact_revisions_proposal_import_id_analysis_id_client_fkey"
+            columns: ["proposal_import_id", "analysis_id", "client_tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tax_impact_imports"
+            referencedColumns: ["id", "analysis_id", "client_tenant_id"]
+          },
+        ]
+      }
       tenant_features: {
         Row: {
           enabled: boolean
@@ -2573,6 +2769,7 @@ export type Database = {
         Args: { _actor: string; _tenant_id: string }
         Returns: number
       }
+      tax_impact_access: { Args: { _tenant_id: string }; Returns: boolean }
       visible_tenant_ids: { Args: { _user_id: string }; Returns: string[] }
     }
     Enums: {
