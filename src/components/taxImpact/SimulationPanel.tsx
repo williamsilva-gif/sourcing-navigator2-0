@@ -25,6 +25,7 @@ import {
   volumeStats,
   volumeProvenance,
   volumeProvenanceLabel,
+  totalProjectedNights,
   type VolumeRow,
 } from "@/lib/taxImpact/volume";
 import { officialSources, type SourceCheck } from "@/lib/taxImpact/sources";
@@ -174,7 +175,7 @@ export function SimulationPanel({
         volumeProvenance: provenance,
         volumeSummary: {
           ...filteredStats,
-          projected27: projected,
+          projected27: totalProjectedNights(derived.map((d) => d.v.projected27)),
           budgetDelta: s.singleShare === null ? null : annual,
           ambiguousRows: linked.ambiguous.length,
           unmatchedRows: linked.unmatched.length,
