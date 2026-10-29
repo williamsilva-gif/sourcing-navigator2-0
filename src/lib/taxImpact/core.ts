@@ -27,7 +27,7 @@ const aliases: Record<Field, string[]> = {
   network: ['rede', 'bandeira', 'brand', 'network'], hotel: ['hotel', 'nome fantasia', 'nome do hotel', 'hotel name'],
   cnpj: ['cnpj', 'cnpj hotel'], city: ['cidade', 'cidades', 'municipio', 'municipios', 'city'], state: ['estado', 'uf', 'state'], currency: ['moeda', 'currency'],
   single: ['tarifa single', 'single rate', 'tarifa single renegociada'], double: ['tarifa double', 'double rate', 'tarifa double renegociada'],
-  status: ['status renegociacao', 'status proposta', 'status da proposta', 'status'], floatingDiscount: ['desconto tarifa flutuante', 'desconto flutuante', 'desconto bar'],
+  status: ['status renegociacao', 'status proposta', 'status da proposta', 'status'], floatingDiscount: ['desconto tarifa flutuante', 'de desconto tarifa flutuante', 'desconto flutuante', 'de desconto flutuante', 'desconto bar'],
   iss: ['taxa iss', 'iss'], service: ['taxa de servico', 'taxa servico', 'service charge'], lra: ['tipo lra nlra', 'lra nlra', 'tipo lra', 'lra'],
   breakfast: ['cafe da manha', 'breakfast'], wifi: ['wifi', 'wi fi', 'internet'], parking: ['estacionamento', 'parking'],
   minibar: ['frigobar', 'minibar'], start: ['inicio', 'data inicio', 'valid from'], end: ['fim', 'data fim', 'valid to'],
