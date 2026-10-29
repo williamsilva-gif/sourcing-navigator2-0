@@ -4,7 +4,7 @@ import autoTable from "jspdf-autotable";
 import { RULE_VERSION, LIMITATIONS, simulateNight, budget, type Scenario } from "./simulation";
 import { volumeStats, matchVolumes, type VolumeRow } from "./volume";
 import { officialSources, type SourceCheck } from "./sources";
-import type { Comparison } from "./core";
+import type { Comparison, Row } from "./core";
 export type ExportData = {
   name: string;
   results: Comparison[];
@@ -12,6 +12,7 @@ export type ExportData = {
   source: SourceCheck | null;
   volumeSummary: unknown;
   volumeRows?: VolumeRow[];
+  programRows?: Row[];
 };
 export function excelReport(data: ExportData) {
   const wb = XLSX.utils.book_new();
@@ -105,7 +106,7 @@ export function excelReport(data: ExportData) {
   });
   ws["!cols"] = header.map((_, i) => ({ wch: i === 1 || i === 23 ? 45 : 18 }));
   XLSX.utils.book_append_sheet(wb, ws, "Comparação filtrada");
-  const program = data.results.flatMap((r) =>
+  const program = data.programRows ?? data.results.flatMap((r) =>
       r.proposal ? [r.proposal] : r.baseline ? [r.baseline] : [],
     ),
     volume = data.volumeRows ?? [],

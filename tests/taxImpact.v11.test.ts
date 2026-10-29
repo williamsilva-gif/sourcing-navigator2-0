@@ -6,6 +6,7 @@ import {
   simulateNight,
   budget,
   scenarioSchema,
+  negotiate,
 } from "../src/lib/taxImpact/simulation";
 import { volumeBook, parseVolume, volumeStats, matchVolumes } from "../src/lib/taxImpact/volume";
 import { parseCbsReference, fetchOfficialSources, saoPauloDay } from "../src/lib/taxImpact/sources";
@@ -231,6 +232,10 @@ describe("Historical volume", () => {
   });
 });
 describe("Sources and exports", () => {
+  it('included service is unsegregated, not zero',()=>{expect(simulateNight(pair,'single',scenario).after?.service).toBeNull();});
+  it('pending and objective counterproposal preserved',()=>{const p=comparePrograms([row({single:400})],[row({id:'b',single:448})])[0];expect(negotiate(p,{...scenario,maxIncrease:5},null)).toMatchObject({action:'RENEGOCIAR',counter:420});expect(p.status).toBe('pending');});
+  it('neutral objective without confirmed base is insufficient',()=>{expect(negotiate(pair,{...defaultScenario,negotiateNeutral:true},null).action).toBe('INSUFICIENTE');});
+  it('CSV excludes zero/negative values and off-window checkins',()=>{const text='Fornecedor,CNPJ,Data in,Diárias,Tarifa\nHotel,7037213000137,2026-06-01,2,800\nHotel,7037213000137,2026-01-01,0,100\nHotel,7037213000137,2026-01-01,1,-100';const wb=volumeBook(new TextEncoder().encode(text),true);const p=parseVolume(wb,wb.SheetNames[0],{hotel:0,cnpj:1,checkin:2,nights:3,amount:4});expect(p.rows[0].cnpj).toBe('07037213000137');expect(p.errors).toHaveLength(2);expect(volumeStats(p.rows).n26).toBe(0);});
   it("tolerant CBS parser preserves precise and rounded reference", () => {
     expect(parseCbsReference("<b>CBS</b> referência 11,3468% arredondada 11,3%")).toEqual({
       reference: 11.3468,
