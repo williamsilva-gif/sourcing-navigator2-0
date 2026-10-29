@@ -100,6 +100,14 @@ export function Sidebar() {
               </li>
             );
           })}
+          {isTa && (
+            <li>
+              <Link to="/tax-impact-check" className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${pathname === "/tax-impact-check" ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"}`}>
+                <BarChart3 className="h-4 w-4 shrink-0" />
+                <span>Tax Impact Check</span>
+              </Link>
+            </li>
+          )}
         </ul>
       </nav>
 
