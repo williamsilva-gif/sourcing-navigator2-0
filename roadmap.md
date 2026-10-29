@@ -1,4 +1,5 @@
 # Tax Impact Check — Phase 1
+- [ ] Definitive Deloitte original-analysis QA: authenticated totals, Comfort hypotheses, transient growth, conservative matching, filtered exports and unchanged persistence.
 - [x] Final QA: verified latest real monthly volume totals, dynamic provenance UI/exports and preserved unknown mix.
 - [x] Final QA: authenticated Atlantica/Quality filters, downloads/reopen, focused tests and precise documentation.
 - [x] v1.1 per-night tax hypotheses, objective negotiation rules and persisted analysis assumptions.
