@@ -2211,6 +2211,24 @@ export type Database = {
           },
         ]
       }
+      tax_impact_demo_seed_stage: {
+        Row: {
+          batch_key: string
+          payload: Json
+          row_index: number
+        }
+        Insert: {
+          batch_key: string
+          payload: Json
+          row_index: number
+        }
+        Update: {
+          batch_key?: string
+          payload?: Json
+          row_index?: number
+        }
+        Relationships: []
+      }
       tax_impact_imports: {
         Row: {
           analysis_id: string
