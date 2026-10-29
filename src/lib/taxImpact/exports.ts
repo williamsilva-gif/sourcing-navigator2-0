@@ -2,7 +2,7 @@ import * as XLSX from "xlsx";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { RULE_VERSION, LIMITATIONS, simulateNight, budget, type Scenario } from "./simulation";
-import { volumeStats, matchVolumes, type VolumeRow } from "./volume";
+import { volumeStats, matchVolumes, volumeProvenanceLabel, type VolumeRow, type VolumeProvenance } from "./volume";
 import { officialSources, type SourceCheck } from "./sources";
 import type { Comparison, Row } from "./core";
 export type ExportData = {
@@ -13,6 +13,7 @@ export type ExportData = {
   volumeSummary: unknown;
   volumeRows?: VolumeRow[];
   programRows?: Row[];
+  volumeProvenance?: VolumeProvenance;
 };
 export function excelReport(data: ExportData) {
   const wb = XLSX.utils.book_new();
@@ -217,9 +218,11 @@ export function excelReport(data: ExportData) {
         /demo|simula/i.test(data.name) ? "DADOS SIMULADOS NÃO CONTRATUAIS" : "Cenário hipotético",
       ],
       ["Versão", RULE_VERSION],
+      ["Origem volumetria", data.volumeProvenance ? volumeProvenanceLabel(data.volumeProvenance) : "Origem não informada"],
+      ["Arquivo original armazenado", data.volumeProvenance?.originalInStorage ?? "não informado"],
       ["Verificação", data.source?.checkedAt ?? "NÃO VERIFICADO"],
-      ["TCU", data.source?.tcu.status ?? "unverified"],
-      ["Senado", "NÃO CONFIRMADO"],
+      ["TCU", data.source?.tcu.status === "validated" ? "REFERÊNCIA VERIFICADA (não definitiva)" : "NÃO VERIFICADO"],
+      ["Senado", "NÃO VERIFICADO"],
       ["Limitações", LIMITATIONS],
       ...Object.entries(data.scenario).map(([k, v]) => [k, JSON.stringify(v)]),
       ["Volume", JSON.stringify(data.volumeSummary)],
@@ -239,14 +242,16 @@ export function pdfReport(data: ExportData) {
   doc.text(`Versão ${RULE_VERSION} | ${data.results.length} unidades filtradas`, 14, 40);
   doc.text(
     /demo|simula/i.test(data.name)
-      ? "DADOS SIMULADOS NÃO CONTRATUAIS"
+      ? "TARIFAS RFP SIMULADAS NÃO CONTRATUAIS"
       : "CENÁRIO HIPOTÉTICO — NÃO É TRIBUTO DEFINITIVO",
     14,
     46,
   );
-  doc.text(`TCU: ${data.source?.tcu.status ?? "não verificado"} | Senado: não confirmado`, 14, 52);
+  doc.text(`TCU: ${data.source?.tcu.status === "validated" ? "referência verificada, não definitiva" : "NÃO VERIFICADO"} | Senado: NÃO VERIFICADO`, 14, 52);
+  const provenanceLines = doc.splitTextToSize(data.volumeProvenance ? volumeProvenanceLabel(data.volumeProvenance) : "Origem volumetria não informada", 180);
+  doc.text(provenanceLines, 14, 58);
   autoTable(doc, {
-    startY: 58,
+    startY: 62 + provenanceLines.length * 4,
     head: [["Rede / Hotel", "SGL 2026", "SGL 2027", "Delta %", "Neutro / residual"]],
     body: data.results.map((r) => {
       const s = simulateNight(r, "single", data.scenario);
@@ -303,6 +308,7 @@ export function pdfReport(data: ExportData) {
     "P_neutral=P0*(1-t0)/(1-t1). CBS=(11.30%-0.10pp)*60%=6.72%; IBS=0.10%*60%=0.06%.",
     JSON.stringify(data.scenario),
     `Volume: ${JSON.stringify(data.volumeSummary)}`,
+    data.volumeProvenance ? volumeProvenanceLabel(data.volumeProvenance) : "Origem volumetria não informada",
     `Consulta: ${data.source?.checkedAt ?? "NÃO VERIFICADO"}`,
     ...Object.values(officialSources),
   ]) {

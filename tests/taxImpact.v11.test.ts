@@ -8,7 +8,7 @@ import {
   scenarioSchema,
   negotiate,
 } from "../src/lib/taxImpact/simulation";
-import { volumeBook, parseVolume, volumeStats, matchVolumes } from "../src/lib/taxImpact/volume";
+import { volumeBook, parseVolume, volumeStats, matchVolumes, volumeProvenance } from "../src/lib/taxImpact/volume";
 import { parseCbsReference, fetchOfficialSources, saoPauloDay } from "../src/lib/taxImpact/sources";
 import { chargeValue, comparePrograms, type Row } from "../src/lib/taxImpact/core";
 import { excelReport, pdfReport } from "../src/lib/taxImpact/exports";
@@ -92,6 +92,11 @@ describe("TIC v1.1 deterministic scenarios", () => {
   });
 });
 describe("Historical volume", () => {
+  it("real monthly metadata preserves lack of original while synthetic stays distinct",()=>{
+    expect(volumeProvenance({filename:'Deloitte REAL Base Volume.xlsx',mapping:{kind:'real_monthly_rollup',original_in_storage:false,source_records:13279}})).toMatchObject({kind:'real_monthly_rollup',originalInStorage:false,sourceRecords:13279});
+    expect(volumeProvenance({filename:'volume-SIMULADO.xlsx',mapping:{columns:{}}}).kind).toBe('synthetic');
+    expect(volumeProvenance({filename:'REAL.xlsx',mapping:{}}).kind).toBe('uploaded');
+  });
   it("parses 13,279 synthetic real-shaped XLSX rows, CNPJ and weighted ADR", () => {
     const wb = XLSX.utils.book_new();
     const grid: unknown[][] = [
