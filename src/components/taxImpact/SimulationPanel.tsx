@@ -20,7 +20,13 @@ import {
   LIMITATIONS,
   type Scenario,
 } from "@/lib/taxImpact/simulation";
-import { matchVolumes, volumeStats, type VolumeRow } from "@/lib/taxImpact/volume";
+import {
+  matchVolumes,
+  volumeStats,
+  volumeProvenance,
+  volumeProvenanceLabel,
+  type VolumeRow,
+} from "@/lib/taxImpact/volume";
 import { officialSources, type SourceCheck } from "@/lib/taxImpact/sources";
 import { excelReport, pdfReport, downloadReport } from "@/lib/taxImpact/exports";
 import type { Comparison, Row } from "@/lib/taxImpact/core";
@@ -70,6 +76,7 @@ export function SimulationPanel({
     [query.data],
   );
   const portfolio = useMemo(() => volumeStats(volume, s.growthPct), [volume, s.growthPct]);
+  const provenance = volumeProvenance(query.data?.volumes[0]);
   const linked = useMemo(() => matchVolumes(program, volume), [program, volume]);
   const filteredVolume = results.flatMap(
     (r) => linked.assignments.get(r.proposal?.id ?? r.baseline?.id ?? "") ?? [],
@@ -164,12 +171,13 @@ export function SimulationPanel({
         source: current,
         volumeRows: volume,
         programRows: program,
+        volumeProvenance: provenance,
         volumeSummary: {
           ...filteredStats,
           projected27: projected,
           budgetDelta: s.singleShare === null ? null : annual,
-          ambiguousTransactions: linked.ambiguous.length,
-          unmatchedTransactions: linked.unmatched.length,
+          ambiguousRows: linked.ambiguous.length,
+          unmatchedRows: linked.unmatched.length,
         },
       };
       const bytes = kind === "pdf" ? pdfReport(data) : excelReport(data);
@@ -213,7 +221,7 @@ export function SimulationPanel({
       </div>
       {/demo|simula/i.test(name) && (
         <p className="border-l-4 border-warning bg-warning-soft p-3 text-sm font-semibold text-warning-foreground">
-          DADOS SIMULADOS NÃO CONTRATUAIS
+          TARIFAS RFP SIMULADAS NÃO CONTRATUAIS
         </p>
       )}
       <div className="grid gap-4 md:grid-cols-3">
@@ -423,7 +431,9 @@ export function SimulationPanel({
             {Array.isArray(v.errors) ? v.errors.length : 0} ocorrências
           </summary>
           <p className="break-all">
-            {v.file_hash} · {v.storage_path}
+            {volumeProvenance(v).originalInStorage
+              ? `${v.file_hash} · ${v.storage_path}`
+              : "Base derivada mensal — arquivo XLSX original NÃO armazenado; caminho convencional não comprova upload."}
           </p>
         </details>
       ))}
@@ -495,6 +505,13 @@ export function SimulationPanel({
         projetadas nos filtros. Não extrapola hotéis sem tarifa/mix/base válida.
       </p>
       <p className="text-xs text-muted-foreground">
+        Portfolio histórico completo · FY2025: {portfolio.fy25.toLocaleString("pt-BR")} diárias ·
+        Jan–Mai2025: {portfolio.n25.toLocaleString("pt-BR")} · Jan–Mai2026:{" "}
+        {portfolio.n26.toLocaleString("pt-BR")} diárias. Gasto FY2025: {cash(portfolio.spend25)} ·
+        Jan–Mai2026: {cash(portfolio.spend26)}. ADR FY2025: {cash(portfolio.adr25)} · Jan–Mai2026:{" "}
+        {cash(portfolio.adr26)}.
+      </p>
+      <p className="text-xs text-muted-foreground">
         ADR 2025 realizado: {cash(filteredStats.adr25)} · Jan–Mai2026: {cash(filteredStats.adr26)}.
         Portfolio Jan–Mai/FY2025:{" "}
         {portfolio.seasonality === null
@@ -504,10 +521,15 @@ export function SimulationPanel({
         {portfolio.projected26 === null
           ? "sem base"
           : Math.round(portfolio.projected26).toLocaleString("pt-BR")}{" "}
-        diárias. {linked.unmatched.length} transações não localizadas · {linked.ambiguous.length}{" "}
-        ambíguas; excluídas da atribuição. {derived.filter((d) => d.v.projected26 === null).length}{" "}
-        hotéis sem base 2026. Sem upload do arquivo real, estes valores não representam volumetria
-        Deloitte real.
+        diárias. {volume.length - linked.unmatched.length - linked.ambiguous.length} linhas de
+        volume atribuídas · {linked.assignments.size} hotéis cobertos · {linked.unmatched.length}{" "}
+        linhas não localizadas · {linked.ambiguous.length} ambíguas; excluídas da atribuição.{" "}
+        {derived.filter((d) => d.v.projected26 === null).length} hotéis sem base 2026. Cobertura
+        apenas do programa; totais do portfolio completo não são duplicados nem atribuídos a hotéis
+        incertos.
+      </p>
+      <p role="status" className="text-xs text-warning-foreground">
+        {volumeProvenanceLabel(provenance)}
       </p>
       <div className="overflow-auto">
         <table className="w-full text-xs">
@@ -660,8 +682,11 @@ export function SimulationPanel({
           </a>
         ))}
         <p>
-          TCU: {source?.tcu.status ?? "NÃO VERIFICADO"} · Senado: NÃO CONFIRMADO ·{" "}
-          {source?.checkedAt ?? "sem consulta nesta sessão"}
+          TCU:{" "}
+          {source?.tcu.status === "validated"
+            ? "REFERÊNCIA VERIFICADA (não definitiva)"
+            : "NÃO VERIFICADO"}{" "}
+          · Senado: NÃO VERIFICADO · {source?.checkedAt ?? "sem consulta nesta sessão"}
         </p>
         <Button
           size="sm"

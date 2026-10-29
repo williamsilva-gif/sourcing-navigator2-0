@@ -22,7 +22,7 @@
 - Tests: core/Deloitte/v1.1/Rate Loading comparator; lint of new files; preview automated build OK. No manual production build/typecheck or publishing. No manually created Git commit (platform-managed).
 
 ## Remaining limits — not claimed complete
-- Original `Volume 2025 e 2026 - Deloitte.xlsx` is not available in this environment; upload required to verify real spend, quality and coverage.
+- Original `Volume 2025 e 2026 - Deloitte.xlsx` is not stored in the private vault; its real monthly derived data is now available and verified below. Original byte/upload provenance remains unavailable.
 - Senate resolution discovery/parsing is not complete. TCU live validation was unavailable. Daily checks deliberately fail safely, never claim an official definitive rate.
 - Nominal inclusive proxy cannot establish legal tax basis, credits, causal price increase or net supplier liability. No actual hotel regime was validated by CNPJ.
 - Volume ambiguity is excluded rather than assigned manually; a dedicated human volume-crossmatch editor is not implemented. No optional FY2025-only extrapolation preset or numeric data-quality score yet (categorical quality/fallback shown).
@@ -31,3 +31,12 @@
 - Existing unrelated routes' incomplete metadata was not changed, respecting the explicit no-other-module scope.
 
 Preview: `/tax-impact-check` → Travel Academy → DEMO Deloitte | 2026 vs 2027 | SIMULAÇÃO.
+
+## Final QA — real monthly rollup, 29 October 2026
+- Latest volume import verified by read-only database query: `5cf48f8e-b571-48bc-ae43-4b851e8dee6b`, `Deloitte REAL Base Volume 2025-2026 MONTHLY DERIVED.xlsx`, 4,425 monthly rows / 1,657 CNPJs. Metadata: `kind=real_monthly_rollup`, `source_records=13279`, `original_in_storage=false`. No download of its conventional storage path, no claim of authenticated original XLSX upload, no new data/tenant/migration.
+- Exact database totals: FY25 24,174 nights / BRL 10,311,559.77; Jan–May25 10,109 nights; Jan–May26 11,461 nights / BRL 5,002,757.77. Portfolio ADR FY25 426.555794 / Jan–May26 436.502728; FY26 projection rounds to 27,407 at zero growth.
+- Browser latest selection, totals and dynamic provenance verified. Full portfolio totals now explicitly distinguish the small matched demo-program subset. Conservative matching: 16 monthly rows assigned to 5 hotels, 4,409 unmatched, 0 ambiguous; assigned FY25 121 nights and Jan–May26 10 nights. No duplicate volume assignment.
+- Quality Oscar Freire (Atlantica): FY25 10 nights, ADR 486.20; Jan–May25 7; no 2026 base, no projection. San Marco: FY25 18 nights, Jan–May25 2, Jan–May26 7, ADR 658.23 / 689.31, portfolio seasonal fallback, FY26 estimate ~17 nights.
+- Authenticated UI filtered by Atlantica + explicit Quality hotel checkbox, exported actual PDF/XLSX; Excel contains exactly one hotel and two occupancy detail rows, no mix/budget/projection values for absent 2026. Both reports disclose real aggregated volume versus simulated tariffs and absent original; TCU/Senate remain NÃO VERIFICADO. Reopening preserved cumulative/regular/inclusive hypotheses, growth=0 and `singleShare=null`; no settings save or revision mutation.
+- Changes limited to TIC provenance helpers, SimulationPanel, export metadata/banner and regression tests, plus documentation/roadmap/memory. Source-cache security unchanged; source state remained failed. XLSX/CSV original importer remains available.
+- Final focused suites: 84/84 passed across core, Deloitte fixture, v1.1 and unchanged Rate Loading comparator; changed-file lint passed. Authenticated real-volume E2E completed with zero page errors. No live auth-creation integration suites run because they create test users/data. Preview automated compilation OK; no manual build/typecheck, no publication or manual commit.
