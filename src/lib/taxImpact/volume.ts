@@ -27,25 +27,37 @@ export type VolumeRow = {
   amount: number;
 };
 export function volumeProvenance(imported?: { filename: string; mapping: unknown } | null) {
-  const mapping = imported?.mapping && typeof imported.mapping === "object" && !Array.isArray(imported.mapping)
-    ? imported.mapping as Record<string, unknown> : {};
+  const mapping =
+    imported?.mapping && typeof imported.mapping === "object" && !Array.isArray(imported.mapping)
+      ? (imported.mapping as Record<string, unknown>)
+      : {};
   const monthly = mapping.kind === "real_monthly_rollup";
   const synthetic = !monthly && /simulad|sint[eé]tic/i.test(imported?.filename ?? "");
   return {
-    kind: monthly ? "real_monthly_rollup" : synthetic ? "synthetic" : imported ? "uploaded" : "missing",
+    kind: monthly
+      ? "real_monthly_rollup"
+      : synthetic
+        ? "synthetic"
+        : imported
+          ? "uploaded"
+          : "missing",
     originalInStorage: imported ? mapping.original_in_storage !== false : false,
-    sourceRecords: monthly && typeof mapping.source_records === "number" ? mapping.source_records : null,
+    sourceRecords:
+      monthly && typeof mapping.source_records === "number" ? mapping.source_records : null,
     filename: imported?.filename ?? "",
   };
 }
 export type VolumeProvenance = ReturnType<typeof volumeProvenance>;
 export function volumeProvenanceLabel(provenance: VolumeProvenance) {
   if (provenance.kind === "real_monthly_rollup") {
-    const count = provenance.sourceRecords?.toLocaleString("pt-BR") ?? "quantidade não informada de";
+    const count =
+      provenance.sourceRecords?.toLocaleString("pt-BR") ?? "quantidade não informada de";
     return `Volumetria REAL Deloitte, agregada mensalmente de ${count} transações; ${provenance.originalInStorage ? "arquivo original indicado como armazenado no cofre" : "arquivo XLSX original ainda NÃO armazenado no cofre"}. Tarifas RFP fictícias de demo; totais e ADR de volume históricos reais.`;
   }
-  if (provenance.kind === "synthetic") return "VOLUMETRIA SINTÉTICA — valores históricos demonstrativos, não dados Deloitte reais.";
-  if (provenance.kind === "uploaded") return "Volumetria importada — origem e valores conforme arquivo fornecido; autenticidade não verificada automaticamente.";
+  if (provenance.kind === "synthetic")
+    return "VOLUMETRIA SINTÉTICA — valores históricos demonstrativos, não dados Deloitte reais.";
+  if (provenance.kind === "uploaded")
+    return "Volumetria importada — origem e valores conforme arquivo fornecido; autenticidade não verificada automaticamente.";
   return "Sem volumetria importada; indicadores históricos e projeções sem base.";
 }
 export function volumeBook(bytes: Uint8Array, csv = false) {

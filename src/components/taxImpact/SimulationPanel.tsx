@@ -20,7 +20,13 @@ import {
   LIMITATIONS,
   type Scenario,
 } from "@/lib/taxImpact/simulation";
-import { matchVolumes, volumeStats, volumeProvenance, volumeProvenanceLabel, type VolumeRow } from "@/lib/taxImpact/volume";
+import {
+  matchVolumes,
+  volumeStats,
+  volumeProvenance,
+  volumeProvenanceLabel,
+  type VolumeRow,
+} from "@/lib/taxImpact/volume";
 import { officialSources, type SourceCheck } from "@/lib/taxImpact/sources";
 import { excelReport, pdfReport, downloadReport } from "@/lib/taxImpact/exports";
 import type { Comparison, Row } from "@/lib/taxImpact/core";
@@ -425,7 +431,9 @@ export function SimulationPanel({
             {Array.isArray(v.errors) ? v.errors.length : 0} ocorrências
           </summary>
           <p className="break-all">
-            {volumeProvenance(v).originalInStorage ? `${v.file_hash} · ${v.storage_path}` : "Base derivada mensal — arquivo XLSX original NÃO armazenado; caminho convencional não comprova upload."}
+            {volumeProvenance(v).originalInStorage
+              ? `${v.file_hash} · ${v.storage_path}`
+              : "Base derivada mensal — arquivo XLSX original NÃO armazenado; caminho convencional não comprova upload."}
           </p>
         </details>
       ))}
@@ -497,9 +505,11 @@ export function SimulationPanel({
         projetadas nos filtros. Não extrapola hotéis sem tarifa/mix/base válida.
       </p>
       <p className="text-xs text-muted-foreground">
-        Portfolio histórico completo · FY2025: {portfolio.fy25.toLocaleString("pt-BR")} diárias · Jan–Mai2025: {portfolio.n25.toLocaleString("pt-BR")} · Jan–Mai2026: {portfolio.n26.toLocaleString("pt-BR")} diárias.
-        Gasto FY2025: {cash(portfolio.spend25)} · Jan–Mai2026: {cash(portfolio.spend26)}.
-        ADR FY2025: {cash(portfolio.adr25)} · Jan–Mai2026: {cash(portfolio.adr26)}.
+        Portfolio histórico completo · FY2025: {portfolio.fy25.toLocaleString("pt-BR")} diárias ·
+        Jan–Mai2025: {portfolio.n25.toLocaleString("pt-BR")} · Jan–Mai2026:{" "}
+        {portfolio.n26.toLocaleString("pt-BR")} diárias. Gasto FY2025: {cash(portfolio.spend25)} ·
+        Jan–Mai2026: {cash(portfolio.spend26)}. ADR FY2025: {cash(portfolio.adr25)} · Jan–Mai2026:{" "}
+        {cash(portfolio.adr26)}.
       </p>
       <p className="text-xs text-muted-foreground">
         ADR 2025 realizado: {cash(filteredStats.adr25)} · Jan–Mai2026: {cash(filteredStats.adr26)}.
@@ -511,11 +521,16 @@ export function SimulationPanel({
         {portfolio.projected26 === null
           ? "sem base"
           : Math.round(portfolio.projected26).toLocaleString("pt-BR")}{" "}
-        diárias. {volume.length - linked.unmatched.length - linked.ambiguous.length} linhas de volume atribuídas · {linked.assignments.size} hotéis cobertos · {linked.unmatched.length} linhas não localizadas · {linked.ambiguous.length}{" "}
-        ambíguas; excluídas da atribuição. {derived.filter((d) => d.v.projected26 === null).length}{" "}
-        hotéis sem base 2026. Cobertura apenas do programa; totais do portfolio completo não são duplicados nem atribuídos a hotéis incertos.
+        diárias. {volume.length - linked.unmatched.length - linked.ambiguous.length} linhas de
+        volume atribuídas · {linked.assignments.size} hotéis cobertos · {linked.unmatched.length}{" "}
+        linhas não localizadas · {linked.ambiguous.length} ambíguas; excluídas da atribuição.{" "}
+        {derived.filter((d) => d.v.projected26 === null).length} hotéis sem base 2026. Cobertura
+        apenas do programa; totais do portfolio completo não são duplicados nem atribuídos a hotéis
+        incertos.
       </p>
-      <p role="status" className="text-xs text-warning-foreground">{volumeProvenanceLabel(provenance)}</p>
+      <p role="status" className="text-xs text-warning-foreground">
+        {volumeProvenanceLabel(provenance)}
+      </p>
       <div className="overflow-auto">
         <table className="w-full text-xs">
           <thead className="bg-muted text-left">
@@ -667,8 +682,11 @@ export function SimulationPanel({
           </a>
         ))}
         <p>
-          TCU: {source?.tcu.status === "validated" ? "REFERÊNCIA VERIFICADA (não definitiva)" : "NÃO VERIFICADO"} · Senado: NÃO VERIFICADO ·{" "}
-          {source?.checkedAt ?? "sem consulta nesta sessão"}
+          TCU:{" "}
+          {source?.tcu.status === "validated"
+            ? "REFERÊNCIA VERIFICADA (não definitiva)"
+            : "NÃO VERIFICADO"}{" "}
+          · Senado: NÃO VERIFICADO · {source?.checkedAt ?? "sem consulta nesta sessão"}
         </p>
         <Button
           size="sm"
