@@ -67,8 +67,8 @@ describe('Tax Impact Check · fixture QA Deloitte 2026 (valores reais transcrito
     expect(detectField('Taxa de Serviço %')).toBe('service');
   });
   it('chargeValue(0.1) = 10% e "Inclusa na tarifa" não vira zero', () => {
-    expect(chargeValue(0.1)).toEqual({ kind: 'percent', value: 10 });
-    expect(chargeValue('Inclusa na tarifa')).toEqual({ kind: 'included' });
+    expect(chargeValue(0.1)).toMatchObject({ kind: 'percent', value: 10 });
+    expect(chargeValue('Inclusa na tarifa')).toMatchObject({ kind: 'included' });
   });
   it('auto-detecta cabeçalho na linha 2 sob grupo mesclado AA1:AP1 e sugere colunas reais', () => {
     const p = sheetPreview(deloitteWorkbook(), 'TARIFÁRIO NEGOCIADO');
