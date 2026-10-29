@@ -36,6 +36,13 @@
       "when": 1793247354464,
       "tag": "0004_tax_impact_phase_one",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793247904516,
+      "tag": "0005_tax_impact_storage_scope_qualification",
+      "breakpoints": true
     }
   ]
 }
