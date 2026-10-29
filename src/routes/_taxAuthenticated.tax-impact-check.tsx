@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { TaxImpactPage } from '@/components/taxImpact/TaxImpactPage';
-export const Route = createFileRoute('/_authenticated/tax-impact-check')({
+export const Route = createFileRoute('/_taxAuthenticated/tax-impact-check')({
   ssr: false,
   head: () => ({ meta: [
     { title: 'Tax Impact Check — Navigator' },
