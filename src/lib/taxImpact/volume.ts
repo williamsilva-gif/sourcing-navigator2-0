@@ -52,7 +52,7 @@ export function volumeProvenanceLabel(provenance: VolumeProvenance) {
   if (provenance.kind === "real_monthly_rollup") {
     const count =
       provenance.sourceRecords?.toLocaleString("pt-BR") ?? "quantidade não informada de";
-    return `Volumetria REAL Deloitte, agregada mensalmente de ${count} transações; ${provenance.originalInStorage ? "arquivo original indicado como armazenado no cofre" : "arquivo XLSX original ainda NÃO armazenado no cofre"}. Tarifas RFP fictícias de demo; totais e ADR de volume históricos reais.`;
+    return `Volume real agregado Deloitte, mensalmente de ${count} transações; ${provenance.originalInStorage ? "arquivo original indicado como armazenado no cofre" : "arquivo XLSX original ainda NÃO armazenado no cofre"}. Tarifa simulada de RFP; totais e ADR de volume históricos reais.`;
   }
   if (provenance.kind === "synthetic")
     return "VOLUMETRIA SINTÉTICA — valores históricos demonstrativos, não dados Deloitte reais.";
@@ -241,4 +241,8 @@ export function matchVolumes(program: Row[], volume: VolumeRow[]) {
     else unmatched.push(v);
   }
   return { assignments, ambiguous, unmatched };
+}
+export function totalProjectedNights(values: (number | null)[]) {
+  const available = values.filter((value): value is number => value !== null);
+  return available.length ? available.reduce((sum, value) => sum + value, 0) : null;
 }

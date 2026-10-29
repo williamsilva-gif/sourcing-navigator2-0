@@ -14,6 +14,7 @@ import {
   volumeStats,
   matchVolumes,
   volumeProvenance,
+  totalProjectedNights,
 } from "../src/lib/taxImpact/volume";
 import { parseCbsReference, fetchOfficialSources, saoPauloDay } from "../src/lib/taxImpact/sources";
 import { chargeValue, comparePrograms, type Row } from "../src/lib/taxImpact/core";
@@ -98,6 +99,12 @@ describe("TIC v1.1 deterministic scenarios", () => {
   });
 });
 describe("Historical volume", () => {
+  it("missing hotel volume cannot become a zero FY27 projection in reports", () => {
+    expect(totalProjectedNights([null])).toBeNull();
+    expect(totalProjectedNights([])).toBeNull();
+    expect(totalProjectedNights([null, 10, 20])).toBe(30);
+    expect(totalProjectedNights([0])).toBe(0);
+  });
   it("real monthly metadata preserves lack of original while synthetic stays distinct", () => {
     expect(
       volumeProvenance({
