@@ -26,13 +26,14 @@ import { Route as EstrategiaRouteImport } from './routes/estrategia'
 import { Route as DiagnosticoRouteImport } from './routes/diagnostico'
 import { Route as AnaliseRouteImport } from './routes/analise'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as TaxAuthenticatedRouteImport } from './routes/_taxAuthenticated'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as WikiIndexRouteImport } from './routes/wiki.index'
 import { Route as WikiSlugRouteImport } from './routes/wiki.$slug'
 import { Route as RTokenRouteImport } from './routes/r.$token'
 import { Route as AccountPrivacyRouteImport } from './routes/account.privacy'
-import { Route as AuthenticatedTaxImpactCheckRouteImport } from './routes/_authenticated/tax-impact-check'
+import { Route as TaxAuthenticatedTaxImpactCheckRouteImport } from './routes/_taxAuthenticated.tax-impact-check'
 import { Route as ApiPublicHealthRouteImport } from './routes/api/public/health'
 import { Route as ApiPublicBackupRouteImport } from './routes/api/public/backup'
 import { Route as AuthenticatedTaClientsRouteImport } from './routes/_authenticated/ta.clients'
@@ -124,6 +125,10 @@ const AdminRoute = AdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TaxAuthenticatedRoute = TaxAuthenticatedRouteImport.update({
+  id: '/_taxAuthenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
@@ -153,11 +158,11 @@ const AccountPrivacyRoute = AccountPrivacyRouteImport.update({
   path: '/account/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedTaxImpactCheckRoute =
-  AuthenticatedTaxImpactCheckRouteImport.update({
+const TaxAuthenticatedTaxImpactCheckRoute =
+  TaxAuthenticatedTaxImpactCheckRouteImport.update({
     id: '/tax-impact-check',
     path: '/tax-impact-check',
-    getParentRoute: () => AuthenticatedRoute,
+    getParentRoute: () => TaxAuthenticatedRoute,
   } as any)
 const ApiPublicHealthRoute = ApiPublicHealthRouteImport.update({
   id: '/api/public/health',
@@ -206,7 +211,7 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
   '/wiki': typeof WikiRouteWithChildren
-  '/tax-impact-check': typeof AuthenticatedTaxImpactCheckRoute
+  '/tax-impact-check': typeof TaxAuthenticatedTaxImpactCheckRoute
   '/account/privacy': typeof AccountPrivacyRoute
   '/r/$token': typeof RTokenRoute
   '/wiki/$slug': typeof WikiSlugRoute
@@ -235,7 +240,7 @@ export interface FileRoutesByTo {
   '/set-password': typeof SetPasswordRoute
   '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
-  '/tax-impact-check': typeof AuthenticatedTaxImpactCheckRoute
+  '/tax-impact-check': typeof TaxAuthenticatedTaxImpactCheckRoute
   '/account/privacy': typeof AccountPrivacyRoute
   '/r/$token': typeof RTokenRoute
   '/wiki/$slug': typeof WikiSlugRoute
@@ -250,6 +255,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteWithChildren
+  '/_taxAuthenticated': typeof TaxAuthenticatedRouteWithChildren
   '/admin': typeof AdminRoute
   '/analise': typeof AnaliseRoute
   '/diagnostico': typeof DiagnosticoRoute
@@ -267,7 +273,7 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
   '/wiki': typeof WikiRouteWithChildren
-  '/_authenticated/tax-impact-check': typeof AuthenticatedTaxImpactCheckRoute
+  '/_taxAuthenticated/tax-impact-check': typeof TaxAuthenticatedTaxImpactCheckRoute
   '/account/privacy': typeof AccountPrivacyRoute
   '/r/$token': typeof RTokenRoute
   '/wiki/$slug': typeof WikiSlugRoute
@@ -342,6 +348,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_authenticated'
+    | '/_taxAuthenticated'
     | '/admin'
     | '/analise'
     | '/diagnostico'
@@ -359,7 +366,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/terms'
     | '/wiki'
-    | '/_authenticated/tax-impact-check'
+    | '/_taxAuthenticated/tax-impact-check'
     | '/account/privacy'
     | '/r/$token'
     | '/wiki/$slug'
@@ -374,6 +381,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
+  TaxAuthenticatedRoute: typeof TaxAuthenticatedRouteWithChildren
   AdminRoute: typeof AdminRoute
   AnaliseRoute: typeof AnaliseRoute
   DiagnosticoRoute: typeof DiagnosticoRoute
@@ -520,6 +528,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_taxAuthenticated': {
+      id: '/_taxAuthenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof TaxAuthenticatedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated': {
       id: '/_authenticated'
       path: ''
@@ -562,12 +577,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AccountPrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/tax-impact-check': {
-      id: '/_authenticated/tax-impact-check'
+    '/_taxAuthenticated/tax-impact-check': {
+      id: '/_taxAuthenticated/tax-impact-check'
       path: '/tax-impact-check'
       fullPath: '/tax-impact-check'
-      preLoaderRoute: typeof AuthenticatedTaxImpactCheckRouteImport
-      parentRoute: typeof AuthenticatedRoute
+      preLoaderRoute: typeof TaxAuthenticatedTaxImpactCheckRouteImport
+      parentRoute: typeof TaxAuthenticatedRoute
     }
     '/api/public/health': {
       id: '/api/public/health'
@@ -608,18 +623,27 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteChildren {
-  AuthenticatedTaxImpactCheckRoute: typeof AuthenticatedTaxImpactCheckRoute
   AuthenticatedTaClientsRoute: typeof AuthenticatedTaClientsRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
-  AuthenticatedTaxImpactCheckRoute: AuthenticatedTaxImpactCheckRoute,
   AuthenticatedTaClientsRoute: AuthenticatedTaClientsRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
   AuthenticatedRouteChildren,
 )
+
+interface TaxAuthenticatedRouteChildren {
+  TaxAuthenticatedTaxImpactCheckRoute: typeof TaxAuthenticatedTaxImpactCheckRoute
+}
+
+const TaxAuthenticatedRouteChildren: TaxAuthenticatedRouteChildren = {
+  TaxAuthenticatedTaxImpactCheckRoute: TaxAuthenticatedTaxImpactCheckRoute,
+}
+
+const TaxAuthenticatedRouteWithChildren =
+  TaxAuthenticatedRoute._addFileChildren(TaxAuthenticatedRouteChildren)
 
 interface WikiRouteChildren {
   WikiSlugRoute: typeof WikiSlugRoute
@@ -636,6 +660,7 @@ const WikiRouteWithChildren = WikiRoute._addFileChildren(WikiRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
+  TaxAuthenticatedRoute: TaxAuthenticatedRouteWithChildren,
   AdminRoute: AdminRoute,
   AnaliseRoute: AnaliseRoute,
   DiagnosticoRoute: DiagnosticoRoute,
