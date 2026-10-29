@@ -22,7 +22,7 @@ export function TaxImpactPage() {
     try { const item = await create({ data: { tenantId, name } }); setAnalysisId(item.id); setName(''); await analyses.refetch(); }
     catch (e) { setError(e instanceof Error ? e.message : 'Falha ao criar análise.'); } finally { setBusy(false); }
   }
-  return <AppShell><div className="space-y-6">
+  return <div className="overflow-x-clip"><AppShell><div className="space-y-6">
     <header className="flex flex-wrap items-start justify-between gap-4"><div><h1 className="flex items-center gap-2 text-2xl font-semibold"><FileSpreadsheet className="h-6 w-6 text-primary" />Tax Impact Check</h1><p className="mt-1 text-sm text-muted-foreground">Fase 1 · Programa anterior e propostas de hospedagem corporativa</p></div><label className="min-w-64 text-xs text-muted-foreground">Cliente / empresa<select aria-label="Cliente Tax Impact Check" className="mt-1 block h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground" value={tenantId} onChange={e => { setTenantId(e.target.value); setAnalysisId(''); setError(''); }}><option value="">Selecionar cliente</option>{tenants.data?.map(t => <option key={t.id} value={t.id}>{t.name} · {t.type}</option>)}</select></label></header>
     {(tenants.error || analyses.error || error) && <p role="alert" className="rounded-md border border-destructive bg-destructive-soft p-3 text-sm text-destructive">{error || tenants.error?.message || analyses.error?.message}</p>}
     {tenants.isPending && <p className="text-sm text-muted-foreground">Verificando acesso…</p>}
@@ -33,7 +33,7 @@ export function TaxImpactPage() {
       {!analyses.isPending && analyses.data?.length === 0 && <p className="py-10 text-center text-sm text-muted-foreground">Nenhuma análise salva para este cliente.</p>}
     </>}
     {analysisId && tenantId && <AnalysisDetail key={`${tenantId}/${analysisId}`} tenantId={tenantId} analysisId={analysisId} onBack={() => { setAnalysisId(''); void analyses.refetch(); }} />}
-  </div></AppShell>;
+  </div></AppShell></div>;
 }
 function AnalysisDetail({ tenantId, analysisId, onBack }: { tenantId: string; analysisId: string; onBack: () => void }) {
   const get = useServerFn(getTaxAnalysisFn); const compare = useServerFn(compareTaxAnalysisFn); const original = useServerFn(taxOriginalUrlFn);

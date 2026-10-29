@@ -233,7 +233,8 @@ export function comparePrograms(baseline: Row[], proposal: Row[], manual: Record
     const explicit = manual[p.id]; const candidates = candidateMap.get(p.id) ?? [];
     const b = explicit ? baseline.find(b => b.id === explicit) : candidates.length === 1 ? candidates[0] : undefined;
     const reverseCount = b ? proposal.filter(other => !manual[other.id] && candidateMap.get(other.id)?.some(c => c.id === b.id)).length : 0;
-    if (b && (explicit || (!manuallyReserved.has(b.id) && reverseCount === 1)) && !used.has(b.id)) { used.add(b.id); results.push(make(b, p, explicit ? 'manual' : 'matched')); }
+    const unitConfirmed = b && normalize(b.hotel) === normalize(p.hotel) && !!p.city && !!p.state && normalize(b.city) === normalize(p.city) && normalize(b.state) === normalize(p.state);
+    if (b && (explicit || (unitConfirmed && !manuallyReserved.has(b.id) && reverseCount === 1)) && !used.has(b.id)) { used.add(b.id); results.push(make(b, p, explicit ? 'manual' : 'matched')); }
     else if (candidates.length || b) { candidates.forEach(c => uncertain.add(c.id)); results.push(make(null, p, 'ambiguous', candidates.map(c => c.id))); }
     else results.push(make(null, p, 'new'));
   }
