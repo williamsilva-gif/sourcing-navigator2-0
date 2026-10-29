@@ -65,7 +65,10 @@ export function SimulationPanel({
       setLoaded(true);
     }
   }, [query.data, loaded]);
-  const volume = (query.data?.volumes[0]?.rows ?? []) as unknown as VolumeRow[];
+  const volume = useMemo(
+    () => (query.data?.volumes[0]?.rows ?? []) as unknown as VolumeRow[],
+    [query.data],
+  );
   const portfolio = useMemo(() => volumeStats(volume, s.growthPct), [volume, s.growthPct]);
   const linked = useMemo(() => matchVolumes(program, volume), [program, volume]);
   const filteredVolume = results.flatMap(
@@ -160,6 +163,7 @@ export function SimulationPanel({
         scenario: s,
         source: current,
         volumeRows: volume,
+        programRows: program,
         volumeSummary: {
           ...filteredStats,
           projected27: projected,

@@ -47,15 +47,13 @@ export const saveTaxScenarioFn = createServerFn({ method: "POST" })
   .inputValidator((v: unknown) => scope.extend({ parameters: scenarioSchema }).parse(v))
   .handler(async ({ data, context }) => {
     await authorize(context.supabase, data.tenantId, data.analysisId);
-    const saved = await context.supabase
-      .from("tax_impact_scenarios")
-      .upsert({
-        analysis_id: data.analysisId,
-        client_tenant_id: data.tenantId,
-        parameters: json(data.parameters),
-        updated_by: context.userId,
-        updated_at: new Date().toISOString(),
-      });
+    const saved = await context.supabase.from("tax_impact_scenarios").upsert({
+      analysis_id: data.analysisId,
+      client_tenant_id: data.tenantId,
+      parameters: json(data.parameters),
+      updated_by: context.userId,
+      updated_at: new Date().toISOString(),
+    });
     if (saved.error) throw new Error("Premissas não foram salvas.");
     return { ok: true };
   });
@@ -94,21 +92,19 @@ export const commitTaxVolumeFn = createServerFn({ method: "POST" })
       wb = volumeBook(bytes, csv),
       parsed = parseVolume(wb, data.sheet, data.mapping as VolumeMapping);
     if (!parsed.rows.length) throw new Error("Sem linhas válidas.");
-    const saved = await context.supabase
-      .from("tax_impact_volume_imports")
-      .insert({
-        id: data.importId,
-        analysis_id: data.analysisId,
-        client_tenant_id: data.tenantId,
-        filename: data.filename,
-        storage_path: path,
-        file_hash: await sha256(bytes),
-        sheet: data.sheet,
-        mapping: json({ columns: data.mapping, headerRow: parsed.headerRow }),
-        rows: json(parsed.rows),
-        errors: json(parsed.errors),
-        created_by: context.userId,
-      });
+    const saved = await context.supabase.from("tax_impact_volume_imports").insert({
+      id: data.importId,
+      analysis_id: data.analysisId,
+      client_tenant_id: data.tenantId,
+      filename: data.filename,
+      storage_path: path,
+      file_hash: await sha256(bytes),
+      sheet: data.sheet,
+      mapping: json({ columns: data.mapping, headerRow: parsed.headerRow }),
+      rows: json(parsed.rows),
+      errors: json(parsed.errors),
+      created_by: context.userId,
+    });
     if (saved.error) throw new Error("Volumetria não foi salva.");
     return { rows: parsed.rows.length, errors: parsed.errors.length };
   });

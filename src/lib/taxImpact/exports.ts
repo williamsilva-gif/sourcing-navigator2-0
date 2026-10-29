@@ -106,9 +106,9 @@ export function excelReport(data: ExportData) {
   });
   ws["!cols"] = header.map((_, i) => ({ wch: i === 1 || i === 23 ? 45 : 18 }));
   XLSX.utils.book_append_sheet(wb, ws, "Comparação filtrada");
-  const program = data.programRows ?? data.results.flatMap((r) =>
-      r.proposal ? [r.proposal] : r.baseline ? [r.baseline] : [],
-    ),
+  const program =
+      data.programRows ??
+      data.results.flatMap((r) => (r.proposal ? [r.proposal] : r.baseline ? [r.baseline] : [])),
     volume = data.volumeRows ?? [],
     portfolio = volumeStats(volume),
     matched = matchVolumes(program, volume);
