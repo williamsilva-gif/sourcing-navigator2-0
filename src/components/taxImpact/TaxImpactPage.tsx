@@ -39,13 +39,15 @@ function AnalysisDetail({ tenantId, analysisId, onBack }: { tenantId: string; an
   const get = useServerFn(getTaxAnalysisFn); const compare = useServerFn(compareTaxAnalysisFn); const original = useServerFn(taxOriginalUrlFn);
   const query = useQuery({ queryKey: ['tax-impact-analysis', tenantId, analysisId], queryFn: () => get({ data: { tenantId, analysisId } }), retry: false });
   const [baselineId, setBaselineId] = useState(''); const [proposalId, setProposalId] = useState(''); const [revisionId, setRevisionId] = useState(''); const [manual, setManual] = useState<Record<string, string>>({}); const [busy, setBusy] = useState(false); const [error, setError] = useState('');
+  const [initialized, setInitialized] = useState(false);
   const data = query.data;
   useEffect(() => {
-    if (!data) return;
+    if (!data || initialized) return;
     if (!baselineId) setBaselineId(data.imports.find(i => i.role === 'baseline')?.id ?? '');
     if (!proposalId) setProposalId(data.imports.find(i => i.role === 'proposal')?.id ?? '');
     if (!revisionId && data.revisions[0]) { setRevisionId(data.revisions[0].id); setBaselineId(data.revisions[0].baseline_import_id); setProposalId(data.revisions[0].proposal_import_id); setManual(data.revisions[0].manual_matches as Record<string, string>); }
-  }, [data, baselineId, proposalId, revisionId]);
+    setInitialized(true);
+  }, [data, baselineId, proposalId, revisionId, initialized]);
   const revision = data?.revisions.find(r => r.id === revisionId);
   const baseline = data?.imports.find(i => i.id === (revision?.baseline_import_id ?? baselineId));
   const proposal = data?.imports.find(i => i.id === (revision?.proposal_import_id ?? proposalId));
