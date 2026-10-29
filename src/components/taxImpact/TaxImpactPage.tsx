@@ -43,9 +43,10 @@ function AnalysisDetail({ tenantId, analysisId, onBack }: { tenantId: string; an
   const [warning, setWarning] = useState('');
   const data = query.data;
   useEffect(() => {
-    if (!data || initialized) return;
+    if (!data) return;
     if (!baselineId) setBaselineId(data.imports.find(i => i.role === 'baseline')?.id ?? '');
     if (!proposalId) setProposalId(data.imports.find(i => i.role === 'proposal')?.id ?? '');
+    if (initialized) return;
     if (!revisionId && data.revisions[0]) { setRevisionId(data.revisions[0].id); setBaselineId(data.revisions[0].baseline_import_id); setProposalId(data.revisions[0].proposal_import_id); setManual(data.revisions[0].manual_matches as Record<string, string>); }
     setInitialized(true);
   }, [data, baselineId, proposalId, revisionId, initialized]);
