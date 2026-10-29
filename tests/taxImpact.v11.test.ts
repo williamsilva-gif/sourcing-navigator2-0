@@ -63,7 +63,12 @@ describe("TIC v1.1 deterministic scenarios", () => {
     expect(s.neutral).toBe(246.57);
     expect(s.residual).toBe(15.22);
   });
-  it('extra charges use explicitly assumed net base; included service not counted again',()=>{const s=simulateNight(pair,'single',{...scenario,inclusion:'extra'});expect(s.after?.total).toBe(292.63);expect(s.after?.service).toBeNull();expect(s.neutral).toBeNull();});
+  it("extra charges use explicitly assumed net base; included service not counted again", () => {
+    const s = simulateNight(pair, "single", { ...scenario, inclusion: "extra" });
+    expect(s.after?.total).toBe(292.63);
+    expect(s.after?.service).toBeNull();
+    expect(s.neutral).toBeNull();
+  });
   it("unknown and Simples block tax conclusions", () => {
     expect(simulateNight(pair, "single", defaultScenario).neutral).toBeNull();
     expect(simulateNight(pair, "single", { ...scenario, regime2026: "simples" }).after).toBeNull();
