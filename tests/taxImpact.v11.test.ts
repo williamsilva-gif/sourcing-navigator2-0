@@ -196,6 +196,19 @@ describe("Historical volume", () => {
     expect(Math.round(s.projected26 ?? 0)).toBe(27407);
     expect(volumeStats(data, 100).projected27).toBeCloseTo((s.projected26 ?? 0) * 2);
   });
+  it("monthly rollup uses exact real portfolio totals and weighted spend without inventing mix", () => {
+    const base = { row:1, network:'n',hotel:'h',cnpj:'01234567000189',city:'c',state:'s' };
+    const stats = volumeStats([
+      {...base,year:2025,month:1,nights:10109,amount:4000000},
+      {...base,year:2025,month:6,nights:14065,amount:6311559.77},
+      {...base,year:2026,month:1,nights:11461,amount:5002757.77},
+    ]);
+    expect(stats.fy25).toBe(24174);expect(stats.n25).toBe(10109);expect(stats.n26).toBe(11461);
+    expect(stats.spend25).toBe(10311559.77);expect(stats.spend26).toBe(5002757.77);
+    expect(stats.adr25).toBeCloseTo(10311559.77/24174,10);expect(stats.adr26).toBeCloseTo(5002757.77/11461,10);
+    expect(Math.round(stats.projected26??0)).toBe(27407);
+    expect(budget(400,448,460,515.2,stats.projected27,null)).toBeNull();
+  });
   it("own seasonality thresholds and fallback; missing 2026 disabled", () => {
     const data = [
       {
