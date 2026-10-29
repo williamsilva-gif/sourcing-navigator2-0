@@ -58,12 +58,20 @@ describe('Tax Impact Check · fixture QA Deloitte 2026 (valores reais transcrito
     expect(detectField('Nome fantasia')).toBe('hotel');
     expect(detectField('Status Proposta')).toBe('status');
   });
+  it('detectField reconhece variantes reais do desconto flutuante (coluna AC) sem confundir ISS/serviço', () => {
+    expect(detectField('% de desconto tarifa flutuante ')).toBe('floatingDiscount');
+    expect(detectField('de desconto tarifa flutuante')).toBe('floatingDiscount');
+    expect(detectField('% desconto tarifa flutuante')).toBe('floatingDiscount');
+    expect(detectField('Desconto tarifa flutuante')).toBe('floatingDiscount');
+    expect(detectField('Taxa ISS %')).toBe('iss');
+    expect(detectField('Taxa de Serviço %')).toBe('service');
+  });
   it('auto-detecta cabeçalho na linha 2 sob grupo mesclado AA1:AP1 e sugere colunas reais', () => {
     const p = sheetPreview(deloitteWorkbook(), 'TARIFÁRIO NEGOCIADO');
     expect(p.headerRow).toBe(2);
     expect(p.columns).toHaveLength(44);
     expect(p.columns[26].name).toContain('Tarifas a serem aprovadas ou reprovadas / Tarifa Single 2026');
-    expect(p.suggested).toMatchObject({ status: 3, network: 5, hotel: 6, cnpj: 7, city: 10, state: 11, currency: 23 });
+    expect(p.suggested).toMatchObject({ status: 3, network: 5, hotel: 6, cnpj: 7, city: 10, state: 11, currency: 23, floatingDiscount: 28, iss: 29, service: 30 });
     expect(p.suggested.single).toBeUndefined();
     expect(p.suggested.double).toBeUndefined();
   });
