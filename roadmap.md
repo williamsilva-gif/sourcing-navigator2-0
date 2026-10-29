@@ -1,4 +1,6 @@
 # Tax Impact Check — Phase 1
+- [ ] Final QA: verify real monthly volume totals/latest selection, dynamic provenance UI/exports and preserved unknown mix.
+- [ ] Final QA: authenticated network/hotel filters, downloads/reopen, focused tests and precise documentation.
 - [x] v1.1 per-night tax hypotheses, objective negotiation rules and persisted analysis assumptions.
 - [x] Historical XLSX/CSV volume import, weighted ADR, seasonality/projection and explicit mix; synthetic 13,279-row upload saved under TA only.
 - [x] Daily official-source fetch/cache and database lease; browser cannot forge verified status. Live TCU not validated; Senate definitive rate not confirmed, safe warning preserved.
