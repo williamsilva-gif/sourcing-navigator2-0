@@ -1,4 +1,9 @@
 # Tax Impact Check — Phase 1
+- [ ] v1.1 isolated per-night tax hypotheses, negotiation rules and persisted assumptions.
+- [ ] Historical volume import, weighted ADR, seasonality/projection and explicit mix.
+- [ ] Race-safe daily official-source verification with safe failure.
+- [ ] Functional filtered Excel/PDF exports and authenticated demo regression.
+- [ ] Focused v1.1 tests, current build signal and limitations report.
 - [x] Isolated tenant/TA-authorized schema and private originals.
 - [x] XLSX sheet/header detection, explicit mapping, previews and validation.
 - [x] Deterministic matching/comparison and immutable saved revisions.
