@@ -1,8 +1,9 @@
 # Raio & Proximidade
+- [ ] Continue real Claro job without reimport: validate persisted counts/read-only UI, establishment fallback, city RN rule, TA permissions and batch monitoring/tests.
 - [x] Isolated tenant-scoped schema, authenticated batch/checkpoints and conservative geocoding implemented.
 - [x] XLSX/CSV mapping, dashboard, comparisons, inverse ranking and Excel export implemented; synthetic authenticated import/filter/export/reopen checked.
 - [x] Synthetic rule tests, authenticated UI verification and documented live Google limitations.
-- [ ] Live Google geocoding/Place/Routes and full 397 processing — blocked by sandbox live-Maps prohibition and real workbook not yet uploaded; key presence verified, no API success claimed.
+- [ ] Live Google geocoding/Place/Routes and full 397 processing — blocked by sandbox live-Maps prohibition; real entities now imported directly into database, originals not archived in storage.
 
 # Tax Impact Check — Phase 1
 - [x] Definitive Deloitte original-analysis QA: totals/Comfort/matching/export/reopen verified; missing-volume export zero corrected. Comfort has no volume base; projection tested on covered program. Existing core lint issues documented.
