@@ -15,6 +15,7 @@ import {
   Plus,
   Route as RouteIcon,
 } from "lucide-react";
+import { GoogleMapsTest } from "@/components/proximity/GoogleMapsTest";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -511,6 +512,7 @@ export function ProximityPage() {
                 </div>
               ))}
             </div>
+            <GoogleMapsTest />
             <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-2">
                 <Button

@@ -691,3 +691,47 @@ export const proximityRoutesFn = createServerFn({ method: "POST" })
       }
     return { ok: true };
   });
+// Read-only Google diagnostic: same google() path as the batch; returns sanitized fields only, never the key.
+export const proximityGoogleTestFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const role = await context.supabase.rpc("is_ta_master", { _user_id: context.userId });
+    if (!role.data) throw new Error("Acesso restrito a TA master.");
+    const mode = process.env["PROXIMITY_GOOGLE_GATEWAY"] === "true" ? "gateway" : "direct";
+    if (!process.env["GOOGLE_MAPS_API_KEY"])
+      return { ok: false, mode, category: "key_missing", status: null, message: "GOOGLE_MAPS_API_KEY ausente no servidor." };
+    const address = "Rua Henri Dunant, 792, São Paulo, SP, 04709-110, Brasil";
+    const started = Date.now();
+    try {
+      const r = (await google(
+        `/maps/api/geocode/json?address=${encodeURIComponent(address)}&language=pt-BR&region=br`,
+      )) as { status: string; error_message?: string; results?: GoogleResult[] };
+      const first = r.results?.[0] as
+        | (GoogleResult & { place_id?: string; formatted_address?: string })
+        | undefined;
+      const category =
+        r.status === "OK" ? "ok"
+        : r.status === "REQUEST_DENIED"
+          ? /billing/i.test(r.error_message ?? "") ? "billing" : "restricted"
+          : r.status === "OVER_QUERY_LIMIT" ? "quota"
+          : r.status === "ZERO_RESULTS" ? "google_mismatch" : "google_error";
+      const key = process.env["GOOGLE_MAPS_API_KEY"] ?? "";
+      return {
+        ok: r.status === "OK",
+        mode,
+        category,
+        status: r.status,
+        ms: Date.now() - started,
+        formatted_address: first?.formatted_address ?? null,
+        location_type: first?.geometry?.location_type ?? null,
+        lat: first?.geometry?.location?.lat ?? null,
+        lng: first?.geometry?.location?.lng ?? null,
+        place_id: first?.place_id ?? null,
+        message: r.error_message ? r.error_message.replaceAll(key, "[REDACTED]").slice(0, 300) : null,
+      };
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Falha";
+      const category = /403|restrit/i.test(msg) ? "restricted" : /401/.test(msg) ? "auth" : /429/.test(msg) ? "quota" : "network";
+      return { ok: false, mode, category, status: null, ms: Date.now() - started, message: msg.slice(0, 300) };
+    }
+  });
