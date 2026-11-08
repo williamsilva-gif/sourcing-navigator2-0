@@ -63,7 +63,11 @@ const result = (): GoogleResult => ({
 });
 describe("Independent spreadsheet geolocation", () => {
   it("preserves CSV spelling and leading-zero identifiers as text", () => {
-    const book = readWorkbook(new TextEncoder().encode('Logradouro,Número,Cidade,UF,CEP,CPF\nRua Teste,10,Cidade Teste,SP,01234567,00123456789\n'));
+    const book = readWorkbook(
+      new TextEncoder().encode(
+        "Logradouro,Número,Cidade,UF,CEP,CPF\nRua Teste,10,Cidade Teste,SP,01234567,00123456789\n",
+      ),
+    );
     const ws = book.Sheets[book.SheetNames[0]];
     expect(ws.E2.v).toBe("01234567");
     expect(ws.F2.v).toBe("00123456789");
