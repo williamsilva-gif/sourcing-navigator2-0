@@ -137,7 +137,6 @@ export const proximityCatalogFn = createServerFn({ method: "POST" })
           .from("proximity_jobs")
           .update({
             entities: json(entities),
-            pairs: json(compare(entities)),
             checkpoint: entities.filter((v) => v.attempted).length,
             updated_at: new Date().toISOString(),
           })
@@ -148,7 +147,7 @@ export const proximityCatalogFn = createServerFn({ method: "POST" })
     } finally {
       const released = await context.supabase
         .from("proximity_jobs")
-        .update({ lease_token: null, lease_until: null })
+        .update({ lease_token: null, lease_until: null, pairs: json(compare(entities)) })
         .eq("id", job.id)
         .eq("lease_token", token);
       if (released.error)
