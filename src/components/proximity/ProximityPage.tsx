@@ -596,7 +596,7 @@ export function ProximityPage() {
                 value={done}
               />
               <p className="text-xs text-muted-foreground">
-                Lotes de até 2 consultas de endereço/estabelecimento, com checkpoint. Ao fechar a
+                Lotes de até 12 endereços (4 simultâneos; escritórios e lojas primeiro), com checkpoint. Ao fechar a
                 página o processamento pausa entre lotes; continuar retoma. Google pode cobrar por
                 consulta.
               </p>
