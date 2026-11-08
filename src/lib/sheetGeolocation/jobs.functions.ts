@@ -4,7 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Database, Json } from "@/integrations/supabase/types";
 import { google } from "../proximity/google.server";
-import { workbook, selectPlace, validatePlace, retryDelay, type GoogleResult, type GooglePlace } from "../proximity/core";
+import { workbook, selectPlace, validatePlace, retryDelay, stateCode, type GoogleResult, type GooglePlace } from "../proximity/core";
 import { cacheKey, counts, parseSheet, query, validate, type Row, type Mapping } from "./core";
 const scope = z.object({ tenantId: z.string().uuid() });
 const jobScope = scope.extend({ jobId: z.string().uuid() });
@@ -49,7 +49,7 @@ export const batchSheetJob = createServerFn({ method: "POST" }).middleware([requ
       const previous = rows.find(r => r !== row && r.status !== "pending" && r.geo && cacheKey(r) === cacheKey(row));
       try {
         if (previous) { row.geo = previous.geo; row.precision = previous.precision; row.status = previous.status; row.notes = [...previous.notes, "Resposta reaproveitada de endereço/identidade idênticos neste arquivo"]; }
-        else if (!row.entity.address || !row.entity.city || !/^[a-z]{2}$/i.test(row.entity.uf.length === 2 ? row.entity.uf : "" ) && !/^[a-z]{2}$/.test((await import("../proximity/core")).stateCode(row.entity.uf))) { row.status = "review"; }
+        else if (!row.entity.address || !row.entity.city || !/^[a-z]{2}$/.test(stateCode(row.entity.uf))) { row.status = "review"; }
         else {
           row.attempts++;
           const response = await request(`/maps/api/geocode/json?address=${encodeURIComponent(query(row))}&language=pt-BR&region=br`) as { status: string; results?: GoogleResult[] };
