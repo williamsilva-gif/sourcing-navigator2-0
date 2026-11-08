@@ -259,7 +259,8 @@ export function SheetGeolocation({ tenants }: { tenants: { id: string; name: str
           <option value="">Novo arquivo independente</option>
           {jobs.data?.map((j) => (
             <option key={j.id} value={j.id}>
-              {j.filename} · {j.sheet ?? "não confirmado"} · {j.id === job?.id ? job.status : j.status}
+              {j.filename} · {j.sheet ?? "não confirmado"} ·{" "}
+              {j.id === job?.id ? job.status : j.status}
             </option>
           ))}
         </select>

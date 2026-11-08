@@ -227,15 +227,20 @@ describe("Sheet batch durable outcomes (no paid provider)", () => {
   });
   it("network TypeError stays transient instead of becoming a malformed response error", async () => {
     const h = harness();
-    provider.mockRejectedValueOnce(new TypeError("fetch failed"))
-      .mockResolvedValueOnce(high(h.job.rows[1])).mockResolvedValueOnce(high(h.job.rows[2]));
+    provider
+      .mockRejectedValueOnce(new TypeError("fetch failed"))
+      .mockResolvedValueOnce(high(h.job.rows[1]))
+      .mockResolvedValueOnce(high(h.job.rows[2]));
     await h.invoke(batchSheetJob);
     expect(h.job.rows[0].status).toBe("pending");
     expect(h.job.rows[0].nextRetry).toBeGreaterThan(Date.now());
   });
   it("explicit pause during a request preserves saved outcome and prevents later calls", async () => {
     const h = harness();
-    provider.mockImplementationOnce(async () => { h.job.status = "paused"; return high(h.job.rows[0]); });
+    provider.mockImplementationOnce(async () => {
+      h.job.status = "paused";
+      return high(h.job.rows[0]);
+    });
     await h.invoke(batchSheetJob);
     expect(provider).toHaveBeenCalledTimes(1);
     expect(h.job.status).toBe("paused");
