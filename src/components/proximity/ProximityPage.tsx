@@ -27,6 +27,7 @@ import {
   cityKey,
   inScope,
   validGeo,
+  targetCities,
   type Entity,
   type Pair,
   type Kind,
@@ -52,7 +53,9 @@ const selectClass =
   "h-9 min-w-0 rounded-md border border-input bg-background px-2 text-sm text-foreground";
 export function ProximityPage() {
   const { data: tenants } = useSuspenseQuery(proximityTenantsQuery);
-  const [tenantId, setTenant] = useState(tenants[0]?.id ?? "");
+  const [tenantId, setTenant] = useState(
+    tenants.find((t) => /travel academy/i.test(t.name))?.id ?? tenants[0]?.id ?? "",
+  );
   const [jobId, setJob] = useState("");
   const [name, setName] = useState("RFP Claro 2027 — Raio & Proximidade");
   const cache = useQueryClient();
@@ -188,6 +191,20 @@ export function ProximityPage() {
   const units = scoped.filter((e) => e.kind !== "hotel");
   const located = scoped.filter(validGeo).length;
   const done = scoped.filter((e) => e.attempted).length;
+  const importedHotels = entities.filter((e) => e.kind === "hotel");
+  const cityTotals = new Map<string, Set<number>>();
+  importedHotels.forEach((e) => {
+    if (e.rn !== null) {
+      const values = cityTotals.get(cityKey(e)) ?? new Set<number>();
+      values.add(e.rn);
+      cityTotals.set(cityKey(e), values);
+    }
+  });
+  const conflictingCities = [...cityTotals.values()].filter((v) => v.size > 1).length;
+  const retrying = scoped.filter((e) => !e.attempted && !!e.nextRetry).length;
+  const metadata = (job?.imports ?? []) as Array<{ path?: string; original_in_storage?: boolean }>;
+  const originalsArchived =
+    metadata.length > 0 && metadata.every((m) => !!m.path && m.original_in_storage !== false);
   const filtered = entities.filter(
     (e) =>
       (view === "hotels" ? e.kind === "hotel" : e.kind !== "hotel") &&
@@ -231,6 +248,12 @@ export function ProximityPage() {
           Longitude: e.geo?.lng,
           Confiança: e.geo?.confidence ?? "NÃO LOCALIZADO",
           Fonte: e.geo?.source ?? "",
+          "Place ID": e.geo?.placeId ?? "",
+          "Número derivado Google (não original)": e.geo?.derivedNumber ?? "",
+          "CEP derivado Google (não original)": e.geo?.derivedPostalCode ?? "",
+          "Endereço derivado Google": e.geo?.formatted ?? "",
+          Confirmação:
+            e.geo?.confirmation === "establishment" ? "Local confirmado por estabelecimento" : "",
           Pendências: [...e.issues, ...(e.geo?.reasons ?? [])].join("; "),
           Arquivo: e.source.filename,
           Aba: e.source.sheet,
@@ -287,6 +310,9 @@ export function ProximityPage() {
           Hotéis: hotels.length,
           Unidades: units.length,
           Localizados: located,
+          "Originais arquivados no Storage": originalsArchived
+            ? "SIM"
+            : "NÃO CONFIRMADO / IMPORTAÇÃO DIRETA",
           "Completude %": scoped.length ? (located / scoped.length) * 100 : 0,
           Observação:
             "Distância reta não é distância viária. Definitivo depende de todas as unidades ativas válidas na cidade/categoria.",
@@ -372,10 +398,13 @@ export function ProximityPage() {
           <>
             <div className="grid grid-cols-2 gap-4 border-y border-border py-5 md:grid-cols-6">
               {[
-                ["Hotéis alvo", `${hotels.length} / 397`],
-                ["Escritórios", `${units.filter((e) => e.kind === "office").length} / 666`],
-                ["Lojas", `${units.filter((e) => e.kind === "store").length} / 135`],
-                ["Cidades", `${new Set(hotels.map(cityKey)).size} / 28`],
+                ["Hotéis importados", `${importedHotels.length} / 397`],
+                [
+                  "Escritórios importados",
+                  `${entities.filter((e) => e.kind === "office").length} / 666`,
+                ],
+                ["Lojas importadas", `${entities.filter((e) => e.kind === "store").length} / 135`],
+                ["Cidades importadas", `${new Set(importedHotels.map(cityKey)).size} / 28`],
                 ["Geocodificados", `${located} / ${scoped.length}`],
                 [
                   "Completude",
@@ -427,6 +456,24 @@ export function ProximityPage() {
                   Cancelar
                 </Button>
               </div>
+              <p className="text-sm text-muted-foreground">
+                {hotels.length} hotéis no escopo · {targetCities(entities).size} cidades com RN
+                elegível · {scoped.filter((e) => e.geo?.confidence === "review").length} em revisão
+                · {retrying} aguardando nova tentativa ·{" "}
+                {scoped.reduce((n, e) => n + (e.attempts ?? 0), 0)} tentativas registradas.
+              </p>
+              {!originalsArchived && (
+                <p className="text-sm text-warning-foreground">
+                  Dados importados diretamente; arquivos originais não arquivados no Storage.
+                  Endereços originais preservados.
+                </p>
+              )}
+              {!!conflictingCities && (
+                <p role="alert" className="text-warning-foreground">
+                  {conflictingCities} cidades com totais RN divergentes: revisão necessária, sem
+                  somar valores repetidos por hotel.
+                </p>
+              )}
               <progress
                 aria-label="Progresso geocoding"
                 className="h-2 w-full accent-primary"
@@ -434,8 +481,9 @@ export function ProximityPage() {
                 value={done}
               />
               <p className="text-xs text-muted-foreground">
-                Lotes de até 5 endereços únicos, com checkpoint. Ao fechar a página o processamento
-                pausa entre lotes; continuar retoma. Google pode cobrar por consulta.
+                Lotes de até 2 consultas de endereço/estabelecimento, com checkpoint. Ao fechar a
+                página o processamento pausa entre lotes; continuar retoma. Google pode cobrar por
+                consulta.
               </p>
               {job.last_error && (
                 <p role="alert" className="text-destructive">
@@ -715,6 +763,13 @@ export function ProximityPage() {
                               {e.geo?.confidence ?? (e.attempted ? "NÃO LOCALIZADO" : "PENDENTE")}
                             </span>
                             <p>{e.geo ? `${e.geo.lat.toFixed(6)}, ${e.geo.lng.toFixed(6)}` : ""}</p>
+                            {e.geo?.confirmation === "establishment" && (
+                              <p>Local confirmado por estabelecimento</p>
+                            )}
+                            {e.geo?.derivedNumber && (
+                              <p>Número Google (derivado): {e.geo.derivedNumber}</p>
+                            )}
+                            {e.lastAttemptError && <p>{e.lastAttemptError}</p>}
                             <p>{[...e.issues, ...(e.geo?.reasons ?? [])].join("; ")}</p>
                           </td>
                           <td className="max-w-72 py-3 text-xs">
@@ -819,7 +874,8 @@ export function ProximityPage() {
         )}
         {!job && (
           <div className="border-t border-border py-12 text-muted-foreground">
-            Nenhuma análise selecionada. Nenhum dos 397 hotéis reais foi pré-carregado.
+            Selecione uma análise existente ou crie uma nova; os dados importados permanecem
+            preservados.
           </div>
         )}
       </div>

@@ -4,7 +4,13 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Database, Json } from "@/integrations/supabase/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
-  addressKey,
+  stateCode,
+  lookupKey,
+  originalNumber,
+  selectPlace,
+  validatePlace,
+  retryDelay,
+  type GooglePlace,
   compare,
   inScope,
   parse,
@@ -197,8 +203,11 @@ async function google(path: string, init?: RequestInit) {
   if (gateway && !auth) throw new Error("Credencial de conexão Google ausente.");
   const url = gateway
     ? `https://connector-gateway.lovable.dev/google_maps${path}`
-    : `https://maps.googleapis.com${path}${path.includes("?") ? "&" : "?"}key=${encodeURIComponent(key)}`;
+    : path.startsWith("/places/")
+      ? `https://places.googleapis.com${path.slice(7)}`
+      : `https://maps.googleapis.com${path}${path.includes("?") ? "&" : "?"}key=${encodeURIComponent(key)}`;
   const headers = new Headers(init?.headers);
+  if (!gateway && path.startsWith("/places/")) headers.set("X-Goog-Api-Key", key);
   if (gateway) {
     headers.set("Authorization", `Bearer ${auth}`);
     headers.set("X-Connection-Api-Key", key);
@@ -206,13 +215,65 @@ async function google(path: string, init?: RequestInit) {
   const r = await fetch(url, { ...init, headers, signal: AbortSignal.timeout(15000) });
   if (!r.ok) {
     const body = await r.text();
-    if (r.status === 403)
+    if (r.status === 403) {
+      if (body.includes("API_KEY_HTTP_REFERRER_BLOCKED"))
+        throw new Error(
+          "Google 403: chave servidor restrita por site. No Google Cloud, use restrição por IP ou None somente para a chave servidor.",
+        );
+      if (body.includes("API_KEY_SERVICE_BLOCKED"))
+        throw new Error(
+          "Google 403: habilite a API solicitada e inclua-a nas APIs permitidas da chave servidor.",
+        );
       throw new Error(
         "Google negou acesso (403): verifique restrições e APIs habilitadas da chave servidor.",
       );
+    }
     throw new Error(`Google HTTP ${r.status}: ${body.slice(0, 300).replaceAll(key, "[REDACTED]")}`);
   }
   return r.json();
+}
+const placeMask = "id,displayName,formattedAddress,location,types,addressComponents,businessStatus";
+async function placeDetails(id: string): Promise<GooglePlace> {
+  return google(`/places/v1/places/${encodeURIComponent(id)}?languageCode=pt-BR`, {
+    headers: { "X-Goog-FieldMask": placeMask },
+  });
+}
+async function establishment(e: Entity, count: () => void) {
+  count();
+  const result = (await google("/places/v1/places:searchText", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Goog-FieldMask": `places.${placeMask.split(",").join(",places.")},nextPageToken`,
+    },
+    body: JSON.stringify({
+      textQuery: [
+        e.name,
+        municipalityForQuery(e),
+        e.uf,
+        e.kind === "hotel" ? "hotel" : e.address,
+        "Brasil",
+      ]
+        .filter(Boolean)
+        .join(", "),
+      languageCode: "pt-BR",
+      regionCode: "BR",
+      pageSize: 5,
+      ...(e.kind === "hotel" ? { includedType: "lodging", strictTypeFiltering: true } : {}),
+    }),
+  })) as { places?: GooglePlace[]; nextPageToken?: string };
+  const selected = selectPlace(e, result.places ?? [], !!result.nextPageToken);
+  if (!selected.place)
+    return {
+      failure: selected.ambiguous
+        ? "Estabelecimento ambíguo: revisão TA necessária"
+        : "Estabelecimento não localizado: revisão TA necessária",
+    };
+  count();
+  const details = await placeDetails(selected.place.id ?? "");
+  if (details.id !== selected.place.id)
+    return { failure: "Place ID incoerente: revisão TA necessária" };
+  return { geo: validatePlace(e, details, selected.ambiguous) };
 }
 export const proximityBatchFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -235,7 +296,7 @@ export const proximityBatchFn = createServerFn({ method: "POST" })
       const pending = entities.filter(
         (e) => inScope(e, entities) && !e.attempted && (!e.nextRetry || e.nextRetry <= Date.now()),
       );
-      const keys = [...new Set(pending.map(addressKey))].slice(0, 5);
+      const keys = [...new Set(pending.map(lookupKey))].slice(0, 2);
       for (const key of keys) {
         const live = await context.supabase
           .from("proximity_jobs")
@@ -243,39 +304,66 @@ export const proximityBatchFn = createServerFn({ method: "POST" })
           .eq("id", job.id)
           .single();
         if (live.data?.status !== "running") break;
-        const e = pending.find((v) => addressKey(v) === key);
+        const e = pending.find((v) => lookupKey(v) === key);
         if (!e) continue;
-        const prior = entities.find((v) => addressKey(v) === key && v.attempted && v.geo);
+        const prior = entities.find((v) => lookupKey(v) === key && v.attempted && v.geo);
         let geo = prior?.geo;
         let failure = "";
         let retry = false;
-        if (!geo && e.issues.some((i) => /ausente|inválid/.test(i))) {
-          failure = "Endereço incompleto: revisão antes de geocodificar";
-        } else if (!geo) {
-          calls++;
-          const city = municipalityForQuery(e);
-          const query = [e.address, e.number, city, e.uf, e.cep, "Brasil"]
-            .filter(Boolean)
-            .join(", ");
-          const response = (await google(
-            `/maps/api/geocode/json?address=${encodeURIComponent(query)}&language=pt-BR&region=br`,
-          )) as { status: string; results?: GoogleResult[] };
-          if (response.status === "OK" && response.results?.[0])
-            geo = validateGeocode(e, response.results[0]);
-          else if (["OVER_QUERY_LIMIT", "UNKNOWN_ERROR"].includes(response.status)) {
-            failure = `Google ${response.status}`;
+        try {
+          if (!geo && (!e.city || !/^[a-z]{2}$/i.test(stateCode(e.uf)) || !e.name)) {
+            failure = "Nome ou município/UF incompleto: revisão TA necessária";
+          } else if (!geo && (!originalNumber(e) || !e.address)) {
+            const found = await establishment(e, () => calls++);
+            geo = found.geo;
+            failure = found.failure ?? "";
+          } else if (!geo) {
+            calls++;
+            const city = municipalityForQuery(e);
+            const query = [e.address, e.number, city, e.uf, e.cep, "Brasil"]
+              .filter(Boolean)
+              .join(", ");
+            const response = (await google(
+              `/maps/api/geocode/json?address=${encodeURIComponent(query)}&language=pt-BR&region=br`,
+            )) as { status: string; results?: GoogleResult[] };
+            if (response.status === "OK" && response.results?.length) {
+              const valid = response.results.map((r) => validateGeocode(e, r));
+              const high = valid.filter((g) => g.confidence === "high");
+              if (high.length === 1 && valid.length === 1) geo = high[0];
+              else if (valid.length === 1) {
+                geo = valid[0];
+                const found = await establishment(e, () => calls++);
+                if (found.geo) geo = found.geo;
+                else failure = found.failure ?? "";
+              } else failure = "Geocoding ambíguo: revisão TA necessária";
+            } else if (["OVER_QUERY_LIMIT", "UNKNOWN_ERROR"].includes(response.status)) {
+              failure = `Google ${response.status}`;
+              retry = true;
+            } else if (response.status === "REQUEST_DENIED")
+              throw new Error(
+                "Google REQUEST_DENIED: chave servidor/API Geocoding não autorizada.",
+              );
+            else if (response.status === "ZERO_RESULTS") {
+              const found = await establishment(e, () => calls++);
+              geo = found.geo;
+              failure = found.failure ?? "";
+            } else failure = `Google ${response.status}: não localizado`;
+          }
+        } catch (cause) {
+          const message = cause instanceof Error ? cause.message : "Falha Google";
+          if (/429|HTTP 5\d\d|timeout|timed out|fetch failed|network/i.test(message)) {
             retry = true;
-          } else if (response.status === "REQUEST_DENIED")
-            throw new Error("Google REQUEST_DENIED: chave servidor/API Geocoding não autorizada.");
-          else failure = `Google ${response.status}: não localizado`;
+            failure = "Falha temporária Google/rede: nova tentativa agendada";
+          } else throw cause;
         }
         entities
-          .filter((v) => addressKey(v) === key)
+          .filter((v) => lookupKey(v) === key)
           .forEach((v) => {
             v.attempts = (v.attempts ?? 0) + 1;
             v.attempted = !retry || v.attempts >= 3;
             v.geo = geo;
-            v.nextRetry = retry ? Date.now() + 2 ** v.attempts * 1000 : undefined;
+            v.nextRetry = retry && !v.attempted ? Date.now() + retryDelay(v.attempts) : undefined;
+            v.lastAttemptError = failure || undefined;
             if (failure && !v.issues.includes(failure)) v.issues.push(failure);
           });
         // Per-address durable checkpoint; lease owner only.
@@ -288,6 +376,7 @@ export const proximityBatchFn = createServerFn({ method: "POST" })
           .eq("id", job.id)
           .eq("lease_token", token);
         if (saved.error) throw new Error(saved.error.message);
+        await new Promise((resolve) => setTimeout(resolve, 250));
       }
     } catch (e) {
       error = e instanceof Error ? e.message : "Falha de processamento";
@@ -357,11 +446,9 @@ export const proximityManualFn = createServerFn({ method: "POST" })
     const entities = job.entities as unknown as Entity[];
     const entity = entities.find((e) => e.id === data.entityId);
     if (!entity) throw new Error("Endereço não encontrado.");
-    const r = (await google(
-      `/maps/api/geocode/json?place_id=${encodeURIComponent(data.placeId)}&language=pt-BR`,
-    )) as { status: string; results?: GoogleResult[] };
-    if (r.status !== "OK" || !r.results?.[0]) throw new Error(`Google ${r.status}`);
-    entity.geo = validateGeocode(entity, r.results[0]);
+    const r = await placeDetails(data.placeId);
+    if (r.id !== data.placeId) throw new Error("Place ID incoerente.");
+    entity.geo = validatePlace(entity, r);
     entity.geo.source = `Google Place — revisão TA: ${data.reason}`;
     entity.attempted = true;
     const saved = await context.supabase
