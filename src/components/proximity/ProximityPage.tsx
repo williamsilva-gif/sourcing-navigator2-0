@@ -544,7 +544,7 @@ export function ProximityPage() {
                 </span>
                 <Button
                   size="sm"
-                  disabled={busy || !entities.length || job.status === "running"}
+                  disabled={busy || !entities.length || (job.status === "running" && !!job.lease_until && Date.parse(job.lease_until) > Date.now())}
                   onClick={() =>
                     action(() => control({ data: { tenantId, jobId, status: "running" } }))
                   }
