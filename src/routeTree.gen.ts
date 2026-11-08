@@ -27,6 +27,7 @@ import { Route as DiagnosticoRouteImport } from './routes/diagnostico'
 import { Route as AnaliseRouteImport } from './routes/analise'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as TaxAuthenticatedRouteImport } from './routes/_taxAuthenticated'
+import { Route as ProximityAuthenticatedRouteImport } from './routes/_proximityAuthenticated'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as WikiIndexRouteImport } from './routes/wiki.index'
@@ -34,6 +35,7 @@ import { Route as WikiSlugRouteImport } from './routes/wiki.$slug'
 import { Route as RTokenRouteImport } from './routes/r.$token'
 import { Route as AccountPrivacyRouteImport } from './routes/account.privacy'
 import { Route as TaxAuthenticatedTaxImpactCheckRouteImport } from './routes/_taxAuthenticated.tax-impact-check'
+import { Route as ProximityAuthenticatedRaioProximidadeRouteImport } from './routes/_proximityAuthenticated.raio-proximidade'
 import { Route as ApiPublicHealthRouteImport } from './routes/api/public/health'
 import { Route as ApiPublicBackupRouteImport } from './routes/api/public/backup'
 import { Route as AuthenticatedTaClientsRouteImport } from './routes/_authenticated/ta.clients'
@@ -129,6 +131,10 @@ const TaxAuthenticatedRoute = TaxAuthenticatedRouteImport.update({
   id: '/_taxAuthenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProximityAuthenticatedRoute = ProximityAuthenticatedRouteImport.update({
+  id: '/_proximityAuthenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
@@ -163,6 +169,12 @@ const TaxAuthenticatedTaxImpactCheckRoute =
     id: '/tax-impact-check',
     path: '/tax-impact-check',
     getParentRoute: () => TaxAuthenticatedRoute,
+  } as any)
+const ProximityAuthenticatedRaioProximidadeRoute =
+  ProximityAuthenticatedRaioProximidadeRouteImport.update({
+    id: '/raio-proximidade',
+    path: '/raio-proximidade',
+    getParentRoute: () => ProximityAuthenticatedRoute,
   } as any)
 const ApiPublicHealthRoute = ApiPublicHealthRouteImport.update({
   id: '/api/public/health',
@@ -211,6 +223,7 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
   '/wiki': typeof WikiRouteWithChildren
+  '/raio-proximidade': typeof ProximityAuthenticatedRaioProximidadeRoute
   '/tax-impact-check': typeof TaxAuthenticatedTaxImpactCheckRoute
   '/account/privacy': typeof AccountPrivacyRoute
   '/r/$token': typeof RTokenRoute
@@ -240,6 +253,7 @@ export interface FileRoutesByTo {
   '/set-password': typeof SetPasswordRoute
   '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
+  '/raio-proximidade': typeof ProximityAuthenticatedRaioProximidadeRoute
   '/tax-impact-check': typeof TaxAuthenticatedTaxImpactCheckRoute
   '/account/privacy': typeof AccountPrivacyRoute
   '/r/$token': typeof RTokenRoute
@@ -255,6 +269,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteWithChildren
+  '/_proximityAuthenticated': typeof ProximityAuthenticatedRouteWithChildren
   '/_taxAuthenticated': typeof TaxAuthenticatedRouteWithChildren
   '/admin': typeof AdminRoute
   '/analise': typeof AnaliseRoute
@@ -273,6 +288,7 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
   '/wiki': typeof WikiRouteWithChildren
+  '/_proximityAuthenticated/raio-proximidade': typeof ProximityAuthenticatedRaioProximidadeRoute
   '/_taxAuthenticated/tax-impact-check': typeof TaxAuthenticatedTaxImpactCheckRoute
   '/account/privacy': typeof AccountPrivacyRoute
   '/r/$token': typeof RTokenRoute
@@ -305,6 +321,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/terms'
     | '/wiki'
+    | '/raio-proximidade'
     | '/tax-impact-check'
     | '/account/privacy'
     | '/r/$token'
@@ -334,6 +351,7 @@ export interface FileRouteTypes {
     | '/set-password'
     | '/signup'
     | '/terms'
+    | '/raio-proximidade'
     | '/tax-impact-check'
     | '/account/privacy'
     | '/r/$token'
@@ -348,6 +366,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_authenticated'
+    | '/_proximityAuthenticated'
     | '/_taxAuthenticated'
     | '/admin'
     | '/analise'
@@ -366,6 +385,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/terms'
     | '/wiki'
+    | '/_proximityAuthenticated/raio-proximidade'
     | '/_taxAuthenticated/tax-impact-check'
     | '/account/privacy'
     | '/r/$token'
@@ -381,6 +401,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
+  ProximityAuthenticatedRoute: typeof ProximityAuthenticatedRouteWithChildren
   TaxAuthenticatedRoute: typeof TaxAuthenticatedRouteWithChildren
   AdminRoute: typeof AdminRoute
   AnaliseRoute: typeof AnaliseRoute
@@ -535,6 +556,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TaxAuthenticatedRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_proximityAuthenticated': {
+      id: '/_proximityAuthenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof ProximityAuthenticatedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated': {
       id: '/_authenticated'
       path: ''
@@ -583,6 +611,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/tax-impact-check'
       preLoaderRoute: typeof TaxAuthenticatedTaxImpactCheckRouteImport
       parentRoute: typeof TaxAuthenticatedRoute
+    }
+    '/_proximityAuthenticated/raio-proximidade': {
+      id: '/_proximityAuthenticated/raio-proximidade'
+      path: '/raio-proximidade'
+      fullPath: '/raio-proximidade'
+      preLoaderRoute: typeof ProximityAuthenticatedRaioProximidadeRouteImport
+      parentRoute: typeof ProximityAuthenticatedRoute
     }
     '/api/public/health': {
       id: '/api/public/health'
@@ -634,6 +669,21 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
   AuthenticatedRouteChildren,
 )
 
+interface ProximityAuthenticatedRouteChildren {
+  ProximityAuthenticatedRaioProximidadeRoute: typeof ProximityAuthenticatedRaioProximidadeRoute
+}
+
+const ProximityAuthenticatedRouteChildren: ProximityAuthenticatedRouteChildren =
+  {
+    ProximityAuthenticatedRaioProximidadeRoute:
+      ProximityAuthenticatedRaioProximidadeRoute,
+  }
+
+const ProximityAuthenticatedRouteWithChildren =
+  ProximityAuthenticatedRoute._addFileChildren(
+    ProximityAuthenticatedRouteChildren,
+  )
+
 interface TaxAuthenticatedRouteChildren {
   TaxAuthenticatedTaxImpactCheckRoute: typeof TaxAuthenticatedTaxImpactCheckRoute
 }
@@ -660,6 +710,7 @@ const WikiRouteWithChildren = WikiRoute._addFileChildren(WikiRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
+  ProximityAuthenticatedRoute: ProximityAuthenticatedRouteWithChildren,
   TaxAuthenticatedRoute: TaxAuthenticatedRouteWithChildren,
   AdminRoute: AdminRoute,
   AnaliseRoute: AnaliseRoute,
