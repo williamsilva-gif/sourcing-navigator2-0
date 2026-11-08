@@ -354,7 +354,11 @@ export function ProximityPage() {
             "Revisão limiar": p.boundary,
             Confiança: `${h?.geo?.confidence}/${u?.geo?.confidence}`,
             Fonte: "Haversine WGS84 / Google Geocoding",
-            Pendências: p.definitive ? "" : "Completude insuficiente ou município excepcional",
+            Pendências: p.definitive
+              ? ""
+              : p.reviewGeo
+                ? "Coordenada em revisão TA (indicativa); completude insuficiente"
+                : "Completude insuficiente ou município excepcional",
           };
         }),
       ),
@@ -903,6 +907,7 @@ export function ProximityPage() {
                                         ? "DEFINITIVO NA CIDADE"
                                         : "PROVISÓRIO · melhor candidato localizado"}
                                     </strong>
+                                    {p.reviewGeo ? " · coordenada em revisão (indicativa)" : ""}
                                     {p.cross ? " · município excepcional" : ""}
                                     {p.boundary ? " · REVISAR LIMIAR" : ""}
                                     {p.roadKm !== undefined
