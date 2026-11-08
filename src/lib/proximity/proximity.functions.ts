@@ -151,7 +151,8 @@ export const proximityCatalogFn = createServerFn({ method: "POST" })
         .update({ lease_token: null, lease_until: null })
         .eq("id", job.id)
         .eq("lease_token", token);
-      if (released.error) console.error("Falha ao liberar consulta do cadastro; lease expira automaticamente.");
+      if (released.error)
+        console.error("Falha ao liberar consulta do cadastro; lease expira automaticamente.");
     }
     return {
       busy: false,
