@@ -90,11 +90,16 @@ export function ProximityPage() {
   const [busy, setBusy] = useState(false);
   const loopBusy = useRef(false);
   const catalogStop = useRef(false);
-  const [catalogRunning,setCatalogRunning] = useState(false);
-  const [catalogReview,setCatalogReview] = useState("");
-  const [catalogSelection,setCatalogSelection] = useState("");
-  const [catalogReason,setCatalogReason] = useState("");
-  useEffect(() => () => {catalogStop.current=true;},[tenantId,jobId]);
+  const [catalogRunning, setCatalogRunning] = useState(false);
+  const [catalogReview, setCatalogReview] = useState("");
+  const [catalogSelection, setCatalogSelection] = useState("");
+  const [catalogReason, setCatalogReason] = useState("");
+  useEffect(
+    () => () => {
+      catalogStop.current = true;
+    },
+    [tenantId, jobId],
+  );
   const [file, setFile] = useState<File>();
   const [book, setBook] = useState<XLSX.WorkBook>();
   const [sheet, setSheet] = useState("");
@@ -200,23 +205,34 @@ export function ProximityPage() {
   const scoped = entities.filter((e) => inScope(e, entities));
   const catalogHotels = entities.filter((e) => e.kind === "hotel");
   const catalogCounts = {
-    recovered: catalogHotels.filter((e)=>e.catalog?.status==="recovered"&&e.geo?.source==="Navigator Cadastro").length,
-    review: catalogHotels.filter((e)=>e.catalog?.status==="review").length,
-    invalid: catalogHotels.filter((e)=>e.catalog?.status==="invalid").length,
-    remaining: catalogHotels.filter((e)=>!validGeo(e)).length,
-    checked: catalogHotels.filter((e)=>!!e.catalog).length,
+    recovered: catalogHotels.filter(
+      (e) => e.catalog?.status === "recovered" && e.geo?.source === "Navigator Cadastro",
+    ).length,
+    review: catalogHotels.filter((e) => e.catalog?.status === "review").length,
+    invalid: catalogHotels.filter((e) => e.catalog?.status === "invalid").length,
+    remaining: catalogHotels.filter((e) => !validGeo(e)).length,
+    checked: catalogHotels.filter((e) => !!e.catalog).length,
   };
   const runCatalog = async () => {
-    catalogStop.current=false; setCatalogRunning(true);setBusy(true);
+    catalogStop.current = false;
+    setCatalogRunning(true);
+    setBusy(true);
     try {
       while (!catalogStop.current) {
-        const result=await reuseCatalog({data:{tenantId,jobId}});
+        const result = await reuseCatalog({ data: { tenantId, jobId } });
         await refresh();
-        if (result.busy) {toast.info("Outro lote em andamento; tente continuar após sua conclusão.");break;}
+        if (result.busy) {
+          toast.info("Outro lote em andamento; tente continuar após sua conclusão.");
+          break;
+        }
         if (!result.remaining) break;
       }
-    } catch (e) {toast.error(e instanceof Error?e.message:"Falha no cadastro");}
-    finally {setCatalogRunning(false);setBusy(false);}
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha no cadastro");
+    } finally {
+      setCatalogRunning(false);
+      setBusy(false);
+    }
   };
   const hotels = scoped.filter((e) => e.kind === "hotel");
   const units = scoped.filter((e) => e.kind !== "hotel");
@@ -281,8 +297,13 @@ export function ProximityPage() {
           Fonte: e.geo?.source ?? "",
           "Cadastro status": e.catalog?.status ?? "NÃO CONSULTADO",
           "Cadastro ID": e.catalog?.selectedId ?? "",
-          "Cadastro código": e.catalog?.candidates.find((c)=>c.hotel.id===e.catalog?.selectedId)?.hotel.code ?? "",
-          "Cadastro campos conferidos": e.catalog?.candidates.find((c)=>c.hotel.id===e.catalog?.selectedId)?.matchedFields.join("; ") ?? "",
+          "Cadastro código":
+            e.catalog?.candidates.find((c) => c.hotel.id === e.catalog?.selectedId)?.hotel.code ??
+            "",
+          "Cadastro campos conferidos":
+            e.catalog?.candidates
+              .find((c) => c.hotel.id === e.catalog?.selectedId)
+              ?.matchedFields.join("; ") ?? "",
           "Cadastro motivo": e.catalog?.reason ?? "",
           "Cadastro data": e.catalog?.checkedAt ?? "",
           "Place ID": e.geo?.placeId ?? "",
@@ -341,7 +362,31 @@ export function ProximityPage() {
     );
     XLSX.utils.book_append_sheet(
       w,
-      XLSX.utils.json_to_sheet(filtered.flatMap((e)=>e.catalog?.candidates.map((c)=>({Hotel:e.name,"Cadastro ID":c.hotel.id,Código:c.hotel.code,"Nome cadastro":c.hotel.name,"Endereço cadastro":c.hotel.address,"CEP cadastro":c.hotel.postal_code,Latitude:c.hotel.latitude,Longitude:c.hotel.longitude,Confiança:c.confidence,Inválido:c.invalid,"Campos conferidos":c.matchedFields.join("; "),Pendências:c.reasons.join("; "),"Referência geográfica":c.reference,"Distância referência km":c.distanceToCityKm,Selecionado:e.catalog?.selectedId===c.hotel.id,Motivo:e.catalog?.reason,Data:e.catalog?.checkedAt,Origem:"Navigator Cadastro"})) ?? [])),
+      XLSX.utils.json_to_sheet(
+        filtered.flatMap(
+          (e) =>
+            e.catalog?.candidates.map((c) => ({
+              Hotel: e.name,
+              "Cadastro ID": c.hotel.id,
+              Código: c.hotel.code,
+              "Nome cadastro": c.hotel.name,
+              "Endereço cadastro": c.hotel.address,
+              "CEP cadastro": c.hotel.postal_code,
+              Latitude: c.hotel.latitude,
+              Longitude: c.hotel.longitude,
+              Confiança: c.confidence,
+              Inválido: c.invalid,
+              "Campos conferidos": c.matchedFields.join("; "),
+              Pendências: c.reasons.join("; "),
+              "Referência geográfica": c.reference,
+              "Distância referência km": c.distanceToCityKm,
+              Selecionado: e.catalog?.selectedId === c.hotel.id,
+              Motivo: e.catalog?.reason,
+              Data: e.catalog?.checkedAt,
+              Origem: "Navigator Cadastro",
+            })) ?? [],
+        ),
+      ),
       "Candidatos cadastro",
     );
     XLSX.utils.book_append_sheet(
@@ -367,7 +412,7 @@ export function ProximityPage() {
     XLSX.writeFile(w, "Raio-Proximidade.xlsx");
   };
   const review = entities.find((e) => e.id === reviewId);
-  const catalogEntity=entities.find((e)=>e.id===catalogReview);
+  const catalogEntity = entities.find((e) => e.id === catalogReview);
   return (
     <AppShell>
       <div className="space-y-6 text-foreground">
@@ -464,12 +509,30 @@ export function ProximityPage() {
             </div>
             <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-2">
-                <Button disabled={busy||job.status==="running"||!catalogHotels.length} onClick={()=>void runCatalog()}>
-                  <DatabaseIcon className="h-4 w-4"/>Reaproveitar coordenadas do Cadastro de Hotéis
+                <Button
+                  disabled={busy || job.status === "running" || !catalogHotels.length}
+                  onClick={() => void runCatalog()}
+                >
+                  <DatabaseIcon className="h-4 w-4" />
+                  Reaproveitar coordenadas do Cadastro de Hotéis
                 </Button>
-                {catalogRunning&&<Button variant="outline" onClick={()=>{catalogStop.current=true;}}>Pausar consulta ao cadastro</Button>}
+                {catalogRunning && (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      catalogStop.current = true;
+                    }}
+                  >
+                    Pausar consulta ao cadastro
+                  </Button>
+                )}
               </div>
-              <p className="text-sm text-muted-foreground">Cadastro primeiro, sem cobrança Google · {catalogCounts.checked}/{catalogHotels.length} consultados · {catalogCounts.recovered} recuperados · {catalogCounts.review} requerem revisão · {catalogCounts.invalid} inválidos · {catalogCounts.remaining} restantes para Google.</p>
+              <p className="text-sm text-muted-foreground">
+                Cadastro primeiro, sem cobrança Google · {catalogCounts.checked}/
+                {catalogHotels.length} consultados · {catalogCounts.recovered} recuperados ·{" "}
+                {catalogCounts.review} requerem revisão · {catalogCounts.invalid} inválidos ·{" "}
+                {catalogCounts.remaining} restantes para Google.
+              </p>
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-sm font-medium">
                   {job.status} · {done}/{scoped.length} processados ·{" "}
@@ -850,7 +913,20 @@ export function ProximityPage() {
                               : "Sem candidato válido; não conclusivo"}
                           </td>
                           <td className="p-3">
-                            {e.catalog&&<Button size="sm" variant="outline" disabled={busy||job.status==="running"} onClick={()=>{setCatalogReview(e.id);setCatalogSelection(e.catalog?.selectedId??"");setCatalogReason("");}}>Candidatos do cadastro ({e.catalog.candidates.length})</Button>}
+                            {e.catalog && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={busy || job.status === "running"}
+                                onClick={() => {
+                                  setCatalogReview(e.id);
+                                  setCatalogSelection(e.catalog?.selectedId ?? "");
+                                  setCatalogReason("");
+                                }}
+                              >
+                                Candidatos do cadastro ({e.catalog.candidates.length})
+                              </Button>
+                            )}
                             <Button
                               size="sm"
                               variant="outline"
@@ -922,18 +998,80 @@ export function ProximityPage() {
                   </Button>
                 </div>
               )}
-              {catalogEntity?.catalog&&<div role="dialog" aria-label="Revisão do cadastro" className="space-y-3 border border-border bg-card p-4">
-                <h3 className="font-semibold">Cadastro: {catalogEntity.name}</h3>
-                <p className="text-sm text-muted-foreground">{catalogEntity.catalog.reason??"A seleção não substitui as validações de endereço e coordenadas."}</p>
-                <select aria-label="Candidato do cadastro" className={`${selectClass} w-full`} value={catalogSelection} onChange={(e)=>setCatalogSelection(e.target.value)}>
-                  <option value="">Selecione candidato</option>
-                  {catalogEntity.catalog.candidates.map((c)=><option key={c.hotel.id} value={c.hotel.id}>{c.hotel.code} · {c.hotel.name} · {c.hotel.address} · {c.confidence}{c.invalid?" / INVÁLIDO":""}</option>)}
-                </select>
-                {catalogEntity.catalog.candidates.filter((c)=>c.hotel.id===catalogSelection).map((c)=><div key={c.hotel.id} className="text-sm"><p>Conferidos: {c.matchedFields.join(", ")}</p><p>Pendências: {c.reasons.join("; ")||"Nenhuma"}</p><p>Referência: {c.reference??"Não disponível"}</p><p>Coordenadas: {c.hotel.latitude}, {c.hotel.longitude}</p></div>)}
-                <Input aria-label="Motivo da seleção do cadastro" value={catalogReason} onChange={(e)=>setCatalogReason(e.target.value)} placeholder="Motivo da seleção"/>
-                <Button disabled={busy||!catalogSelection||catalogReason.trim().length<10} onClick={()=>action(async()=>{const result=await selectCatalog({data:{tenantId,jobId,entityId:catalogEntity.id,catalogId:catalogSelection,reason:catalogReason}});toast.success(result.invalid?"Coordenadas rejeitadas; candidato auditado":result.confidence==="high"?"Coordenadas reaproveitadas":"Candidato salvo em revisão, sem reaproveitar coordenadas");setCatalogReview("");})}>Salvar seleção validada</Button>
-                <Button variant="ghost" onClick={()=>setCatalogReview("")}>Fechar candidatos</Button>
-              </div>}
+              {catalogEntity?.catalog && (
+                <div
+                  role="dialog"
+                  aria-label="Revisão do cadastro"
+                  className="space-y-3 border border-border bg-card p-4"
+                >
+                  <h3 className="font-semibold">Cadastro: {catalogEntity.name}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {catalogEntity.catalog.reason ??
+                      "A seleção não substitui as validações de endereço e coordenadas."}
+                  </p>
+                  <select
+                    aria-label="Candidato do cadastro"
+                    className={`${selectClass} w-full`}
+                    value={catalogSelection}
+                    onChange={(e) => setCatalogSelection(e.target.value)}
+                  >
+                    <option value="">Selecione candidato</option>
+                    {catalogEntity.catalog.candidates.map((c) => (
+                      <option key={c.hotel.id} value={c.hotel.id}>
+                        {c.hotel.code} · {c.hotel.name} · {c.hotel.address} · {c.confidence}
+                        {c.invalid ? " / INVÁLIDO" : ""}
+                      </option>
+                    ))}
+                  </select>
+                  {catalogEntity.catalog.candidates
+                    .filter((c) => c.hotel.id === catalogSelection)
+                    .map((c) => (
+                      <div key={c.hotel.id} className="text-sm">
+                        <p>Conferidos: {c.matchedFields.join(", ")}</p>
+                        <p>Pendências: {c.reasons.join("; ") || "Nenhuma"}</p>
+                        <p>Referência: {c.reference ?? "Não disponível"}</p>
+                        <p>
+                          Coordenadas: {c.hotel.latitude}, {c.hotel.longitude}
+                        </p>
+                      </div>
+                    ))}
+                  <Input
+                    aria-label="Motivo da seleção do cadastro"
+                    value={catalogReason}
+                    onChange={(e) => setCatalogReason(e.target.value)}
+                    placeholder="Motivo da seleção"
+                  />
+                  <Button
+                    disabled={busy || !catalogSelection || catalogReason.trim().length < 10}
+                    onClick={() =>
+                      action(async () => {
+                        const result = await selectCatalog({
+                          data: {
+                            tenantId,
+                            jobId,
+                            entityId: catalogEntity.id,
+                            catalogId: catalogSelection,
+                            reason: catalogReason,
+                          },
+                        });
+                        toast.success(
+                          result.invalid
+                            ? "Coordenadas rejeitadas; candidato auditado"
+                            : result.confidence === "high"
+                              ? "Coordenadas reaproveitadas"
+                              : "Candidato salvo em revisão, sem reaproveitar coordenadas",
+                        );
+                        setCatalogReview("");
+                      })
+                    }
+                  >
+                    Salvar seleção validada
+                  </Button>
+                  <Button variant="ghost" onClick={() => setCatalogReview("")}>
+                    Fechar candidatos
+                  </Button>
+                </div>
+              )}
             </section>
           </>
         )}
