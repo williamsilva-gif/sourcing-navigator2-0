@@ -46,6 +46,11 @@ export const extraHeaders = [
   "Divergências/observações",
   "Origem/proveniência",
 ];
+export function readWorkbook(bytes: Uint8Array) {
+  if (bytes.length > 10 * 1024 * 1024) throw new Error("Limite 10 MB.");
+  // CSV input remains text (including leading zeros); XLSX retains original cell values/formats/formulas.
+  return XLSX.read(bytes, { type: "array", raw: true, cellText: true, cellNF: true, cellStyles: true });
+}
 export function suggest(headers: string[]): Mapping {
   const aliases = {
     name: ["nome", "hotel", "nomefantasia"],

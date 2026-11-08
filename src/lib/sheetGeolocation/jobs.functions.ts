@@ -5,7 +5,6 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Database, Json } from "@/integrations/supabase/types";
 import { google } from "../proximity/google.server";
 import {
-  workbook,
   selectPlace,
   validatePlace,
   stateCode,
@@ -20,6 +19,7 @@ import {
   validate,
   transientFailure,
   retryAt,
+  readWorkbook as workbook,
   type Row,
   type Mapping,
 } from "./core";

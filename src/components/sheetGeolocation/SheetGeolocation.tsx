@@ -7,7 +7,7 @@ import { Upload, Play, Pause, Square, Download, FileSpreadsheet, RefreshCw } fro
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
-import { workbook, sheetRows, type Kind } from "@/lib/proximity/core";
+import { sheetRows, type Kind } from "@/lib/proximity/core";
 import {
   fields,
   suggest,
@@ -16,6 +16,7 @@ import {
   resultCells,
   extraHeaders,
   counts,
+  readWorkbook as workbook,
   type Row,
   type Mapping,
 } from "@/lib/sheetGeolocation/core";
