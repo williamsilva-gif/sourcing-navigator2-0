@@ -1,3 +1,8 @@
+# Raio & Proximidade
+- [ ] Isolated tenant-scoped schema, authenticated batch/checkpoints and conservative geocoding.
+- [ ] XLSX/CSV mapping, dashboard, comparisons, inverse ranking and Excel export.
+- [ ] Synthetic tests, authenticated UI verification and documented live Google limitations.
+
 # Tax Impact Check — Phase 1
 - [x] Definitive Deloitte original-analysis QA: totals/Comfort/matching/export/reopen verified; missing-volume export zero corrected. Comfort has no volume base; projection tested on covered program. Existing core lint issues documented.
 - [x] Final QA: verified latest real monthly volume totals, dynamic provenance UI/exports and preserved unknown mix.
