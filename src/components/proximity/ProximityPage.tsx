@@ -19,6 +19,8 @@ import { GoogleMapsTest } from "@/components/proximity/GoogleMapsTest";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { SheetGeolocation } from "@/components/sheetGeolocation/SheetGeolocation";
 import { supabase } from "@/integrations/supabase/client";
 import {
   workbook,
@@ -56,6 +58,26 @@ const proximityTenantsQuery = queryOptions({
 const selectClass =
   "h-9 min-w-0 rounded-md border border-input bg-background px-2 text-sm text-foreground";
 export function ProximityPage() {
+  const { data: tenants } = useSuspenseQuery(proximityTenantsQuery);
+  const [tab, setTab] = useState("radius");
+  return (
+    <AppShell>
+      <Tabs value={tab} onValueChange={setTab} className="space-y-6">
+        <TabsList className="h-auto max-w-full flex-wrap justify-start">
+          <TabsTrigger value="radius">Raio & Proximidade</TabsTrigger>
+          <TabsTrigger value="sheets">Geolocalização de Planilhas</TabsTrigger>
+        </TabsList>
+        <TabsContent value="radius">
+          <RadiusAnalysis />
+        </TabsContent>
+        <TabsContent value="sheets">
+          <SheetGeolocation tenants={tenants} />
+        </TabsContent>
+      </Tabs>
+    </AppShell>
+  );
+}
+function RadiusAnalysis() {
   const { data: tenants } = useSuspenseQuery(proximityTenantsQuery);
   const [tenantId, setTenant] = useState(
     tenants.find((t) => /travel academy/i.test(t.name))?.id ?? tenants[0]?.id ?? "",
@@ -419,676 +441,680 @@ export function ProximityPage() {
   const review = entities.find((e) => e.id === reviewId);
   const catalogEntity = entities.find((e) => e.id === catalogReview);
   return (
-    <AppShell>
-      <div className="space-y-6 text-foreground">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h1 className="flex items-center gap-2 text-2xl font-semibold">
-              <MapPin className="h-6 w-6 text-primary" />
-              Raio & Proximidade
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              RFP Claro 2027 · endereços confidenciais · distância em linha reta
-            </p>
-          </div>
-          <span className="rounded-md bg-primary-soft px-3 py-1 text-xs text-primary">
-            TA master / staff
-          </span>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <select
-            aria-label="Cliente"
-            className={selectClass}
-            value={tenantId}
-            onChange={(e) => {
-              setTenant(e.target.value);
-              setJob("");
-              setCity("");
-            }}
-          >
-            {tenants.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
-          </select>
-          <select
-            aria-label="Análise"
-            className={`${selectClass} max-w-full`}
-            value={jobId}
-            onChange={(e) => setJob(e.target.value)}
-          >
-            <option value="">Selecione análise</option>
-            {jobs.data?.map((j) => (
-              <option key={j.id} value={j.id}>
-                {j.name} · {j.status}
-              </option>
-            ))}
-          </select>
-          <Input
-            aria-label="Nome da nova análise"
-            className="max-w-sm"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-          <Button
-            disabled={busy || !tenantId}
-            onClick={() =>
-              action(async () => {
-                const j = await create({ data: { tenantId, name } });
-                setJob(j.id);
-              })
-            }
-          >
-            <Plus className="h-4 w-4" />
-            Criar análise
-          </Button>
-        </div>
-        {detail.error && (
-          <p role="alert" className="text-destructive">
-            {detail.error.message}
+    <div className="space-y-6 text-foreground">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="flex items-center gap-2 text-2xl font-semibold">
+            <MapPin className="h-6 w-6 text-primary" />
+            Raio & Proximidade
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            RFP Claro 2027 · endereços confidenciais · distância em linha reta
           </p>
-        )}
-        {job && (
-          <>
-            <div className="grid grid-cols-2 gap-4 border-y border-border py-5 md:grid-cols-6">
-              {[
-                ["Hotéis importados", `${importedHotels.length} / 397`],
-                [
-                  "Escritórios importados",
-                  `${entities.filter((e) => e.kind === "office").length} / 666`,
-                ],
-                ["Lojas importadas", `${entities.filter((e) => e.kind === "store").length} / 135`],
-                ["Cidades importadas", `${new Set(importedHotels.map(cityKey)).size} / 28`],
-                ["Geocodificados", `${located} / ${scoped.length}`],
-                [
-                  "Completude",
-                  `${scoped.length ? ((located / scoped.length) * 100).toFixed(1) : "0"}%`,
-                ],
-              ].map(([label, value]) => (
-                <div key={label}>
-                  <p className="text-xs text-muted-foreground">{label}</p>
-                  <p className="mt-1 text-xl font-semibold">{value}</p>
-                </div>
-              ))}
-            </div>
-            <GoogleMapsTest />
-            <div className="space-y-2">
-              <div className="flex flex-wrap items-center gap-2">
+        </div>
+        <span className="rounded-md bg-primary-soft px-3 py-1 text-xs text-primary">
+          TA master / staff
+        </span>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <select
+          aria-label="Cliente"
+          className={selectClass}
+          value={tenantId}
+          onChange={(e) => {
+            setTenant(e.target.value);
+            setJob("");
+            setCity("");
+          }}
+        >
+          {tenants.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.name}
+            </option>
+          ))}
+        </select>
+        <select
+          aria-label="Análise"
+          className={`${selectClass} max-w-full`}
+          value={jobId}
+          onChange={(e) => setJob(e.target.value)}
+        >
+          <option value="">Selecione análise</option>
+          {jobs.data?.map((j) => (
+            <option key={j.id} value={j.id}>
+              {j.name} · {j.status}
+            </option>
+          ))}
+        </select>
+        <Input
+          aria-label="Nome da nova análise"
+          className="max-w-sm"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
+        <Button
+          disabled={busy || !tenantId}
+          onClick={() =>
+            action(async () => {
+              const j = await create({ data: { tenantId, name } });
+              setJob(j.id);
+            })
+          }
+        >
+          <Plus className="h-4 w-4" />
+          Criar análise
+        </Button>
+      </div>
+      {detail.error && (
+        <p role="alert" className="text-destructive">
+          {detail.error.message}
+        </p>
+      )}
+      {job && (
+        <>
+          <div className="grid grid-cols-2 gap-4 border-y border-border py-5 md:grid-cols-6">
+            {[
+              ["Hotéis importados", `${importedHotels.length} / 397`],
+              [
+                "Escritórios importados",
+                `${entities.filter((e) => e.kind === "office").length} / 666`,
+              ],
+              ["Lojas importadas", `${entities.filter((e) => e.kind === "store").length} / 135`],
+              ["Cidades importadas", `${new Set(importedHotels.map(cityKey)).size} / 28`],
+              ["Geocodificados", `${located} / ${scoped.length}`],
+              [
+                "Completude",
+                `${scoped.length ? ((located / scoped.length) * 100).toFixed(1) : "0"}%`,
+              ],
+            ].map(([label, value]) => (
+              <div key={label}>
+                <p className="text-xs text-muted-foreground">{label}</p>
+                <p className="mt-1 text-xl font-semibold">{value}</p>
+              </div>
+            ))}
+          </div>
+          <GoogleMapsTest />
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                disabled={busy || job.status === "running" || !catalogHotels.length}
+                onClick={() => void runCatalog()}
+              >
+                <DatabaseIcon className="h-4 w-4" />
+                Reaproveitar coordenadas do Cadastro de Hotéis
+              </Button>
+              {catalogRunning && (
                 <Button
-                  disabled={busy || job.status === "running" || !catalogHotels.length}
-                  onClick={() => void runCatalog()}
+                  variant="outline"
+                  onClick={() => {
+                    catalogStop.current = true;
+                  }}
                 >
-                  <DatabaseIcon className="h-4 w-4" />
-                  Reaproveitar coordenadas do Cadastro de Hotéis
+                  Pausar consulta ao cadastro
                 </Button>
-                {catalogRunning && (
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      catalogStop.current = true;
-                    }}
+              )}
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Cadastro primeiro, sem cobrança Google · {catalogCounts.checked}/
+              {catalogHotels.length} consultados · {catalogCounts.recovered} recuperados ·{" "}
+              {catalogCounts.review} requerem revisão · {catalogCounts.invalid} inválidos ·{" "}
+              {catalogCounts.remaining} restantes para Google.
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm font-medium">
+                {job.status} · {done}/{scoped.length} processados ·{" "}
+                {scoped.filter((e) => e.attempted && !e.geo).length} não localizados
+              </span>
+              <Button
+                size="sm"
+                disabled={
+                  busy ||
+                  !entities.length ||
+                  (job.status === "running" &&
+                    !!job.lease_until &&
+                    Date.parse(job.lease_until) > Date.now())
+                }
+                onClick={() =>
+                  action(() => control({ data: { tenantId, jobId, status: "running" } }))
+                }
+              >
+                <Play className="h-4 w-4" />
+                Geocodificar com Google / continuar
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={busy || job.status !== "running"}
+                onClick={() =>
+                  action(() => control({ data: { tenantId, jobId, status: "paused" } }))
+                }
+              >
+                <Pause className="h-4 w-4" />
+                Pausar
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={busy}
+                onClick={() =>
+                  action(() => control({ data: { tenantId, jobId, status: "cancelled" } }))
+                }
+              >
+                <Square className="h-4 w-4" />
+                Cancelar
+              </Button>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {hotels.length} hotéis no escopo · {targetCities(entities).size} cidades com RN
+              elegível · {scoped.filter((e) => e.geo?.confidence === "review").length} em revisão ·{" "}
+              {retrying} aguardando nova tentativa ·{" "}
+              {scoped.reduce((n, e) => n + (e.attempts ?? 0), 0)} tentativas registradas.
+            </p>
+            {!originalsArchived && (
+              <p className="text-sm text-warning-foreground">
+                Dados importados diretamente; arquivos originais não arquivados no Storage.
+                Endereços originais preservados.
+              </p>
+            )}
+            {!!conflictingCities && (
+              <p role="alert" className="text-warning-foreground">
+                {conflictingCities} cidades com totais RN divergentes: revisão necessária, sem somar
+                valores repetidos por hotel.
+              </p>
+            )}
+            <progress
+              aria-label="Progresso geocoding"
+              className="h-2 w-full accent-primary"
+              max={Math.max(scoped.length, 1)}
+              value={done}
+            />
+            <p className="text-xs text-muted-foreground">
+              Lotes de até 12 endereços (4 simultâneos; escritórios e lojas primeiro), com
+              checkpoint. Ao fechar a página o processamento pausa entre lotes; continuar retoma.
+              Google pode cobrar por consulta.
+            </p>
+            {job.last_error && (
+              <p role="alert" className="text-destructive">
+                {job.last_error}
+              </p>
+            )}
+            {hotels.length !== 397 && (
+              <p className="text-sm text-warning-foreground">
+                Contagem divergente: {hotels.length} hotéis-alvo importados; 397 é a referência, não
+                um total preenchido artificialmente.
+              </p>
+            )}
+            {entities.some((e) => e.kind === "hotel" && e.rn === null) && (
+              <p className="text-sm text-warning-foreground">
+                RNs ausentes: seleção de cidades ≥100 não pode ser confirmada integralmente.
+              </p>
+            )}
+          </div>
+          <section className="space-y-3 border-t border-border pt-5">
+            <h2 className="text-lg font-semibold">Importar hotéis e unidades</h2>
+            <Input
+              type="file"
+              aria-label="Planilha XLSX ou CSV"
+              accept=".xlsx,.csv"
+              disabled={job.status === "running"}
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) void upload(f);
+              }}
+            />
+            {file && (
+              <>
+                <div className="flex flex-wrap items-center gap-2">
+                  <select
+                    aria-label="Aba"
+                    className={selectClass}
+                    value={sheet}
+                    onChange={(e) => changeSheet(e.target.value)}
                   >
-                    Pausar consulta ao cadastro
-                  </Button>
-                )}
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Cadastro primeiro, sem cobrança Google · {catalogCounts.checked}/
-                {catalogHotels.length} consultados · {catalogCounts.recovered} recuperados ·{" "}
-                {catalogCounts.review} requerem revisão · {catalogCounts.invalid} inválidos ·{" "}
-                {catalogCounts.remaining} restantes para Google.
-              </p>
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-sm font-medium">
-                  {job.status} · {done}/{scoped.length} processados ·{" "}
-                  {scoped.filter((e) => e.attempted && !e.geo).length} não localizados
-                </span>
-                <Button
-                  size="sm"
-                  disabled={busy || !entities.length || (job.status === "running" && !!job.lease_until && Date.parse(job.lease_until) > Date.now())}
-                  onClick={() =>
-                    action(() => control({ data: { tenantId, jobId, status: "running" } }))
-                  }
-                >
-                  <Play className="h-4 w-4" />
-                  Geocodificar com Google / continuar
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={busy || job.status !== "running"}
-                  onClick={() =>
-                    action(() => control({ data: { tenantId, jobId, status: "paused" } }))
-                  }
-                >
-                  <Pause className="h-4 w-4" />
-                  Pausar
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={busy}
-                  onClick={() =>
-                    action(() => control({ data: { tenantId, jobId, status: "cancelled" } }))
-                  }
-                >
-                  <Square className="h-4 w-4" />
-                  Cancelar
-                </Button>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                {hotels.length} hotéis no escopo · {targetCities(entities).size} cidades com RN
-                elegível · {scoped.filter((e) => e.geo?.confidence === "review").length} em revisão
-                · {retrying} aguardando nova tentativa ·{" "}
-                {scoped.reduce((n, e) => n + (e.attempts ?? 0), 0)} tentativas registradas.
-              </p>
-              {!originalsArchived && (
-                <p className="text-sm text-warning-foreground">
-                  Dados importados diretamente; arquivos originais não arquivados no Storage.
-                  Endereços originais preservados.
-                </p>
-              )}
-              {!!conflictingCities && (
-                <p role="alert" className="text-warning-foreground">
-                  {conflictingCities} cidades com totais RN divergentes: revisão necessária, sem
-                  somar valores repetidos por hotel.
-                </p>
-              )}
-              <progress
-                aria-label="Progresso geocoding"
-                className="h-2 w-full accent-primary"
-                max={Math.max(scoped.length, 1)}
-                value={done}
-              />
-              <p className="text-xs text-muted-foreground">
-                Lotes de até 12 endereços (4 simultâneos; escritórios e lojas primeiro), com checkpoint. Ao fechar a
-                página o processamento pausa entre lotes; continuar retoma. Google pode cobrar por
-                consulta.
-              </p>
-              {job.last_error && (
-                <p role="alert" className="text-destructive">
-                  {job.last_error}
-                </p>
-              )}
-              {hotels.length !== 397 && (
-                <p className="text-sm text-warning-foreground">
-                  Contagem divergente: {hotels.length} hotéis-alvo importados; 397 é a referência,
-                  não um total preenchido artificialmente.
-                </p>
-              )}
-              {entities.some((e) => e.kind === "hotel" && e.rn === null) && (
-                <p className="text-sm text-warning-foreground">
-                  RNs ausentes: seleção de cidades ≥100 não pode ser confirmada integralmente.
-                </p>
-              )}
-            </div>
-            <section className="space-y-3 border-t border-border pt-5">
-              <h2 className="text-lg font-semibold">Importar hotéis e unidades</h2>
-              <Input
-                type="file"
-                aria-label="Planilha XLSX ou CSV"
-                accept=".xlsx,.csv"
-                disabled={job.status === "running"}
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) void upload(f);
-                }}
-              />
-              {file && (
-                <>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <select
-                      aria-label="Aba"
-                      className={selectClass}
-                      value={sheet}
-                      onChange={(e) => changeSheet(e.target.value)}
-                    >
-                      {book?.SheetNames.map((s) => (
-                        <option key={s}>{s}</option>
-                      ))}
-                    </select>
-                    <label className="flex items-center gap-2 text-sm">
-                      Cabeçalho
-                      <Input
-                        aria-label="Linha do cabeçalho"
-                        type="number"
-                        min={1}
-                        max={100}
-                        className="w-20"
-                        value={header}
-                        onChange={(e) => {
-                          const v = Number(e.target.value);
-                          setHeader(v);
-                          setMapping(suggest(rows[v - 1] ?? []));
-                        }}
-                      />
-                    </label>
-                    <select
-                      aria-label="Categoria de importação"
-                      className={selectClass}
-                      value={kind}
-                      onChange={(e) => setKind(e.target.value as Kind)}
-                    >
-                      <option value="hotel">Hotéis</option>
-                      <option value="office">Escritórios</option>
-                      <option value="store">Lojas</option>
-                    </select>
-                    <span className="text-sm">
-                      {preview.length} linhas · {preview.filter((e) => e.issues.length).length} com
-                      alertas
-                    </span>
-                  </div>
-                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                    {Object.entries(fields).map(([k, label]) => (
-                      <label
-                        key={k}
-                        className="flex min-w-0 flex-col gap-1 text-xs text-muted-foreground"
-                      >
-                        {label}
-                        <select
-                          aria-label={`Mapear ${label}`}
-                          className={selectClass}
-                          value={mapping[k as keyof Mapping] ?? ""}
-                          onChange={(e) =>
-                            setMapping((m) => ({
-                              ...m,
-                              [k]: e.target.value === "" ? undefined : Number(e.target.value),
-                            }))
-                          }
-                        >
-                          <option value="">Não mapeado</option>
-                          {headers.map((h, i) => (
-                            <option key={i} value={i}>
-                              {XLSX.utils.encode_col(i)} · {h || "(sem título)"}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
+                    {book?.SheetNames.map((s) => (
+                      <option key={s}>{s}</option>
                     ))}
-                  </div>
-                  <div className="max-h-48 overflow-auto rounded-md border border-border">
-                    <table className="w-full text-left text-xs">
-                      <thead className="bg-muted">
-                        <tr>
-                          <th className="p-2">Linha</th>
-                          <th>Nome</th>
-                          <th>Endereço</th>
-                          <th>Alertas</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {preview.slice(0, 20).map((e) => (
-                          <tr key={e.id} className="border-t border-border">
-                            <td className="p-2">{e.source.row}</td>
-                            <td>{e.name}</td>
-                            <td>
-                              {e.address} {e.number} · {e.city}/{e.uf} · {e.cep}
-                            </td>
-                            <td>{e.issues.join("; ")}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                  <Button
-                    disabled={
-                      busy ||
-                      !preview.length ||
-                      mapping.address === undefined ||
-                      mapping.city === undefined ||
-                      mapping.uf === undefined
-                    }
-                    onClick={saveImport}
-                  >
-                    <Upload className="h-4 w-4" />
-                    Confirmar mapeamento e importar {preview.length} linhas
-                  </Button>
-                </>
-              )}
-            </section>
-            <section className="space-y-3 border-t border-border pt-5">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <h2 className="text-lg font-semibold">Comparações e pendências</h2>
-                <div className="flex flex-wrap gap-2">
-                  <label className="flex items-center gap-2 text-xs">
-                    <input
-                      type="checkbox"
-                      checked={cross}
-                      onChange={(e) => setCross(e.target.checked)}
+                  </select>
+                  <label className="flex items-center gap-2 text-sm">
+                    Cabeçalho
+                    <Input
+                      aria-label="Linha do cabeçalho"
+                      type="number"
+                      min={1}
+                      max={100}
+                      className="w-20"
+                      value={header}
+                      onChange={(e) => {
+                        const v = Number(e.target.value);
+                        setHeader(v);
+                        setMapping(suggest(rows[v - 1] ?? []));
+                      }}
                     />
-                    Exceção: mesma UF sem unidade na cidade
                   </label>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={busy || job.status === "running"}
-                    onClick={() =>
-                      action(() => recompare({ data: { tenantId, jobId, allowCross: cross } }))
-                    }
+                  <select
+                    aria-label="Categoria de importação"
+                    className={selectClass}
+                    value={kind}
+                    onChange={(e) => setKind(e.target.value as Kind)}
                   >
-                    <RefreshCw className="h-4 w-4" />
-                    Recalcular
-                  </Button>
-                  <Button size="sm" disabled={!entities.length} onClick={exportExcel}>
-                    <Download className="h-4 w-4" />
-                    Excel filtrado
-                  </Button>
+                    <option value="hotel">Hotéis</option>
+                    <option value="office">Escritórios</option>
+                    <option value="store">Lojas</option>
+                  </select>
+                  <span className="text-sm">
+                    {preview.length} linhas · {preview.filter((e) => e.issues.length).length} com
+                    alertas
+                  </span>
                 </div>
-              </div>
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                  {Object.entries(fields).map(([k, label]) => (
+                    <label
+                      key={k}
+                      className="flex min-w-0 flex-col gap-1 text-xs text-muted-foreground"
+                    >
+                      {label}
+                      <select
+                        aria-label={`Mapear ${label}`}
+                        className={selectClass}
+                        value={mapping[k as keyof Mapping] ?? ""}
+                        onChange={(e) =>
+                          setMapping((m) => ({
+                            ...m,
+                            [k]: e.target.value === "" ? undefined : Number(e.target.value),
+                          }))
+                        }
+                      >
+                        <option value="">Não mapeado</option>
+                        {headers.map((h, i) => (
+                          <option key={i} value={i}>
+                            {XLSX.utils.encode_col(i)} · {h || "(sem título)"}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  ))}
+                </div>
+                <div className="max-h-48 overflow-auto rounded-md border border-border">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-muted">
+                      <tr>
+                        <th className="p-2">Linha</th>
+                        <th>Nome</th>
+                        <th>Endereço</th>
+                        <th>Alertas</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {preview.slice(0, 20).map((e) => (
+                        <tr key={e.id} className="border-t border-border">
+                          <td className="p-2">{e.source.row}</td>
+                          <td>{e.name}</td>
+                          <td>
+                            {e.address} {e.number} · {e.city}/{e.uf} · {e.cep}
+                          </td>
+                          <td>{e.issues.join("; ")}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <Button
+                  disabled={
+                    busy ||
+                    !preview.length ||
+                    mapping.address === undefined ||
+                    mapping.city === undefined ||
+                    mapping.uf === undefined
+                  }
+                  onClick={saveImport}
+                >
+                  <Upload className="h-4 w-4" />
+                  Confirmar mapeamento e importar {preview.length} linhas
+                </Button>
+              </>
+            )}
+          </section>
+          <section className="space-y-3 border-t border-border pt-5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-lg font-semibold">Comparações e pendências</h2>
               <div className="flex flex-wrap gap-2">
-                <select
-                  aria-label="Visão"
-                  className={selectClass}
-                  value={view}
-                  onChange={(e) => setView(e.target.value)}
+                <label className="flex items-center gap-2 text-xs">
+                  <input
+                    type="checkbox"
+                    checked={cross}
+                    onChange={(e) => setCross(e.target.checked)}
+                  />
+                  Exceção: mesma UF sem unidade na cidade
+                </label>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={busy || job.status === "running"}
+                  onClick={() =>
+                    action(() => recompare({ data: { tenantId, jobId, allowCross: cross } }))
+                  }
                 >
-                  <option value="hotels">Hotéis → unidades</option>
-                  <option value="units">Unidades → ranking de hotéis</option>
-                </select>
-                <Input
-                  aria-label="Buscar hotel ou unidade"
-                  className="max-w-xs"
-                  placeholder="Nome, código ou endereço"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-                <select
-                  aria-label="Cidade"
-                  className={selectClass}
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                >
-                  <option value="">Todas as cidades</option>
-                  {[...new Map(entities.map((e) => [cityKey(e), `${e.city}/${e.uf}`])).entries()]
-                    .sort()
-                    .map(([key, label]) => (
-                      <option key={key} value={key}>
-                        {label}
-                      </option>
-                    ))}
-                </select>
-                <select
-                  aria-label="Status geocoding"
-                  className={selectClass}
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value)}
-                >
-                  <option value="">Todos os status</option>
-                  <option value="high">Alta confiança</option>
-                  <option value="review">Revisão</option>
-                  <option value="pending">Pendente</option>
-                  <option value="missing">Não localizado</option>
-                </select>
-                <select
-                  aria-label="Block List"
-                  className={selectClass}
-                  value={block}
-                  onChange={(e) => setBlock(e.target.value)}
-                >
-                  <option value="">Block List: todos</option>
-                  <option value="yes">Flag SIM</option>
-                  <option value="no">Flag NÃO</option>
-                </select>
+                  <RefreshCw className="h-4 w-4" />
+                  Recalcular
+                </Button>
+                <Button size="sm" disabled={!entities.length} onClick={exportExcel}>
+                  <Download className="h-4 w-4" />
+                  Excel filtrado
+                </Button>
               </div>
-              <p className="text-xs text-muted-foreground">
-                {filtered.length} registros · {exportedPairs.length} pares ·{" "}
-                {pairs.filter((p) => p.roadKm === undefined).length} rotas viárias não calculadas.
-                Limiares ±100 m sinalizam revisão.
-              </p>
-              <div className="max-h-[640px] overflow-auto rounded-md border border-border">
-                <table className="w-full min-w-[850px] text-left text-sm">
-                  <thead className="sticky top-0 bg-muted">
-                    <tr>
-                      <th className="p-3">Hotel / unidade</th>
-                      <th>Cidade / endereço original</th>
-                      <th>Localização</th>
-                      <th>Proximidade / ranking</th>
-                      <th className="p-3">Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filtered.map((e) => {
-                      const nearest = pairs
-                        .filter((p) =>
-                          view === "hotels" ? p.hotelId === e.id && p.nearest : p.unitId === e.id,
-                        )
-                        .sort((a, b) => a.km - b.km)
-                        .slice(0, view === "hotels" ? 2 : 3);
-                      return (
-                        <tr key={e.id} className="border-t border-border align-top">
-                          <td className="max-w-64 p-3 font-medium">
-                            {e.name}
-                            <p className="text-xs text-muted-foreground">
-                              {e.code} {e.block ? "· Block List" : ""}{" "}
-                              {!inScope(e, entities) ? "· Fora / pendente" : ""}
-                            </p>
-                          </td>
-                          <td className="max-w-64 py-3 text-xs">
-                            {e.city}/{e.uf}
-                            <p>
-                              {e.address}, {e.number}
-                            </p>
-                            <p>{e.cep}</p>
-                          </td>
-                          <td className="max-w-60 py-3 text-xs">
-                            <span
-                              className={
-                                validGeo(e)
-                                  ? "text-success"
-                                  : e.geo
-                                    ? "text-warning-foreground"
-                                    : "text-muted-foreground"
-                              }
-                            >
-                              {e.geo?.confidence ?? (e.attempted ? "NÃO LOCALIZADO" : "PENDENTE")}
-                            </span>
-                            <p>{e.geo ? `${e.geo.lat.toFixed(6)}, ${e.geo.lng.toFixed(6)}` : ""}</p>
-                            {e.geo?.confirmation === "establishment" && (
-                              <p>Local confirmado por estabelecimento</p>
-                            )}
-                            {e.geo?.derivedNumber && (
-                              <p>Número Google (derivado): {e.geo.derivedNumber}</p>
-                            )}
-                            {e.lastAttemptError && <p>{e.lastAttemptError}</p>}
-                            <p>{[...e.issues, ...(e.geo?.reasons ?? [])].join("; ")}</p>
-                          </td>
-                          <td className="max-w-72 py-3 text-xs">
-                            {nearest.length
-                              ? nearest.map((p) => (
-                                  <p key={`${p.hotelId}${p.unitId}`} className="mb-2">
-                                    {
-                                      entities.find(
-                                        (v) => v.id === (view === "hotels" ? p.unitId : p.hotelId),
-                                      )?.name
-                                    }{" "}
-                                    · {p.km.toFixed(3)} km · {p.band}
-                                    <br />
-                                    <strong>
-                                      {p.definitive
-                                        ? "DEFINITIVO NA CIDADE"
-                                        : "PROVISÓRIO · melhor candidato localizado"}
-                                    </strong>
-                                    {p.reviewGeo ? " · coordenada em revisão (indicativa)" : ""}
-                                    {p.cross ? " · município excepcional" : ""}
-                                    {p.boundary ? " · REVISAR LIMIAR" : ""}
-                                    {p.roadKm !== undefined
-                                      ? ` · viária ${p.roadKm.toFixed(2)} km`
-                                      : ""}
-                                  </p>
-                                ))
-                              : "Sem candidato válido; não conclusivo"}
-                          </td>
-                          <td className="p-3">
-                            {e.catalog && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                disabled={busy || job.status === "running"}
-                                onClick={() => {
-                                  setCatalogReview(e.id);
-                                  setCatalogSelection(e.catalog?.selectedId ?? "");
-                                  setCatalogReason("");
-                                }}
-                              >
-                                Candidatos do cadastro ({e.catalog.candidates.length})
-                              </Button>
-                            )}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <select
+                aria-label="Visão"
+                className={selectClass}
+                value={view}
+                onChange={(e) => setView(e.target.value)}
+              >
+                <option value="hotels">Hotéis → unidades</option>
+                <option value="units">Unidades → ranking de hotéis</option>
+              </select>
+              <Input
+                aria-label="Buscar hotel ou unidade"
+                className="max-w-xs"
+                placeholder="Nome, código ou endereço"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+              <select
+                aria-label="Cidade"
+                className={selectClass}
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+              >
+                <option value="">Todas as cidades</option>
+                {[...new Map(entities.map((e) => [cityKey(e), `${e.city}/${e.uf}`])).entries()]
+                  .sort()
+                  .map(([key, label]) => (
+                    <option key={key} value={key}>
+                      {label}
+                    </option>
+                  ))}
+              </select>
+              <select
+                aria-label="Status geocoding"
+                className={selectClass}
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+              >
+                <option value="">Todos os status</option>
+                <option value="high">Alta confiança</option>
+                <option value="review">Revisão</option>
+                <option value="pending">Pendente</option>
+                <option value="missing">Não localizado</option>
+              </select>
+              <select
+                aria-label="Block List"
+                className={selectClass}
+                value={block}
+                onChange={(e) => setBlock(e.target.value)}
+              >
+                <option value="">Block List: todos</option>
+                <option value="yes">Flag SIM</option>
+                <option value="no">Flag NÃO</option>
+              </select>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {filtered.length} registros · {exportedPairs.length} pares ·{" "}
+              {pairs.filter((p) => p.roadKm === undefined).length} rotas viárias não calculadas.
+              Limiares ±100 m sinalizam revisão.
+            </p>
+            <div className="max-h-[640px] overflow-auto rounded-md border border-border">
+              <table className="w-full min-w-[850px] text-left text-sm">
+                <thead className="sticky top-0 bg-muted">
+                  <tr>
+                    <th className="p-3">Hotel / unidade</th>
+                    <th>Cidade / endereço original</th>
+                    <th>Localização</th>
+                    <th>Proximidade / ranking</th>
+                    <th className="p-3">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((e) => {
+                    const nearest = pairs
+                      .filter((p) =>
+                        view === "hotels" ? p.hotelId === e.id && p.nearest : p.unitId === e.id,
+                      )
+                      .sort((a, b) => a.km - b.km)
+                      .slice(0, view === "hotels" ? 2 : 3);
+                    return (
+                      <tr key={e.id} className="border-t border-border align-top">
+                        <td className="max-w-64 p-3 font-medium">
+                          {e.name}
+                          <p className="text-xs text-muted-foreground">
+                            {e.code} {e.block ? "· Block List" : ""}{" "}
+                            {!inScope(e, entities) ? "· Fora / pendente" : ""}
+                          </p>
+                        </td>
+                        <td className="max-w-64 py-3 text-xs">
+                          {e.city}/{e.uf}
+                          <p>
+                            {e.address}, {e.number}
+                          </p>
+                          <p>{e.cep}</p>
+                        </td>
+                        <td className="max-w-60 py-3 text-xs">
+                          <span
+                            className={
+                              validGeo(e)
+                                ? "text-success"
+                                : e.geo
+                                  ? "text-warning-foreground"
+                                  : "text-muted-foreground"
+                            }
+                          >
+                            {e.geo?.confidence ?? (e.attempted ? "NÃO LOCALIZADO" : "PENDENTE")}
+                          </span>
+                          <p>{e.geo ? `${e.geo.lat.toFixed(6)}, ${e.geo.lng.toFixed(6)}` : ""}</p>
+                          {e.geo?.confirmation === "establishment" && (
+                            <p>Local confirmado por estabelecimento</p>
+                          )}
+                          {e.geo?.derivedNumber && (
+                            <p>Número Google (derivado): {e.geo.derivedNumber}</p>
+                          )}
+                          {e.lastAttemptError && <p>{e.lastAttemptError}</p>}
+                          <p>{[...e.issues, ...(e.geo?.reasons ?? [])].join("; ")}</p>
+                        </td>
+                        <td className="max-w-72 py-3 text-xs">
+                          {nearest.length
+                            ? nearest.map((p) => (
+                                <p key={`${p.hotelId}${p.unitId}`} className="mb-2">
+                                  {
+                                    entities.find(
+                                      (v) => v.id === (view === "hotels" ? p.unitId : p.hotelId),
+                                    )?.name
+                                  }{" "}
+                                  · {p.km.toFixed(3)} km · {p.band}
+                                  <br />
+                                  <strong>
+                                    {p.definitive
+                                      ? "DEFINITIVO NA CIDADE"
+                                      : "PROVISÓRIO · melhor candidato localizado"}
+                                  </strong>
+                                  {p.reviewGeo ? " · coordenada em revisão (indicativa)" : ""}
+                                  {p.cross ? " · município excepcional" : ""}
+                                  {p.boundary ? " · REVISAR LIMIAR" : ""}
+                                  {p.roadKm !== undefined
+                                    ? ` · viária ${p.roadKm.toFixed(2)} km`
+                                    : ""}
+                                </p>
+                              ))
+                            : "Sem candidato válido; não conclusivo"}
+                        </td>
+                        <td className="p-3">
+                          {e.catalog && (
                             <Button
                               size="sm"
                               variant="outline"
                               disabled={busy || job.status === "running"}
                               onClick={() => {
-                                setReview(e.id);
-                                setPlace(e.geo?.placeId ?? "");
-                                setReason("");
+                                setCatalogReview(e.id);
+                                setCatalogSelection(e.catalog?.selectedId ?? "");
+                                setCatalogReason("");
                               }}
                             >
-                              Revisar Place
+                              Candidatos do cadastro ({e.catalog.candidates.length})
                             </Button>
-                            {e.kind === "hotel" && validGeo(e) && (
-                              <Button
-                                title="Distância viária dos top 3 por categoria"
-                                size="sm"
-                                variant="ghost"
-                                disabled={busy || job.status === "running"}
-                                onClick={() =>
-                                  action(() => routes({ data: { tenantId, jobId, hotelId: e.id } }))
-                                }
-                              >
-                                <RouteIcon className="h-4 w-4" />
-                                Rotas top 3
-                              </Button>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-              {review && (
-                <div className="space-y-2 rounded-md border border-border bg-card p-4">
-                  <h3 className="font-semibold">Revisão: {review.name}</h3>
-                  <p className="text-xs text-muted-foreground">
-                    O endereço original permanece intacto. Place ID será consultado no Google e
-                    validado; resultados imprecisos permanecem em revisão.
-                  </p>
-                  <Input
-                    aria-label="Google Place ID"
-                    placeholder="Google Place ID"
-                    value={placeId}
-                    onChange={(e) => setPlace(e.target.value)}
-                  />
-                  <Input
-                    aria-label="Justificativa da revisão"
-                    placeholder="Justificativa da revisão"
-                    value={reason}
-                    onChange={(e) => setReason(e.target.value)}
-                  />
-                  <Button
-                    disabled={busy || reason.length < 10 || placeId.length < 5}
-                    onClick={() =>
-                      action(async () => {
-                        const r = await manual({
-                          data: { tenantId, jobId, entityId: reviewId, placeId, reason },
-                        });
-                        toast.success(`Revisão salva: ${r.confidence}`);
-                        setReview("");
-                      })
-                    }
-                  >
-                    Consultar e salvar revisão
-                  </Button>
-                  <Button variant="ghost" onClick={() => setReview("")}>
-                    Fechar
-                  </Button>
-                </div>
-              )}
-              {catalogEntity?.catalog && (
-                <div
-                  role="dialog"
-                  aria-label="Revisão do cadastro"
-                  className="space-y-3 border border-border bg-card p-4"
+                          )}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={busy || job.status === "running"}
+                            onClick={() => {
+                              setReview(e.id);
+                              setPlace(e.geo?.placeId ?? "");
+                              setReason("");
+                            }}
+                          >
+                            Revisar Place
+                          </Button>
+                          {e.kind === "hotel" && validGeo(e) && (
+                            <Button
+                              title="Distância viária dos top 3 por categoria"
+                              size="sm"
+                              variant="ghost"
+                              disabled={busy || job.status === "running"}
+                              onClick={() =>
+                                action(() => routes({ data: { tenantId, jobId, hotelId: e.id } }))
+                              }
+                            >
+                              <RouteIcon className="h-4 w-4" />
+                              Rotas top 3
+                            </Button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            {review && (
+              <div className="space-y-2 rounded-md border border-border bg-card p-4">
+                <h3 className="font-semibold">Revisão: {review.name}</h3>
+                <p className="text-xs text-muted-foreground">
+                  O endereço original permanece intacto. Place ID será consultado no Google e
+                  validado; resultados imprecisos permanecem em revisão.
+                </p>
+                <Input
+                  aria-label="Google Place ID"
+                  placeholder="Google Place ID"
+                  value={placeId}
+                  onChange={(e) => setPlace(e.target.value)}
+                />
+                <Input
+                  aria-label="Justificativa da revisão"
+                  placeholder="Justificativa da revisão"
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                />
+                <Button
+                  disabled={busy || reason.length < 10 || placeId.length < 5}
+                  onClick={() =>
+                    action(async () => {
+                      const r = await manual({
+                        data: { tenantId, jobId, entityId: reviewId, placeId, reason },
+                      });
+                      toast.success(`Revisão salva: ${r.confidence}`);
+                      setReview("");
+                    })
+                  }
                 >
-                  <h3 className="font-semibold">Cadastro: {catalogEntity.name}</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {catalogEntity.catalog.reason ??
-                      "A seleção não substitui as validações de endereço e coordenadas."}
-                  </p>
-                  <select
-                    aria-label="Candidato do cadastro"
-                    className={`${selectClass} w-full`}
-                    value={catalogSelection}
-                    onChange={(e) => setCatalogSelection(e.target.value)}
-                  >
-                    <option value="">Selecione candidato</option>
-                    {catalogEntity.catalog.candidates.map((c) => (
-                      <option key={c.hotel.id} value={c.hotel.id}>
-                        {c.hotel.code} · {c.hotel.name} · {c.hotel.address} · {c.confidence}
-                        {c.invalid ? " / INVÁLIDO" : ""}
-                      </option>
-                    ))}
-                  </select>
-                  {catalogEntity.catalog.candidates
-                    .filter((c) => c.hotel.id === catalogSelection)
-                    .map((c) => (
-                      <div key={c.hotel.id} className="text-sm">
-                        <p>Conferidos: {c.matchedFields.join(", ")}</p>
-                        <p>Pendências: {c.reasons.join("; ") || "Nenhuma"}</p>
-                        <p>Referência: {c.reference ?? "Não disponível"}</p>
-                        <p>
-                          Coordenadas: {c.hotel.latitude}, {c.hotel.longitude}
-                        </p>
-                      </div>
-                    ))}
-                  <Input
-                    aria-label="Motivo da seleção do cadastro"
-                    value={catalogReason}
-                    onChange={(e) => setCatalogReason(e.target.value)}
-                    placeholder="Motivo da seleção"
-                  />
-                  <Button
-                    disabled={busy || !catalogSelection || catalogReason.trim().length < 10}
-                    onClick={() =>
-                      action(async () => {
-                        const result = await selectCatalog({
-                          data: {
-                            tenantId,
-                            jobId,
-                            entityId: catalogEntity.id,
-                            catalogId: catalogSelection,
-                            reason: catalogReason,
-                          },
-                        });
-                        toast.success(
-                          result.invalid
-                            ? "Coordenadas rejeitadas; candidato auditado"
-                            : result.confidence === "high"
-                              ? "Coordenadas reaproveitadas"
-                              : "Candidato salvo em revisão, sem reaproveitar coordenadas",
-                        );
-                        setCatalogReview("");
-                      })
-                    }
-                  >
-                    Salvar seleção validada
-                  </Button>
-                  <Button variant="ghost" onClick={() => setCatalogReview("")}>
-                    Fechar candidatos
-                  </Button>
-                </div>
-              )}
-            </section>
-          </>
-        )}
-        {!job && (
-          <div className="border-t border-border py-12 text-muted-foreground">
-            Selecione uma análise existente ou crie uma nova; os dados importados permanecem
-            preservados.
-          </div>
-        )}
-      </div>
-    </AppShell>
+                  Consultar e salvar revisão
+                </Button>
+                <Button variant="ghost" onClick={() => setReview("")}>
+                  Fechar
+                </Button>
+              </div>
+            )}
+            {catalogEntity?.catalog && (
+              <div
+                role="dialog"
+                aria-label="Revisão do cadastro"
+                className="space-y-3 border border-border bg-card p-4"
+              >
+                <h3 className="font-semibold">Cadastro: {catalogEntity.name}</h3>
+                <p className="text-sm text-muted-foreground">
+                  {catalogEntity.catalog.reason ??
+                    "A seleção não substitui as validações de endereço e coordenadas."}
+                </p>
+                <select
+                  aria-label="Candidato do cadastro"
+                  className={`${selectClass} w-full`}
+                  value={catalogSelection}
+                  onChange={(e) => setCatalogSelection(e.target.value)}
+                >
+                  <option value="">Selecione candidato</option>
+                  {catalogEntity.catalog.candidates.map((c) => (
+                    <option key={c.hotel.id} value={c.hotel.id}>
+                      {c.hotel.code} · {c.hotel.name} · {c.hotel.address} · {c.confidence}
+                      {c.invalid ? " / INVÁLIDO" : ""}
+                    </option>
+                  ))}
+                </select>
+                {catalogEntity.catalog.candidates
+                  .filter((c) => c.hotel.id === catalogSelection)
+                  .map((c) => (
+                    <div key={c.hotel.id} className="text-sm">
+                      <p>Conferidos: {c.matchedFields.join(", ")}</p>
+                      <p>Pendências: {c.reasons.join("; ") || "Nenhuma"}</p>
+                      <p>Referência: {c.reference ?? "Não disponível"}</p>
+                      <p>
+                        Coordenadas: {c.hotel.latitude}, {c.hotel.longitude}
+                      </p>
+                    </div>
+                  ))}
+                <Input
+                  aria-label="Motivo da seleção do cadastro"
+                  value={catalogReason}
+                  onChange={(e) => setCatalogReason(e.target.value)}
+                  placeholder="Motivo da seleção"
+                />
+                <Button
+                  disabled={busy || !catalogSelection || catalogReason.trim().length < 10}
+                  onClick={() =>
+                    action(async () => {
+                      const result = await selectCatalog({
+                        data: {
+                          tenantId,
+                          jobId,
+                          entityId: catalogEntity.id,
+                          catalogId: catalogSelection,
+                          reason: catalogReason,
+                        },
+                      });
+                      toast.success(
+                        result.invalid
+                          ? "Coordenadas rejeitadas; candidato auditado"
+                          : result.confidence === "high"
+                            ? "Coordenadas reaproveitadas"
+                            : "Candidato salvo em revisão, sem reaproveitar coordenadas",
+                      );
+                      setCatalogReview("");
+                    })
+                  }
+                >
+                  Salvar seleção validada
+                </Button>
+                <Button variant="ghost" onClick={() => setCatalogReview("")}>
+                  Fechar candidatos
+                </Button>
+              </div>
+            )}
+          </section>
+        </>
+      )}
+      {!job && (
+        <div className="border-t border-border py-12 text-muted-foreground">
+          Selecione uma análise existente ou crie uma nova; os dados importados permanecem
+          preservados.
+        </div>
+      )}
+    </div>
   );
 }

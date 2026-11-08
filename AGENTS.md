@@ -1,4 +1,5 @@
 # Architecture rules
+- Independent spreadsheet geolocation owns tenant-scoped TA jobs, private immutable originals and per-row checkpoints; shared server-only Google transport preserves existing callers while explicit-start batches never write radius jobs or hotel catalog.
 - Raio & Proximidade owns its libraries, client-only TA gate, tenant-scoped jobs and private originals; bounded authenticated requests advance durable address checkpoints and lease state without touching existing RFPs. This isolates confidential sourcing and makes interrupted work resumable.
 - Proximity establishment fallback uses server-only Places API (New), unique candidate validation and separate derived address provenance; identity-aware checkpoints prevent copying one property's confirmation to another.
 - Proximity reads hotel catalog through authenticated selective queries and stores match audits only in its jobs; independent bundled GeoNames municipal references screen coordinate outliers without paid lookups or modifying catalog rows.

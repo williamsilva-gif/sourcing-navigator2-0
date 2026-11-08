@@ -1,5 +1,8 @@
 # Raio & Proximidade
 
+## Independent spreadsheet tab — 2026-11-08
+`/raio-proximidade` now also contains **Geolocalização de Planilhas**, with separate TA/tenant jobs and private originals; it does not write radius analyses or the hotel catalog. See [implementation and QA limits](./sheet-geolocation.md). No real paid batch or publication was triggered.
+
 Isolated `/raio-proximidade`, TA master/staff gate and server authorization; `client_tenant_id` RLS. No existing RFP/client data is changed. Private `proximity-originals` stores immutable uploaded bytes; job metadata preserves file hash, sheet, mapping, row and all original cells. No confidential Claro addresses are seeded.
 
 ## Execution
