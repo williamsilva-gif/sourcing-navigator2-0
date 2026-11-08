@@ -13,7 +13,8 @@ export const Route = createFileRoute("/_proximityAuthenticated/raio-proximidade"
       { property: "og:title", content: "Raio & Proximidade — Navigator" },
       {
         property: "og:description",
-        content: "Raio e geolocalização independente de planilhas com endereços originais preservados e resultados auditáveis.",
+        content:
+          "Raio e geolocalização independente de planilhas com endereços originais preservados e resultados auditáveis.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
