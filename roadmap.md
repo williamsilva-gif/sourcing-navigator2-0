@@ -1,4 +1,5 @@
 # Raio & Proximidade
+- [ ] Catalog-first coordinates: conservative address/city/geographic matching, persistent authenticated batches, candidate review/audit, counters/exports and real-job UI QA.
 - [x] Real Claro continuation: SELECT and authenticated read-only reopen verified 397/666/135/28, paused 0/1198; establishment fallback/provenance, city RN, full-state UF bug and retry monitoring implemented; 33 tests/lint passed. TA master/staff confirmed in existing SQL helper; no migration needed.
 - [x] Isolated tenant-scoped schema, authenticated batch/checkpoints and conservative geocoding implemented.
 - [x] XLSX/CSV mapping, dashboard, comparisons, inverse ranking and Excel export implemented; synthetic authenticated import/filter/export/reopen checked.

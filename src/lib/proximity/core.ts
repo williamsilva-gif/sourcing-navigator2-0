@@ -36,6 +36,7 @@ export type Entity = {
   attempts?: number;
   nextRetry?: number;
   lastAttemptError?: string;
+  catalog?: import("./catalog").CatalogAudit;
 };
 export type Pair = {
   hotelId: string;

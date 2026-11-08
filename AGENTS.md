@@ -1,6 +1,7 @@
 # Architecture rules
 - Raio & Proximidade owns its libraries, client-only TA gate, tenant-scoped jobs and private originals; bounded authenticated requests advance durable address checkpoints and lease state without touching existing RFPs. This isolates confidential sourcing and makes interrupted work resumable.
 - Proximity establishment fallback uses server-only Places API (New), unique candidate validation and separate derived address provenance; identity-aware checkpoints prevent copying one property's confirmation to another.
+- Proximity reads hotel catalog through authenticated selective queries and stores match audits only in its jobs; independent bundled GeoNames municipal references screen coordinate outliers without paid lookups or modifying catalog rows.
 - Tax Impact Check lives in its own library/components and protected named route; reuse existing app shell without changing other modules.
 - Original spreadsheets use a dedicated private bucket, while immutable imports and comparison revisions reference tenant-scoped analyses; this preserves provenance and reproducibility.
 - Parse spreadsheets and compute comparisons again in authenticated server functions with the caller's RLS client; client previews are not authoritative.

@@ -4,6 +4,13 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Database, Json } from "@/integrations/supabase/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
+  catalogAudit,
+  catalogGeo,
+  assessCatalog,
+  selectivePattern,
+  type CatalogHotel,
+} from "./catalog";
+import {
   stateCode,
   lookupKey,
   originalNumber,
@@ -21,6 +28,7 @@ import {
   type Pair,
   type Mapping,
   type GoogleResult,
+  validGeo,
 } from "./core";
 const scope = z.object({ tenantId: z.string().uuid() });
 const jobScope = scope.extend({ jobId: z.string().uuid() });
@@ -66,6 +74,154 @@ export const proximityGetFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => jobScope.parse(d))
   .handler(async ({ data, context }) => get(context.supabase, data.tenantId, data.jobId));
+const catalogProjection = "id,code,name,address,postal_code,city,state,latitude,longitude";
+async function catalogRows(s: SupabaseClient<Database>, e: Entity) {
+  const city = municipalityForQuery(e);
+  const tokens = e.name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .split(/[^a-z0-9]+/i)
+    .filter((t) => t.length >= 3 && !/^(hotel|hoteis|pousada|inn|the)$/i.test(t));
+  const token = tokens.sort((a, b) => b.length - a.length)[0];
+  if (!city || !token) return { rows: [] as CatalogHotel[], truncated: false };
+  const r = await s
+    .from("hotels")
+    .select(catalogProjection)
+    .ilike("city", selectivePattern(city))
+    .ilike("name", `%${selectivePattern(token)}%`)
+    .order("id")
+    .limit(21);
+  if (r.error) throw new Error(r.error.message);
+  return {
+    rows: (r.data ?? []).slice(0, 20) as CatalogHotel[],
+    truncated: (r.data?.length ?? 0) > 20,
+  };
+}
+export const proximityCatalogFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => jobScope.parse(d))
+  .handler(async ({ data, context }) => {
+    const job = await get(context.supabase, data.tenantId, data.jobId);
+    if (job.status === "running") throw new Error("Pause o Google antes de consultar o cadastro.");
+    const token = crypto.randomUUID();
+    const now = new Date().toISOString();
+    const claimed = await context.supabase
+      .from("proximity_jobs")
+      .update({ lease_token: token, lease_until: new Date(Date.now() + 90000).toISOString() })
+      .eq("id", job.id)
+      .eq("client_tenant_id", data.tenantId)
+      .neq("status", "running")
+      .or(`lease_until.is.null,lease_until.lt.${now}`)
+      .select("id");
+    if (claimed.error) throw new Error(claimed.error.message);
+    if (!claimed.data?.length) return { busy: true, processed: 0, remaining: 1 };
+    const entities = job.entities as unknown as Entity[];
+    let processed = 0;
+    try {
+      for (const e of entities
+        .filter((e) => e.kind === "hotel" && !e.catalog && !validGeo(e))
+        .slice(0, 10)) {
+        const result = await catalogRows(context.supabase, e);
+        e.catalog = catalogAudit(e, result.rows, result.truncated);
+        e.catalog.actorId = context.userId;
+        const selected = e.catalog.candidates.find((c) => c.hotel.id === e.catalog?.selectedId);
+        if (selected) {
+          const geo = catalogGeo(selected);
+          if (geo) {
+            e.geo = geo;
+            e.attempted = true;
+          }
+        }
+        processed++;
+        const saved = await context.supabase
+          .from("proximity_jobs")
+          .update({
+            entities: json(entities),
+            checkpoint: entities.filter((v) => v.attempted).length,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", job.id)
+          .eq("lease_token", token);
+        if (saved.error) throw new Error(saved.error.message);
+      }
+    } finally {
+      const released = await context.supabase
+        .from("proximity_jobs")
+        .update({ lease_token: null, lease_until: null, pairs: json(compare(entities)) })
+        .eq("id", job.id)
+        .eq("lease_token", token);
+      if (released.error)
+        console.error("Falha ao liberar consulta do cadastro; lease expira automaticamente.");
+    }
+    return {
+      busy: false,
+      processed,
+      remaining: entities.filter((e) => e.kind === "hotel" && !e.catalog && !validGeo(e)).length,
+    };
+  });
+export const proximityCatalogSelectFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    jobScope
+      .extend({
+        entityId: z.string().uuid(),
+        catalogId: z.string().uuid(),
+        reason: z.string().trim().min(10).max(500),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const job = await get(context.supabase, data.tenantId, data.jobId);
+    if (job.status === "running" || (job.lease_until && Date.parse(job.lease_until) > Date.now()))
+      throw new Error("Pause e aguarde o lote antes de selecionar.");
+    const entities = job.entities as unknown as Entity[];
+    const entity = entities.find((e) => e.id === data.entityId && e.kind === "hotel");
+    if (!entity?.catalog?.candidates.some((c) => c.hotel.id === data.catalogId))
+      throw new Error("Candidato não pertence à análise.");
+    const row = await context.supabase
+      .from("hotels")
+      .select(catalogProjection)
+      .eq("id", data.catalogId)
+      .single();
+    if (row.error) throw new Error(row.error.message);
+    const candidate = assessCatalog(entity, row.data as CatalogHotel);
+    entity.catalog = {
+      ...entity.catalog,
+      selectedId: data.catalogId,
+      checkedAt: new Date().toISOString(),
+      reason: data.reason,
+      actorId: context.userId,
+      status: candidate.invalid
+        ? "invalid"
+        : candidate.confidence === "high"
+          ? "recovered"
+          : "review",
+      candidates: entity.catalog.candidates.map((c) =>
+        c.hotel.id === data.catalogId ? candidate : c,
+      ),
+    };
+    const geo = catalogGeo(candidate);
+    if (geo) {
+      entity.geo = geo;
+      entity.attempted = true;
+    }
+    const saved = await context.supabase
+      .from("proximity_jobs")
+      .update({
+        entities: json(entities),
+        pairs: json(compare(entities)),
+        checkpoint: entities.filter((v) => v.attempted).length,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", job.id)
+      .eq("client_tenant_id", data.tenantId)
+      .eq("updated_at", job.updated_at)
+      .select("id");
+    if (saved.error) throw new Error(saved.error.message);
+    if (!saved.data?.length)
+      throw new Error("Análise alterada durante a seleção; atualize e tente novamente.");
+    return { confidence: candidate.confidence, invalid: candidate.invalid };
+  });
 export const proximityCreateFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
