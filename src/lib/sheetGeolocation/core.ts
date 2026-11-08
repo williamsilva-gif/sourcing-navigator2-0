@@ -187,8 +187,7 @@ export function validateSheetPlace(entity: Entity, place: GooglePlace, unique = 
   const originalPostal = entity.cep.trim();
   const derivedPostal = geo.derivedPostalCode ?? "";
   if (!validPostal(derivedPostal)) geo.reasons.push("CEP Google ausente/inválido");
-  if (originalPostal && !validPostal(originalPostal))
-    geo.reasons.push("CEP original malformado");
+  if (originalPostal && !validPostal(originalPostal)) geo.reasons.push("CEP original malformado");
   if (
     !originalPostal &&
     unique &&

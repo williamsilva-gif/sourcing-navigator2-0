@@ -4,12 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Database, Json } from "@/integrations/supabase/types";
 import { google } from "../proximity/google.server";
-import {
-  selectPlace,
-  stateCode,
-  type GoogleResult,
-  type GooglePlace,
-} from "../proximity/core";
+import { selectPlace, stateCode, type GoogleResult, type GooglePlace } from "../proximity/core";
 import {
   cacheKey,
   counts,

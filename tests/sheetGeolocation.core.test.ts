@@ -68,12 +68,16 @@ describe("Independent spreadsheet geolocation", () => {
   }
   function place(): GooglePlace {
     return {
-      id: "synthetic-place", displayName: { text: "Hotel Teste Central" },
+      id: "synthetic-place",
+      displayName: { text: "Hotel Teste Central" },
       formattedAddress: "Rua Teste, 10, Cidade Teste, SP, 01234-567, Brasil",
-      location: { latitude: -23, longitude: -46 }, types: ["lodging"],
+      location: { latitude: -23, longitude: -46 },
+      types: ["lodging"],
       businessStatus: "OPERATIONAL",
       addressComponents: result().address_components?.map((c) => ({
-        longText: c.long_name, shortText: c.short_name, types: c.types,
+        longText: c.long_name,
+        shortText: c.short_name,
+        types: c.types,
       })),
     };
   }
@@ -89,12 +93,14 @@ describe("Independent spreadsheet geolocation", () => {
     expect(validatePlace(entity, place()).confidence).toBe("review");
   });
   it.each(["99999-999", "0123456", "abc01234567", "01234--567"])(
-    "keeps existing conflicting/malformed original CEP %s in review", (cep) => {
+    "keeps existing conflicting/malformed original CEP %s in review",
+    (cep) => {
       expect(validateSheetPlace({ ...hotel(), cep }, place(), true).confidence).toBe("review");
     },
   );
   it.each(["", "123", "abc01234567", "01234--567"])(
-    "keeps missing/malformed Google CEP %s in review", (cep) => {
+    "keeps missing/malformed Google CEP %s in review",
+    (cep) => {
       const p = place();
       const c = p.addressComponents?.find((v) => v.types.includes("postal_code"));
       if (c) c.longText = cep;
@@ -107,30 +113,45 @@ describe("Independent spreadsheet geolocation", () => {
     expect(validateSheetPlace(hotel(), place()).confidence).toBe("review");
   });
   it.each(["locality", "administrative_area_level_1", "country", "route", "street_number"])(
-    "retains every %s mismatch despite blank original CEP", (field) => {
+    "retains every %s mismatch despite blank original CEP",
+    (field) => {
       const p = place();
       const c = p.addressComponents?.find((v) => v.types.includes(field));
-      if (c) { c.longText = "Divergente"; c.shortText = "XX"; }
+      if (c) {
+        c.longText = "Divergente";
+        c.shortText = "XX";
+      }
       expect(validateSheetPlace(hotel(), p, true).confidence).toBe("review");
     },
   );
-  it.each(["closed", "category", "name", "address", "id", "coordinates", "postalMissing", "numberMissing"])(
-    "does not relax %s evidence", (field) => {
-      const p = place();
-      if (field === "closed") p.businessStatus = "CLOSED_PERMANENTLY";
-      if (field === "category") p.types = ["office"];
-      if (field === "name") p.displayName = { text: "Outro Estabelecimento" };
-      if (field === "address") p.formattedAddress = "";
-      if (field === "id") p.id = "";
-      if (field === "coordinates") p.location = { latitude: 100, longitude: -46 };
-      if (field === "postalMissing" || field === "numberMissing")
-        p.addressComponents = p.addressComponents?.filter((c) => !c.types.includes(field === "postalMissing" ? "postal_code" : "street_number"));
-      expect(validateSheetPlace(hotel(), p, true).confidence).toBe("review");
-    },
-  );
+  it.each([
+    "closed",
+    "category",
+    "name",
+    "address",
+    "id",
+    "coordinates",
+    "postalMissing",
+    "numberMissing",
+  ])("does not relax %s evidence", (field) => {
+    const p = place();
+    if (field === "closed") p.businessStatus = "CLOSED_PERMANENTLY";
+    if (field === "category") p.types = ["office"];
+    if (field === "name") p.displayName = { text: "Outro Estabelecimento" };
+    if (field === "address") p.formattedAddress = "";
+    if (field === "id") p.id = "";
+    if (field === "coordinates") p.location = { latitude: 100, longitude: -46 };
+    if (field === "postalMissing" || field === "numberMissing")
+      p.addressComponents = p.addressComponents?.filter(
+        (c) => !c.types.includes(field === "postalMissing" ? "postal_code" : "street_number"),
+      );
+    expect(validateSheetPlace(hotel(), p, true).confidence).toBe("review");
+  });
   it("requires the source hotel number to agree", () => {
     expect(validateSheetPlace({ ...hotel(), number: "" }, place(), true).confidence).toBe("review");
-    expect(validateSheetPlace({ ...hotel(), number: "11" }, place(), true).confidence).toBe("review");
+    expect(validateSheetPlace({ ...hotel(), number: "11" }, place(), true).confidence).toBe(
+      "review",
+    );
   });
   it.each(["office", "store"] as const)("leaves %s missing CEP validation unchanged", (kind) => {
     const entity = { ...hotel(), kind, code: "UNIT-1" };
