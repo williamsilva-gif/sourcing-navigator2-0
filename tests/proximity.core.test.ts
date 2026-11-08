@@ -236,7 +236,9 @@ describe("Raio & Proximidade isolated conservative rules", () => {
     );
   });
   it("validates locality, UF, property postal code and precision", () => {
-    expect(validateGeocode(fixture()[0], googleResult()).confidence).toBe("high");
+    const good = googleResult();
+    good.address_components?.push({long_name:"Rua Teste",short_name:"Rua Teste",types:["route"]});
+    expect(validateGeocode(fixture()[0], good).confidence).toBe("high");
     const r = googleResult();
     r.address_components?.splice(0, 1, {
       long_name: "Brasília",
@@ -263,5 +265,14 @@ describe("Raio & Proximidade isolated conservative rules", () => {
     if (cep) cep.long_name = "70000-000";
     expect(validateGeocode(e, r).reasons).toContain("CEP incoerente/ausente");
     expect(e.cep).toBe("01234-567");
+  });
+  it("wrong house number and missing street never confer high confidence", () => {
+    const r=googleResult();const n=r.address_components?.find(c=>c.types.includes("street_number"));if(n)n.long_name="999";
+    const result=validateGeocode(fixture()[0],r);
+    expect(result.reasons).toContain("Número incoerente");expect(result.reasons).toContain("Logradouro não confirmado");
+  });
+  it("unresolved duplicate code keeps nearest provisional",()=>{
+    const e=fixture();e[3].active=false;e[3].issues=["Código duplicado"];
+    expect(compare(e).filter(p=>p.kind==='office').every(p=>!p.definitive)).toBe(true);
   });
 });

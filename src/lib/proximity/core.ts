@@ -220,6 +220,15 @@ export function validateGeocode(e: Entity, r: GoogleResult): Geo {
     reasons.push("CEP incoerente/ausente");
   if (!c("country") || c("country")?.short_name !== "BR") reasons.push("País incoerente/ausente");
   if (!c("street_number")) reasons.push("Número não confirmado");
+  const expectedNumber = e.number || e.address.match(/\b\d+[a-z]?\b/i)?.[0];
+  if (expectedNumber && norm(c("street_number")?.long_name ?? "") !== norm(expectedNumber))
+    reasons.push("Número incoerente");
+  if (!c("route")) reasons.push("Logradouro não confirmado");
+  const route = norm(c("route")?.long_name ?? "");
+  if (route && !norm(e.address).includes(route)) reasons.push("Logradouro incoerente");
+  if (!Number.isFinite(r.geometry.location.lat) || !Number.isFinite(r.geometry.location.lng) ||
+      Math.abs(r.geometry.location.lat) > 90 || Math.abs(r.geometry.location.lng) > 180)
+    reasons.push("Coordenadas inválidas");
   if (e.issues.some((i) => /ausente|inválid/.test(i))) reasons.push("Endereço original incompleto");
   return {
     ...r.geometry.location,
@@ -247,7 +256,8 @@ export function compare(entities: Entity[], allowCross = false): Pair[] {
               (e) => e.kind === kind && e.active && e.eligible && norm(e.uf) === norm(h.uf),
             )
           : [];
-      const definite = local.length > 0 && units.every(validGeo);
+      const unresolvedCode = entities.some(e => e.kind === kind && cityKey(e) === cityKey(h) && e.issues.includes("Código duplicado"));
+      const definite = local.length > 0 && units.every(validGeo) && !unresolvedCode;
       const candidates = units
         .filter(validGeo)
         .flatMap((u) =>

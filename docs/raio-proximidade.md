@@ -18,3 +18,5 @@ Excel reflects filters, originals, codes, addresses/CEP, coordinates/confidence,
 
 ## Verification
 Focused synthetic fixture: 2 hotels, 3 offices and 1 store; deterministic rule tests and authenticated UI import/export persistence checks. Actual verification results are appended after execution.
+
+Authenticated UI QA (2026-11-08): created one clearly labeled synthetic analysis in Travel Academy, ID `bcc66c8c-9a33-4c64-a2db-9225fb1a2728`. Uploaded three sheet imports via private storage and actual server parser, 2 hotels/3 offices/1 store. Verified counts, Block List filter (one hotel), three-sheet Excel with one filtered original row, inverse view, reopening and cancellation persistence; no browser runtime errors. Desktop/mobile screenshots checked. No Google calls triggered, therefore 0 geocoded and 0 pairs persisted; geometric/completeness tests use in-memory synthetic coordinates only. Real 397-row Claro workbook has not been uploaded or processed. Batch execution, real Google geocoding, manual Place precision and Routes outputs remain live-unverified. Original missing-files and Google test restrictions are not represented as successful runs.
