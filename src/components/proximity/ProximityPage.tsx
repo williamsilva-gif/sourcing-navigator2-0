@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useSuspenseQuery, useQuery, useQueryClient, queryOptions } from "@tanstack/react-query";
 import * as XLSX from "xlsx";
@@ -44,7 +44,7 @@ import {
   proximityManualFn,
   proximityRoutesFn,
 } from "@/lib/proximity/proximity.functions";
-export const proximityTenantsQuery = queryOptions({
+const proximityTenantsQuery = queryOptions({
   queryKey: ["proximity", "tenants"],
   queryFn: () => proximityTenantsFn(),
 });
@@ -99,7 +99,7 @@ export function ProximityPage() {
   const rows = book && sheet ? sheetRows(book, sheet) : [];
   const headers = rows[header - 1] ?? [];
   const preview = file ? parse(rows, header, mapping, kind, file.name, sheet) : [];
-  const refresh = () => cache.invalidateQueries({ queryKey: ["proximity"] });
+  const refresh = useCallback(() => cache.invalidateQueries({ queryKey: ["proximity"] }), [cache]);
   const action = async (fn: () => Promise<unknown>) => {
     setBusy(true);
     try {
@@ -133,7 +133,7 @@ export function ProximityPage() {
       stopped = true;
       clearInterval(timer);
     };
-  }, [job?.status, tenantId, jobId, batch]);
+  }, [job?.status, tenantId, jobId, batch, refresh]);
   const changeSheet = (value: string, w = book) => {
     setSheet(value);
     if (w) {
