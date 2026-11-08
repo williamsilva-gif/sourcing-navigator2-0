@@ -4,9 +4,11 @@ import {
   stateCode,
   originalNumber,
   validateGeocode,
+  validatePlace,
   type Entity,
   type Geo,
   type GoogleResult,
+  type GooglePlace,
   type Kind,
 } from "../proximity/core";
 import { street } from "../proximity/catalog";
@@ -123,7 +125,9 @@ export function parseSheet(
     if (!entity.address || !entity.city || !/^[a-z]{2}$/.test(stateCode(entity.uf)))
       notes.push("Logradouro/cidade/UF incompleto: revisão necessária");
     if (!originalNumber(entity)) notes.push("Número original ausente; não será inventado");
-    if (!/^\d{8}$/.test(entity.cep.replace(/\D/g, "")))
+    if (kind === "hotel" && !entity.cep.trim())
+      notes.push("CEP original vazio: será conferido por identidade e endereço no Google Places");
+    else if (!/^\d{8}$/.test(entity.cep.replace(/\D/g, "")))
       notes.push("CEP ausente/inválido: revisão necessária");
     rows.push({
       index,
@@ -173,6 +177,30 @@ export function validate(row: Row, result: GoogleResult) {
   if (!result.place_id) geo.reasons.push("Place ID ausente");
   geo.reasons = [...new Set(geo.reasons)];
   geo.confidence = geo.reasons.length ? "review" : "high";
+  return geo;
+}
+// Sheet-only exception: never relax legacy radius or unnamed-unit validation.
+export function validateSheetPlace(entity: Entity, place: GooglePlace, unique = false): Geo {
+  const geo = validatePlace(entity, place, !unique);
+  if (entity.kind !== "hotel") return geo;
+  const validPostal = (value: string) => /^(?:\d{8}|\d{5}-\d{3})$/.test(value.trim());
+  const originalPostal = entity.cep.trim();
+  const derivedPostal = geo.derivedPostalCode ?? "";
+  if (!validPostal(derivedPostal)) geo.reasons.push("CEP Google ausente/inválido");
+  if (originalPostal && !validPostal(originalPostal)) geo.reasons.push("CEP original malformado");
+  if (
+    !originalPostal &&
+    unique &&
+    validPostal(derivedPostal) &&
+    originalNumber(entity) &&
+    geo.reasons.every((reason) => reason === "CEP incoerente/ausente")
+  ) {
+    geo.reasons = [];
+  }
+  geo.reasons = [...new Set(geo.reasons)];
+  geo.confidence = geo.reasons.length ? "review" : "high";
+  if (geo.confidence === "high") geo.confirmation = "establishment";
+  else delete geo.confirmation;
   return geo;
 }
 export function counts(rows: Row[]) {
