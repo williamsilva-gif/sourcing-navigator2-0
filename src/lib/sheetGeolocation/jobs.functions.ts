@@ -12,7 +12,17 @@ import {
   type GoogleResult,
   type GooglePlace,
 } from "../proximity/core";
-import { cacheKey, counts, parseSheet, query, validate, transientFailure, retryAt, type Row, type Mapping } from "./core";
+import {
+  cacheKey,
+  counts,
+  parseSheet,
+  query,
+  validate,
+  transientFailure,
+  retryAt,
+  type Row,
+  type Mapping,
+} from "./core";
 const scope = z.object({ tenantId: z.string().uuid() });
 const jobScope = scope.extend({ jobId: z.string().uuid() });
 const json = (v: unknown): Json => JSON.parse(JSON.stringify(v));

@@ -151,7 +151,8 @@ export function SheetGeolocation({ tenants }: { tenants: { id: string; name: str
   }
   const save = async () => {
     if (!file || !book || !confirmed) return;
-    let current = job?.status === "draft" && job.filename === file.name && job.kind === kind ? job : undefined;
+    let current =
+      job?.status === "draft" && job.filename === file.name && job.kind === kind ? job : undefined;
     if (!current) {
       current = await create({ data: { tenantId, filename: file.name, kind } });
       setJob(current.id);
@@ -162,12 +163,17 @@ export function SheetGeolocation({ tenants }: { tenants: { id: string; name: str
     if (upload.error && !/already exists|duplicate/i.test(upload.error.message))
       throw new Error(upload.error.message);
     if (upload.error) {
-      const existing = await supabase.storage.from("sheet-geolocation-originals").download(current.storage_path);
-      if (existing.error || !existing.data) throw new Error("Não foi possível verificar o original já arquivado.");
+      const existing = await supabase.storage
+        .from("sheet-geolocation-originals")
+        .download(current.storage_path);
+      if (existing.error || !existing.data)
+        throw new Error("Não foi possível verificar o original já arquivado.");
       const left = new Uint8Array(await existing.data.arrayBuffer());
       const right = new Uint8Array(await file.arrayBuffer());
       if (left.length !== right.length || left.some((byte, index) => byte !== right[index]))
-        throw new Error("O arquivo difere do original privado; selecione Novo arquivo independente.");
+        throw new Error(
+          "O arquivo difere do original privado; selecione Novo arquivo independente.",
+        );
     }
     const saved = await commit({
       data: { tenantId, jobId: current.id, sheet, header, mapping, budget, confirmed: true },
