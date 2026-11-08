@@ -44,7 +44,7 @@ async function get(s: SupabaseClient<Database>, tenant: string, id: string) {
         last_error: null, updated_at: new Date().toISOString() })
       .eq("id", id).eq("client_tenant_id", tenant).eq("status", "paused")
       .eq("checkpoint", (r.data.rows as unknown as Row[]).length)
-      .eq("rows", JSON.stringify(r.data.rows)).eq("updated_at", r.data.updated_at)
+      .not("rows", "cs", JSON.stringify([{ status: "pending" }])).eq("updated_at", r.data.updated_at)
       .select().maybeSingle();
     if (normalized.error) throw new Error("Não foi possível reconhecer a conclusão persistida.");
     if (normalized.data) return normalized.data;

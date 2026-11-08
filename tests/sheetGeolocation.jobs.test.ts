@@ -37,13 +37,17 @@ function harness() {
     updated_at: "snapshot", next_batch_at: null as string | null, last_error: null as string | null };
   let failSave = false;
   const client = {
-    rpc: async (name: string) => ({ data: name === "proximity_access" ? true : [structuredClone(job)], error: null }),
+    rpc: async (name: string, args: { _token?: string }) => {
+      if (name === "sheet_geo_claim") job.lease_token = args._token ?? "token";
+      return { data: name === "proximity_access" ? true : [structuredClone(job)], error: null };
+    },
     from: () => {
       let patch: Record<string, unknown> | undefined;
       const filters: [string, unknown][] = [];
       const q = {
         select: () => q, update: (p: Record<string, unknown>) => { patch = p; return q; },
         eq: (key: string, value: unknown) => { filters.push([key, value]); return q; },
+        not: (_key: string, _op: string, _value: string) => q,
         single: () => execute(true), maybeSingle: () => execute(true),
         then: (resolve: (r: unknown) => unknown) => Promise.resolve(execute(false)).then(resolve),
       };
