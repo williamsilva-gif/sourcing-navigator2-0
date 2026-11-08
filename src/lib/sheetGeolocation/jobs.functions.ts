@@ -289,6 +289,9 @@ export const batchSheetJob = createServerFn({ method: "POST" })
             !/^[a-z]{2}$/.test(stateCode(row.entity.uf))
           ) {
             row.status = "review";
+          } else if (row.attempts >= 3) {
+            row.status = "error";
+            row.notes = [...row.notes, "Limite de três tentativas por linha atingido"];
           } else {
             row.attempts++;
             const response = (await request(
@@ -361,7 +364,7 @@ export const batchSheetJob = createServerFn({ method: "POST" })
           row.nextRetry = undefined;
         } catch (cause) {
           const message =
-            cause instanceof TypeError
+            cause instanceof TypeError && !transientFailure(cause.message)
               ? "Resposta Google malformada: estrutura inválida para esta linha."
               : cause instanceof Error
                 ? cause.message

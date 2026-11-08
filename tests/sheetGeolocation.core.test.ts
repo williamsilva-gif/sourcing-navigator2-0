@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import * as XLSX from "xlsx";
 import {
   parseSheet,
@@ -155,8 +155,14 @@ describe("Independent spreadsheet geolocation", () => {
   });
   it.each(["office", "store"] as const)("leaves %s missing CEP validation unchanged", (kind) => {
     const entity = { ...hotel(), kind, code: "UNIT-1" };
-    expect(validateSheetPlace(entity, place(), true)).toEqual(validatePlace(entity, place()));
-    expect(validateSheetPlace(entity, place(), true).confidence).toBe("review");
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date("2026-11-08T18:10:00Z"));
+      expect(validateSheetPlace(entity, place(), true)).toEqual(validatePlace(entity, place()));
+      expect(validateSheetPlace(entity, place(), true).confidence).toBe("review");
+    } finally {
+      vi.useRealTimers();
+    }
   });
   it("preserves CSV spelling and leading-zero identifiers as text", () => {
     const book = readWorkbook(
