@@ -1,5 +1,5 @@
 # Raio & Proximidade
-- [ ] Independent spreadsheet geolocation: isolated TA/tenant jobs and private originals, mapping/preservation, bounded Google batches, partial exports, deterministic tests and authenticated preview QA; no automatic real processing.
+- [x] Independent spreadsheet geolocation: TA/tenant jobs and private originals, confirmed XLSX/CSV mapping, bounded explicit-start Google batches, partial exports; 64 tests/scoped lint/automatic build OK, authenticated synthetic upload/export/filter/pause/reopen and mobile QA. Live Maps remains unverified; no real batch or publication.
 - [ ] Catalog-first coordinates: conservative address/city/geographic matching, persistent authenticated batches, candidate review/audit, counters/exports and real-job UI QA.
 - [x] Real Claro continuation: SELECT and authenticated read-only reopen verified 397/666/135/28, paused 0/1198; establishment fallback/provenance, city RN, full-state UF bug and retry monitoring implemented; 33 tests/lint passed. TA master/staff confirmed in existing SQL helper; no migration needed.
 - [x] Isolated tenant-scoped schema, authenticated batch/checkpoints and conservative geocoding implemented.
