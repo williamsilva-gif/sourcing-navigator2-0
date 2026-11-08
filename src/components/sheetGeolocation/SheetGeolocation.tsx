@@ -61,7 +61,6 @@ export function SheetGeolocation({ tenants }: { tenants: { id: string; name: str
   const [cost, setCost] = useState(false);
   const [busy, setBusy] = useState(false);
   const [filter, setFilter] = useState("");
-  const [prepared, setPrepared] = useState<{ bytes: ArrayBuffer; filename: string }>();
   const cache = useQueryClient();
   const list = useServerFn(listSheetJobs),
     get = useServerFn(getSheetJob),
@@ -83,6 +82,9 @@ export function SheetGeolocation({ tenants }: { tenants: { id: string; name: str
   const job = detail.data;
   const rows = (job?.rows ?? []) as unknown as Row[];
   const stats = counts(rows);
+  const complete = job?.status === "processed" && stats.total > 0 && stats.pending === 0;
+  const waiting = stats.pending > 0 && rows.every((r) => r.status !== "pending" || (r.nextRetry ?? 0) > Date.now());
+  const nextRetry = waiting ? Math.min(...rows.filter((r) => r.status === "pending").map((r) => r.nextRetry ?? 0)) : undefined;
   const visible = rows.filter((r) => !filter || r.status === filter);
   const refresh = useCallback(
     () => cache.invalidateQueries({ queryKey: ["sheet-geolocation"] }),
@@ -94,8 +96,10 @@ export function SheetGeolocation({ tenants }: { tenants: { id: string; name: str
   useEffect(() => {
     setRun(false);
     setCost(false);
-    setPrepared(undefined);
   }, [tenantId, jobId]);
+  useEffect(() => {
+    if (job?.status !== "running") setRun(false);
+  }, [job?.status]);
   useEffect(() => {
     if (!run || !jobId || job?.status !== "running") return;
     let stopped = false;
@@ -210,10 +214,8 @@ export function SheetGeolocation({ tenants }: { tenants: { id: string; name: str
         unique,
       );
     }
-    setPrepared({
-      bytes: XLSX.write(w, { type: "array", bookType: "xlsx" }),
-      filename: `${job.filename.replace(/\.(xlsx|csv)$/i, "")}_geolocalizado.xlsx`,
-    });
+    download(XLSX.write(w, { type: "array", bookType: "xlsx" }),
+      `${job.filename.replace(/\.(xlsx|csv)$/i, "")}_geolocalizado.xlsx`);
   };
   return (
     <div className="space-y-6 text-foreground">
@@ -494,15 +496,27 @@ export function SheetGeolocation({ tenants }: { tenants: { id: string; name: str
               </div>
             ))}
           </div>
+          {complete && (
+            <div role="status" className="border-l-2 border-primary pl-3">
+              <p className="font-semibold">Processamento finalizado — {stats.total} de {stats.total} linhas analisadas</p>
+              <p className="text-sm">Alta confiança: {stats.high} · Revisão: {stats.review} · Falhas: {stats.error}</p>
+            </div>
+          )}
+          {waiting && job.status === "running" && nextRetry && (
+            <p role="status" className="text-sm text-warning">
+              Aguardando nova tentativa — {new Date(nextRetry).toLocaleString("pt-BR")}
+            </p>
+          )}
+          <p className="text-sm text-muted-foreground">Linhas em revisão ou com falha não são coordenadas aprovadas.</p>
           <p className="text-sm">
             Verificados: {stats.high}/{stats.total} · checkpoint de tentativas: {job.checkpoint}/
             {stats.total}
           </p>
           <progress
             className="h-2 w-full accent-primary"
-            value={stats.high}
+            value={stats.total - stats.pending}
             max={stats.total || 1}
-            aria-label="Progresso verificado"
+            aria-label="Linhas analisadas"
           />
           {job.last_error && (
             <p role="alert" className="text-sm text-destructive">
@@ -530,7 +544,7 @@ export function SheetGeolocation({ tenants }: { tenants: { id: string; name: str
             </Button>
             <Button
               variant="outline"
-              disabled={busy || job.status === "draft"}
+              disabled={busy || job.status === "draft" || complete}
               onClick={() => {
                 setRun(false);
                 void action(() => control({ data: { tenantId, jobId, status: "paused" } }));
@@ -541,7 +555,7 @@ export function SheetGeolocation({ tenants }: { tenants: { id: string; name: str
             </Button>
             <Button
               variant="outline"
-              disabled={busy || job.status === "draft"}
+              disabled={busy || job.status === "draft" || complete}
               onClick={() => {
                 setRun(false);
                 void action(() => control({ data: { tenantId, jobId, status: "cancelled" } }));
@@ -551,19 +565,13 @@ export function SheetGeolocation({ tenants }: { tenants: { id: string; name: str
               Cancelar
             </Button>
             <Button
-              variant="outline"
+              variant={complete ? "default" : "outline"}
               disabled={busy || !rows.length}
               onClick={() => void action(prepare)}
             >
               <FileSpreadsheet className="mr-2 h-4 w-4" />
-              Preparar Excel parcial
+              {complete ? "Baixar Excel final" : "Baixar Excel parcial"}
             </Button>
-            {prepared && (
-              <Button variant="outline" onClick={() => download(prepared.bytes, prepared.filename)}>
-                <Download className="mr-2 h-4 w-4" />
-                Baixar Excel enriquecido
-              </Button>
-            )}
           </div>
           <select
             aria-label="Filtrar status geocodificação"
