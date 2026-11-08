@@ -71,7 +71,35 @@ export const norm = (v: string) =>
     .toLowerCase()
     .replace(/[^a-z0-9]/g, "");
 export function stateCode(value: string) {
-  const names: Record<string, string> = { acre: "ac", alagoas: "al", amapa: "ap", amazonas: "am", bahia: "ba", ceara: "ce", distritofederal: "df", espiritosanto: "es", goias: "go", maranhao: "ma", matogrosso: "mt", matogrossodosul: "ms", minasgerais: "mg", para: "pa", paraiba: "pb", parana: "pr", pernambuco: "pe", piaui: "pi", riodejaneiro: "rj", riograndedonorte: "rn", riograndedosul: "rs", rondonia: "ro", roraima: "rr", santacatarina: "sc", saopaulo: "sp", sergipe: "se", tocantins: "to" };
+  const names: Record<string, string> = {
+    acre: "ac",
+    alagoas: "al",
+    amapa: "ap",
+    amazonas: "am",
+    bahia: "ba",
+    ceara: "ce",
+    distritofederal: "df",
+    espiritosanto: "es",
+    goias: "go",
+    maranhao: "ma",
+    matogrosso: "mt",
+    matogrossodosul: "ms",
+    minasgerais: "mg",
+    para: "pa",
+    paraiba: "pb",
+    parana: "pr",
+    pernambuco: "pe",
+    piaui: "pi",
+    riodejaneiro: "rj",
+    riograndedonorte: "rn",
+    riograndedosul: "rs",
+    rondonia: "ro",
+    roraima: "rr",
+    santacatarina: "sc",
+    saopaulo: "sp",
+    sergipe: "se",
+    tocantins: "to",
+  };
   return names[norm(value)] ?? norm(value);
 }
 export function municipal(e: Pick<Entity, "city" | "uf" | "address">) {
@@ -160,7 +188,8 @@ export function parse(
     };
     if (!e.name) e.issues.push("Nome ausente");
     if (!e.address || !originalNumber(e)) e.issues.push("Endereço físico ou número ausente");
-    if (!e.city || !/^([a-z]{2})$/.test(stateCode(e.uf))) e.issues.push("Cidade/UF ausente ou inválida");
+    if (!e.city || !/^([a-z]{2})$/.test(stateCode(e.uf)))
+      e.issues.push("Cidade/UF ausente ou inválida");
     if (e.cep.replace(/\D/g, "").length !== 8) e.issues.push("CEP inválido/ausente");
     if (kind !== "hotel" && !/^(ESC-[\w-]+|L[\w-]+|801)$/i.test(e.code))
       e.issues.push("Código de unidade ausente ou fora do padrão ESC-*, L*, 801");
@@ -357,7 +386,8 @@ export function compare(entities: Entity[], allowCross = false): Pair[] {
         ? local
         : allowCross
           ? entities.filter(
-              (e) => e.kind === kind && e.active && e.eligible && stateCode(e.uf) === stateCode(h.uf),
+              (e) =>
+                e.kind === kind && e.active && e.eligible && stateCode(e.uf) === stateCode(h.uf),
             )
           : [];
       const unresolvedCode = entities.some(

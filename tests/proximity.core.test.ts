@@ -311,12 +311,19 @@ const placeFixture = (): GooglePlace => ({
 });
 describe("establishment fallback and city totals", () => {
   it("full state names match UF abbreviations without replacing original values", () => {
-    const e = fixture(); const office = e[2]; const store = e[5];
-    office.uf = "São Paulo"; store.uf = "São Paulo";
-    expect(stateCode("São Paulo")).toBe("sp"); expect(stateCode("Distrito Federal")).toBe("df");
+    const e = fixture();
+    const office = e[2];
+    const store = e[5];
+    office.uf = "São Paulo";
+    store.uf = "São Paulo";
+    expect(stateCode("São Paulo")).toBe("sp");
+    expect(stateCode("Distrito Federal")).toBe("df");
     expect(cityKey(store)).toBe(cityKey(e[0]));
-    expect(compare(e)).toHaveLength(8); expect(store.uf).toBe("São Paulo");
-    const h = e[0]; h.uf = "São Paulo"; expect(validatePlace(h, placeFixture()).confidence).toBe("high");
+    expect(compare(e)).toHaveLength(8);
+    expect(store.uf).toBe("São Paulo");
+    const h = e[0];
+    h.uf = "São Paulo";
+    expect(validatePlace(h, placeFixture()).confidence).toBe("high");
   });
   it("never sums repeated city RNs: two 60 RN rows remain below 100", () => {
     const e = fixture();
