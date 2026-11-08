@@ -160,7 +160,25 @@ export function cacheKey(row: Row) {
   return [row.entity.kind, norm(row.entity.name), norm(query(row))].join("|");
 }
 export function transientFailure(message: string) {
-  return /429|HTTP 5\d\d|timeout|timed out|fetch failed|network|transiente/i.test(message);
+  return /429|HTTP 5\d\d|timeout|timed out|fetch failed|network|transiente|UNKNOWN_ERROR/i.test(
+    message,
+  );
+}
+export class SheetJobFatal extends Error {}
+export function fatalFailure(message: string) {
+  return /REQUEST_DENIED|OVER_QUERY_LIMIT|OVER_DAILY_LIMIT|HTTP 40[13]|\(403\)|Google 403|API_KEY|credencial|limite de consultas|lease|persistência|processamento pausado/i.test(
+    message,
+  );
+}
+export function completedJob(job: { status: string; checkpoint: number; rows: unknown }) {
+  const rows = job.rows as Row[];
+  return (
+    job.status === "paused" &&
+    Array.isArray(rows) &&
+    rows.length > 0 &&
+    job.checkpoint === rows.length &&
+    counts(rows).pending === 0
+  );
 }
 export function retryAt(message: string, attempts: number, now: number) {
   return transientFailure(message) && attempts < 3
