@@ -1,4 +1,5 @@
 # Raio & Proximidade
+- [ ] Sheet batch row-error isolation, bounded retries, atomic completion/reload normalization and final export; verify complete 393-row job without Google calls and preserve partial historical job.
 - [x] Sheet-only missing hotel CEP exception: strict unique Places validation; 90 tests, lint/build OK and authenticated preview/read-only Hilton QA. Historical review retained because full Places/search evidence is not saved; zero new Google calls or legacy changes.
 - [x] Independent spreadsheet geolocation: TA/tenant jobs and private originals, confirmed XLSX/CSV mapping, bounded explicit-start Google batches, partial exports; 64 tests/scoped lint/automatic build OK, authenticated synthetic upload/export/filter/pause/reopen and mobile QA. Live Maps remains unverified; no real batch or publication.
 - [ ] Catalog-first coordinates: conservative address/city/geographic matching, persistent authenticated batches, candidate review/audit, counters/exports and real-job UI QA.

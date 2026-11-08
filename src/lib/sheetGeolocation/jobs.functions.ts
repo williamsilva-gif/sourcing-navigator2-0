@@ -14,6 +14,9 @@ import {
   validateSheetPlace,
   transientFailure,
   retryAt,
+  completedJob,
+  fatalFailure,
+  SheetJobFatal,
   readWorkbook as workbook,
   type Row,
   type Mapping,
@@ -34,6 +37,22 @@ async function get(s: SupabaseClient<Database>, tenant: string, id: string) {
     .eq("client_tenant_id", tenant)
     .single();
   if (r.error) throw new Error(r.error.message);
+  // Snapshot CAS: recognize only fully checkpointed paused jobs; never process on reads.
+  if (completedJob(r.data)) {
+    const normalized = await s.from("sheet_geolocation_jobs")
+      .update({ status: "processed", lease_token: null, lease_until: null, next_batch_at: null,
+        last_error: null, updated_at: new Date().toISOString() })
+      .eq("id", id).eq("client_tenant_id", tenant).eq("status", "paused")
+      .eq("checkpoint", (r.data.rows as unknown as Row[]).length)
+      .eq("rows", JSON.stringify(r.data.rows)).eq("updated_at", r.data.updated_at)
+      .select().maybeSingle();
+    if (normalized.error) throw new Error("Não foi possível reconhecer a conclusão persistida.");
+    if (normalized.data) return normalized.data;
+    const fresh = await s.from("sheet_geolocation_jobs").select("*")
+      .eq("id", id).eq("client_tenant_id", tenant).single();
+    if (fresh.error) throw new Error(fresh.error.message);
+    return fresh.data;
+  }
   return r.data;
 }
 export const listSheetJobs = createServerFn({ method: "POST" })
@@ -170,6 +189,7 @@ export const controlSheetJob = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const job = await get(context.supabase, data.tenantId, data.jobId);
     if (job.status === "draft") throw new Error("Confirme primeiro a importação.");
+    if (job.status === "processed") return { ok: true };
     if (data.status === "running" && !data.confirmedCost)
       throw new Error("Confirme o custo das consultas Google.");
     if (data.status === "running" && job.requests_reserved >= job.request_budget)
@@ -200,12 +220,10 @@ export const batchSheetJob = createServerFn({ method: "POST" })
     const rows = job.rows as unknown as Row[];
     let reserved = job.requests_reserved;
     let error = "";
-    let exhausted = false;
     const started = Date.now();
     const request = async (path: string, init?: RequestInit) => {
       if (reserved >= job.request_budget) {
-        exhausted = true;
-        throw new Error("Limite de consultas atingido; resultado parcial disponível.");
+        throw new SheetJobFatal("Limite de consultas atingido; resultado parcial disponível.");
       }
       // Reserve before network I/O. A crash may consume a reserved unit, never exceed the user-approved cap.
       reserved++;
@@ -216,7 +234,8 @@ export const batchSheetJob = createServerFn({ method: "POST" })
         .eq("lease_token", token)
         .eq("status", "running")
         .select("id");
-      if (r.error || !r.data?.length) throw new Error("Processamento pausado ou lease expirado.");
+      if (r.error) throw new SheetJobFatal("Falha de persistência da reserva; processamento interrompido.");
+      if (!r.data?.length) throw new SheetJobFatal("Processamento pausado ou lease expirado.");
       return google(path, init);
     };
     try {
@@ -229,9 +248,10 @@ export const batchSheetJob = createServerFn({ method: "POST" })
           .select("status")
           .eq("id", job.id)
           .single();
+        if (live.error) throw new SheetJobFatal("Falha de persistência ao conferir o processamento.");
         if (live.data?.status !== "running") break;
         const previous = rows.find(
-          (r) => r !== row && r.status !== "pending" && r.geo && cacheKey(r) === cacheKey(row),
+          (r) => r !== row && (r.status === "high" || r.status === "review") && r.geo && cacheKey(r) === cacheKey(row),
         );
         try {
           if (previous) {
@@ -253,13 +273,14 @@ export const batchSheetJob = createServerFn({ method: "POST" })
             const response = (await request(
               `/maps/api/geocode/json?address=${encodeURIComponent(query(row))}&language=pt-BR&region=br`,
             )) as { status: string; results?: GoogleResult[] };
-            if (["UNKNOWN_ERROR", "OVER_QUERY_LIMIT"].includes(response.status))
+            if (!response || typeof response.status !== "string")
+              throw new Error("Resposta Google malformada: status ausente.");
+            if (response.status === "UNKNOWN_ERROR")
               throw new Error(`Google transiente ${response.status}`);
-            if (response.status === "REQUEST_DENIED")
-              throw new Error(
-                "Google REQUEST_DENIED: verifique Geocoding API, billing e restrições da chave servidor.",
-              );
+            if (["REQUEST_DENIED", "OVER_QUERY_LIMIT", "OVER_DAILY_LIMIT"].includes(response.status))
+              throw new SheetJobFatal(`Google ${response.status}: verifique autorização ou quota antes de retomar.`);
             const results = response.results ?? [];
+            if (!Array.isArray(results)) throw new Error("Resposta Google malformada: resultados inválidos.");
             if (results.length === 1) {
               row.geo = validate(row, results[0]);
               row.precision = results[0].geometry.location_type;
@@ -313,18 +334,24 @@ export const batchSheetJob = createServerFn({ method: "POST" })
           }
           row.nextRetry = undefined;
         } catch (cause) {
-          const message = cause instanceof Error ? cause.message : "Falha Google";
+          const message = cause instanceof TypeError ? "Resposta Google malformada: estrutura inválida para esta linha." : cause instanceof Error ? cause.message : "Falha Google";
           const transient = transientFailure(message);
-          if (transient && row.attempts < 3) {
+          if (cause instanceof SheetJobFatal || fatalFailure(message)) {
+            error = message;
+            row.status = "pending";
+            row.nextRetry = undefined;
+            row.notes = [...row.notes, message];
+          } else if (transient && row.attempts < 3) {
             row.status = "pending";
             row.nextRetry = retryAt(message, row.attempts, Date.now());
-            row.notes = ["Falha temporária; nova tentativa agendada"];
+            row.notes = [`Falha temporária; nova tentativa agendada: ${message}`];
           } else if (transient) {
             row.status = "error";
-            row.notes = ["Falha temporária após três tentativas"];
+            row.nextRetry = undefined;
+            row.notes = [`Falha temporária após três tentativas: ${message}`];
           } else {
-            error = message;
-            row.status = exhausted ? "pending" : "error";
+            row.status = "error";
+            row.nextRetry = undefined;
             row.notes = [message];
           }
         }
@@ -341,33 +368,40 @@ export const batchSheetJob = createServerFn({ method: "POST" })
             updated_at: new Date().toISOString(),
           })
           .eq("id", job.id)
-          .eq("lease_token", token);
-        if (saved.error) throw new Error(saved.error.message);
+          .eq("lease_token", token).select("id");
+        if (saved.error || !saved.data?.length) throw new SheetJobFatal("Falha de persistência ou lease perdido; lote interrompido.");
         if (error) break;
         await new Promise((resolve) => setTimeout(resolve, 350));
       }
     } catch (cause) {
       error = cause instanceof Error ? cause.message : "Falha no lote";
     }
+    const stats = counts(rows);
+    const retries = rows.filter((r) => r.status === "pending" && r.nextRetry).map((r) => r.nextRetry ?? 0);
+    const next = retries.length && rows.every((r) => r.status !== "pending" || r.nextRetry)
+      ? Math.min(...retries) : Date.now() + 1500;
     const finish = await context.supabase
       .from("sheet_geolocation_jobs")
       .update({
         lease_token: null,
         lease_until: null,
-        next_batch_at: new Date(Date.now() + 1500).toISOString(),
+        status: error ? "paused" : stats.pending ? "running" : "processed",
+        ...(error ? {} : { checkpoint: stats.total - stats.pending }),
+        next_batch_at: !error && stats.pending ? new Date(next).toISOString() : null,
         last_error: error || null,
         updated_at: new Date().toISOString(),
       })
       .eq("id", job.id)
-      .eq("lease_token", token);
+      .eq("lease_token", token).eq("status", "running").select("id");
     if (finish.error) throw new Error(finish.error.message);
-    if (error || !counts(rows).pending) {
+    if (!finish.data?.length) {
+      // Explicit pause/cancel wins; release only our lease, without changing user state.
       const r = await context.supabase
         .from("sheet_geolocation_jobs")
-        .update({ status: error ? "paused" : "processed" })
+        .update({ lease_token: null, lease_until: null })
         .eq("id", job.id)
-        .eq("status", "running");
+        .eq("lease_token", token);
       if (r.error) throw new Error(r.error.message);
     }
-    return { busy: false, error, counts: counts(rows) };
+    return { busy: false, error, counts: stats };
   });
