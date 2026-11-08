@@ -8,12 +8,12 @@ export const Route = createFileRoute("/_proximityAuthenticated/raio-proximidade"
       {
         name: "description",
         content:
-          "Geolocalização confidencial, raio de hotéis e unidades por cliente, com validação e comparações auditáveis.",
+          "Raio de hotéis e unidades e geolocalização independente de planilhas, com originais privados, validação e resultados auditáveis.",
       },
       { property: "og:title", content: "Raio & Proximidade — Navigator" },
       {
         property: "og:description",
-        content: "Endereços físicos, completude e proximidade para sourcing corporativo.",
+        content: "Raio e geolocalização independente de planilhas com endereços originais preservados e resultados auditáveis.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
