@@ -130,3 +130,17 @@ describe("catalog-first physical matching", () => {
     expect(postal("4709110")).toBe("04709110");
   });
 });
+
+import { catalogCandidates as batchCandidates } from "@/lib/proximity/catalog";
+describe("batched catalog candidates", () => {
+  const base = { id: "x", code: null, state: "SP", latitude: -23.55, longitude: -46.63 };
+  it("filters a city batch by name or CEP+number, never another municipality", () => {
+    const e = { kind: "hotel", name: "Hotel Alfa Paulista", address: "Av Paulista, 100", city: "São Paulo", uf: "SP", cep: "01310-100" } as never;
+    const r = batchCandidates(e, [
+      { ...base, id: "1", name: "Alfa Paulista", address: "Avenida Paulista 100", postal_code: "01310100", city: "Sao Paulo" },
+      { ...base, id: "2", name: "Outro", address: "Rua X 5", postal_code: "01000000", city: "Sao Paulo" },
+      { ...base, id: "3", name: "Alfa Paulista", address: "Av Paulista 100", postal_code: "01310100", city: "Santos" },
+    ]);
+    expect(r.rows.map((h) => h.id)).toEqual(["1"]);
+  });
+});

@@ -354,7 +354,11 @@ export function ProximityPage() {
             "Revisão limiar": p.boundary,
             Confiança: `${h?.geo?.confidence}/${u?.geo?.confidence}`,
             Fonte: "Haversine WGS84 / Google Geocoding",
-            Pendências: p.definitive ? "" : "Completude insuficiente ou município excepcional",
+            Pendências: p.definitive
+              ? ""
+              : p.reviewGeo
+                ? "Coordenada em revisão TA (indicativa); completude insuficiente"
+                : "Completude insuficiente ou município excepcional",
           };
         }),
       ),
@@ -540,7 +544,7 @@ export function ProximityPage() {
                 </span>
                 <Button
                   size="sm"
-                  disabled={busy || !entities.length || job.status === "running"}
+                  disabled={busy || !entities.length || (job.status === "running" && !!job.lease_until && Date.parse(job.lease_until) > Date.now())}
                   onClick={() =>
                     action(() => control({ data: { tenantId, jobId, status: "running" } }))
                   }
@@ -596,7 +600,7 @@ export function ProximityPage() {
                 value={done}
               />
               <p className="text-xs text-muted-foreground">
-                Lotes de até 2 consultas de endereço/estabelecimento, com checkpoint. Ao fechar a
+                Lotes de até 12 endereços (4 simultâneos; escritórios e lojas primeiro), com checkpoint. Ao fechar a
                 página o processamento pausa entre lotes; continuar retoma. Google pode cobrar por
                 consulta.
               </p>
@@ -903,6 +907,7 @@ export function ProximityPage() {
                                         ? "DEFINITIVO NA CIDADE"
                                         : "PROVISÓRIO · melhor candidato localizado"}
                                     </strong>
+                                    {p.reviewGeo ? " · coordenada em revisão (indicativa)" : ""}
                                     {p.cross ? " · município excepcional" : ""}
                                     {p.boundary ? " · REVISAR LIMIAR" : ""}
                                     {p.roadKm !== undefined

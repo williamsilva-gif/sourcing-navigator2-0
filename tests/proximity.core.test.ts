@@ -416,3 +416,19 @@ describe("establishment fallback and city totals", () => {
     expect(retryDelay(3)).toBe(8000);
   });
 });
+
+import { compare as comparePairs } from "@/lib/proximity/core";
+describe("review-grade coordinates", () => {
+  it("produce provisional, never definitive, pairs", () => {
+    const base = { active: true, eligible: true, issues: [], city: "Recife", uf: "PE", address: "Rua A", number: "1", cep: "50000000", code: "", rn: 200 };
+    const ents = [
+      { ...base, id: "h", kind: "hotel", name: "H", geo: { lat: -8.05, lng: -34.9, confidence: "high" } },
+      { ...base, id: "o", kind: "office", name: "O", code: "ESC-1", geo: { lat: -8.06, lng: -34.9, confidence: "review" } },
+    ] as never;
+    const pairs = comparePairs(ents);
+    const office = pairs.filter((p) => p.kind === "office");
+    expect(office.length).toBe(1);
+    expect(office[0].definitive).toBe(false);
+    expect(office[0].reviewGeo).toBe(true);
+  });
+});

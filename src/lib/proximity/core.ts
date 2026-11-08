@@ -50,6 +50,8 @@ export type Pair = {
   cross: boolean;
   roadKm?: number;
   roadSource?: string;
+  /** Coordinate of hotel or unit is still under TA review: indicative only, never definitive. */
+  reviewGeo?: boolean;
 };
 export const fields = {
   name: "Nome",
@@ -237,6 +239,13 @@ export function inScope(e: Entity, entities: Entity[]) {
 export function validGeo(e: Entity) {
   return e.geo?.confidence === "high" && Number.isFinite(e.geo.lat) && Number.isFinite(e.geo.lng);
 }
+// Review-grade coordinates feed provisional, clearly labeled distances only.
+export function indicativeGeo(e: Entity) {
+  return (
+    validGeo(e) ||
+    (e.geo?.confidence === "review" && Number.isFinite(e.geo.lat) && Number.isFinite(e.geo.lng))
+  );
+}
 export function haversine(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
   const rad = (x: number) => (x * Math.PI) / 180;
   const dlat = rad(b.lat - a.lat),
@@ -377,7 +386,7 @@ export function retryDelay(attempts: number) {
 export function compare(entities: Entity[], allowCross = false): Pair[] {
   const pairs: Pair[] = [];
   for (const h of entities.filter(
-    (e) => e.kind === "hotel" && inScope(e, entities) && validGeo(e),
+    (e) => e.kind === "hotel" && inScope(e, entities) && indicativeGeo(e),
   )) {
     for (const kind of ["office", "store"] as const) {
       const local = entities.filter(
@@ -395,9 +404,10 @@ export function compare(entities: Entity[], allowCross = false): Pair[] {
         (e) =>
           e.kind === kind && cityKey(e) === cityKey(h) && e.issues.includes("Código duplicado"),
       );
-      const definite = local.length > 0 && units.every(validGeo) && !unresolvedCode;
+      const definite =
+        validGeo(h) && local.length > 0 && units.every(validGeo) && !unresolvedCode;
       const candidates = units
-        .filter(validGeo)
+        .filter(indicativeGeo)
         .flatMap((u) =>
           h.geo && u.geo
             ? [
@@ -408,6 +418,7 @@ export function compare(entities: Entity[], allowCross = false): Pair[] {
                   km: haversine(h.geo, u.geo),
                   band: "",
                   definitive: definite,
+                  reviewGeo: !validGeo(h) || !validGeo(u),
                   nearest: false,
                   boundary: false,
                   cross: cityKey(u) !== cityKey(h),
