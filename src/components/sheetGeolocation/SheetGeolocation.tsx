@@ -83,8 +83,12 @@ export function SheetGeolocation({ tenants }: { tenants: { id: string; name: str
   const rows = (job?.rows ?? []) as unknown as Row[];
   const stats = counts(rows);
   const complete = job?.status === "processed" && stats.total > 0 && stats.pending === 0;
-  const waiting = stats.pending > 0 && rows.every((r) => r.status !== "pending" || (r.nextRetry ?? 0) > Date.now());
-  const nextRetry = waiting ? Math.min(...rows.filter((r) => r.status === "pending").map((r) => r.nextRetry ?? 0)) : undefined;
+  const waiting =
+    stats.pending > 0 &&
+    rows.every((r) => r.status !== "pending" || (r.nextRetry ?? 0) > Date.now());
+  const nextRetry = waiting
+    ? Math.min(...rows.filter((r) => r.status === "pending").map((r) => r.nextRetry ?? 0))
+    : undefined;
   const visible = rows.filter((r) => !filter || r.status === filter);
   const refresh = useCallback(
     () => cache.invalidateQueries({ queryKey: ["sheet-geolocation"] }),
@@ -214,8 +218,10 @@ export function SheetGeolocation({ tenants }: { tenants: { id: string; name: str
         unique,
       );
     }
-    download(XLSX.write(w, { type: "array", bookType: "xlsx" }),
-      `${job.filename.replace(/\.(xlsx|csv)$/i, "")}_geolocalizado.xlsx`);
+    download(
+      XLSX.write(w, { type: "array", bookType: "xlsx" }),
+      `${job.filename.replace(/\.(xlsx|csv)$/i, "")}_geolocalizado.xlsx`,
+    );
   };
   return (
     <div className="space-y-6 text-foreground">
@@ -498,8 +504,12 @@ export function SheetGeolocation({ tenants }: { tenants: { id: string; name: str
           </div>
           {complete && (
             <div role="status" className="border-l-2 border-primary pl-3">
-              <p className="font-semibold">Processamento finalizado — {stats.total} de {stats.total} linhas analisadas</p>
-              <p className="text-sm">Alta confiança: {stats.high} · Revisão: {stats.review} · Falhas: {stats.error}</p>
+              <p className="font-semibold">
+                Processamento finalizado — {stats.total} de {stats.total} linhas analisadas
+              </p>
+              <p className="text-sm">
+                Alta confiança: {stats.high} · Revisão: {stats.review} · Falhas: {stats.error}
+              </p>
             </div>
           )}
           {waiting && job.status === "running" && nextRetry && (
@@ -507,7 +517,9 @@ export function SheetGeolocation({ tenants }: { tenants: { id: string; name: str
               Aguardando nova tentativa — {new Date(nextRetry).toLocaleString("pt-BR")}
             </p>
           )}
-          <p className="text-sm text-muted-foreground">Linhas em revisão ou com falha não são coordenadas aprovadas.</p>
+          <p className="text-sm text-muted-foreground">
+            Linhas em revisão ou com falha não são coordenadas aprovadas.
+          </p>
           <p className="text-sm">
             Verificados: {stats.high}/{stats.total} · checkpoint de tentativas: {job.checkpoint}/
             {stats.total}

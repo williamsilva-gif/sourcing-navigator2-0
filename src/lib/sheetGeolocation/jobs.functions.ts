@@ -39,17 +39,32 @@ async function get(s: SupabaseClient<Database>, tenant: string, id: string) {
   if (r.error) throw new Error(r.error.message);
   // Snapshot CAS: recognize only fully checkpointed paused jobs; never process on reads.
   if (completedJob(r.data)) {
-    const normalized = await s.from("sheet_geolocation_jobs")
-      .update({ status: "processed", lease_token: null, lease_until: null, next_batch_at: null,
-        last_error: null, updated_at: new Date().toISOString() })
-      .eq("id", id).eq("client_tenant_id", tenant).eq("status", "paused")
+    const normalized = await s
+      .from("sheet_geolocation_jobs")
+      .update({
+        status: "processed",
+        lease_token: null,
+        lease_until: null,
+        next_batch_at: null,
+        last_error: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", id)
+      .eq("client_tenant_id", tenant)
+      .eq("status", "paused")
       .eq("checkpoint", (r.data.rows as unknown as Row[]).length)
-      .not("rows", "cs", JSON.stringify([{ status: "pending" }])).eq("updated_at", r.data.updated_at)
-      .select().maybeSingle();
+      .not("rows", "cs", JSON.stringify([{ status: "pending" }]))
+      .eq("updated_at", r.data.updated_at)
+      .select()
+      .maybeSingle();
     if (normalized.error) throw new Error("Não foi possível reconhecer a conclusão persistida.");
     if (normalized.data) return normalized.data;
-    const fresh = await s.from("sheet_geolocation_jobs").select("*")
-      .eq("id", id).eq("client_tenant_id", tenant).single();
+    const fresh = await s
+      .from("sheet_geolocation_jobs")
+      .select("*")
+      .eq("id", id)
+      .eq("client_tenant_id", tenant)
+      .single();
     if (fresh.error) throw new Error(fresh.error.message);
     return fresh.data;
   }
@@ -234,7 +249,8 @@ export const batchSheetJob = createServerFn({ method: "POST" })
         .eq("lease_token", token)
         .eq("status", "running")
         .select("id");
-      if (r.error) throw new SheetJobFatal("Falha de persistência da reserva; processamento interrompido.");
+      if (r.error)
+        throw new SheetJobFatal("Falha de persistência da reserva; processamento interrompido.");
       if (!r.data?.length) throw new SheetJobFatal("Processamento pausado ou lease expirado.");
       return google(path, init);
     };
@@ -248,10 +264,15 @@ export const batchSheetJob = createServerFn({ method: "POST" })
           .select("status")
           .eq("id", job.id)
           .single();
-        if (live.error) throw new SheetJobFatal("Falha de persistência ao conferir o processamento.");
+        if (live.error)
+          throw new SheetJobFatal("Falha de persistência ao conferir o processamento.");
         if (live.data?.status !== "running") break;
         const previous = rows.find(
-          (r) => r !== row && (r.status === "high" || r.status === "review") && r.geo && cacheKey(r) === cacheKey(row),
+          (r) =>
+            r !== row &&
+            (r.status === "high" || r.status === "review") &&
+            r.geo &&
+            cacheKey(r) === cacheKey(row),
         );
         try {
           if (previous) {
@@ -277,10 +298,15 @@ export const batchSheetJob = createServerFn({ method: "POST" })
               throw new Error("Resposta Google malformada: status ausente.");
             if (response.status === "UNKNOWN_ERROR")
               throw new Error(`Google transiente ${response.status}`);
-            if (["REQUEST_DENIED", "OVER_QUERY_LIMIT", "OVER_DAILY_LIMIT"].includes(response.status))
-              throw new SheetJobFatal(`Google ${response.status}: verifique autorização ou quota antes de retomar.`);
+            if (
+              ["REQUEST_DENIED", "OVER_QUERY_LIMIT", "OVER_DAILY_LIMIT"].includes(response.status)
+            )
+              throw new SheetJobFatal(
+                `Google ${response.status}: verifique autorização ou quota antes de retomar.`,
+              );
             const results = response.results ?? [];
-            if (!Array.isArray(results)) throw new Error("Resposta Google malformada: resultados inválidos.");
+            if (!Array.isArray(results))
+              throw new Error("Resposta Google malformada: resultados inválidos.");
             if (results.length === 1) {
               row.geo = validate(row, results[0]);
               row.precision = results[0].geometry.location_type;
@@ -334,7 +360,12 @@ export const batchSheetJob = createServerFn({ method: "POST" })
           }
           row.nextRetry = undefined;
         } catch (cause) {
-          const message = cause instanceof TypeError ? "Resposta Google malformada: estrutura inválida para esta linha." : cause instanceof Error ? cause.message : "Falha Google";
+          const message =
+            cause instanceof TypeError
+              ? "Resposta Google malformada: estrutura inválida para esta linha."
+              : cause instanceof Error
+                ? cause.message
+                : "Falha Google";
           const transient = transientFailure(message);
           if (cause instanceof SheetJobFatal || fatalFailure(message)) {
             error = message;
@@ -368,8 +399,10 @@ export const batchSheetJob = createServerFn({ method: "POST" })
             updated_at: new Date().toISOString(),
           })
           .eq("id", job.id)
-          .eq("lease_token", token).select("id");
-        if (saved.error || !saved.data?.length) throw new SheetJobFatal("Falha de persistência ou lease perdido; lote interrompido.");
+          .eq("lease_token", token)
+          .select("id");
+        if (saved.error || !saved.data?.length)
+          throw new SheetJobFatal("Falha de persistência ou lease perdido; lote interrompido.");
         if (error) break;
         await new Promise((resolve) => setTimeout(resolve, 350));
       }
@@ -377,9 +410,13 @@ export const batchSheetJob = createServerFn({ method: "POST" })
       error = cause instanceof Error ? cause.message : "Falha no lote";
     }
     const stats = counts(rows);
-    const retries = rows.filter((r) => r.status === "pending" && r.nextRetry).map((r) => r.nextRetry ?? 0);
-    const next = retries.length && rows.every((r) => r.status !== "pending" || r.nextRetry)
-      ? Math.min(...retries) : Date.now() + 1500;
+    const retries = rows
+      .filter((r) => r.status === "pending" && r.nextRetry)
+      .map((r) => r.nextRetry ?? 0);
+    const next =
+      retries.length && rows.every((r) => r.status !== "pending" || r.nextRetry)
+        ? Math.min(...retries)
+        : Date.now() + 1500;
     const finish = await context.supabase
       .from("sheet_geolocation_jobs")
       .update({
@@ -392,7 +429,9 @@ export const batchSheetJob = createServerFn({ method: "POST" })
         updated_at: new Date().toISOString(),
       })
       .eq("id", job.id)
-      .eq("lease_token", token).eq("status", "running").select("id");
+      .eq("lease_token", token)
+      .eq("status", "running")
+      .select("id");
     if (finish.error) throw new Error(finish.error.message);
     if (!finish.data?.length) {
       // Explicit pause/cancel wins; release only our lease, without changing user state.
