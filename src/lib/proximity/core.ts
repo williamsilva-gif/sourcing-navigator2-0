@@ -21,7 +21,7 @@ export function parse(rows: string[][], headerRow: number, mapping: Mapping, kin
   if(!row.some(v=>String(v).trim()))return [];
   const value=(f:keyof Mapping)=>mapping[f]===undefined?'':String(row[mapping[f]??0]??'').trim();
   const rn=value('rn')?Number(value('rn').replace(/\./g,'').replace(',','.')):null;
-  const e:Entity={id:crypto.randomUUID(),kind,name:value('name'),code:value('code'),address:value('address'),number:value('number'),city:value('city'),uf:value('uf'),cep:value('cep'),document:value('document'),rn:Number.isFinite(rn)?rn:null,block:/^(sim|yes|true|1|bloqueado)$/i.test(value('block')),active:!/(histor|inativ|fechad)/i.test(value('active')),eligible:true,original:Object.fromEntries(row.map((v,c)=>[`${XLSX.utils.encode_col(c)} — ${headers[c]??''}`,String(v)])),source:{filename,sheet,row:headerRow+i+1},issues:[]};
+  const e:Entity={id:crypto.randomUUID(),kind,name:value('name'),code:value('code'),address:value('address'),number:value('number'),city:value('city'),uf:value('uf'),cep:value('cep'),document:value('document'),rn:Number.isFinite(rn)?rn:null,block:/^(sim|yes|true|1|bloqueado)$/i.test(value('block')),active:!/(histor|inativ|fechad)/i.test(norm(value('active'))),eligible:true,original:Object.fromEntries(row.map((v,c)=>[`${XLSX.utils.encode_col(c)} — ${headers[c]??''}`,String(v)])),source:{filename,sheet,row:headerRow+i+1},issues:[]};
   if(!e.name)e.issues.push('Nome ausente');
   if(!e.address||(!e.number&&!/\b\d+\b/.test(e.address)))e.issues.push('Endereço físico ou número ausente');
   if(!e.city||!/^([A-Z]{2})$/i.test(e.uf))e.issues.push('Cidade/UF ausente ou inválida');
