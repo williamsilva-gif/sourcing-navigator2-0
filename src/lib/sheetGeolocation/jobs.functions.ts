@@ -6,7 +6,6 @@ import type { Database, Json } from "@/integrations/supabase/types";
 import { google } from "../proximity/google.server";
 import {
   selectPlace,
-  validatePlace,
   stateCode,
   type GoogleResult,
   type GooglePlace,
@@ -17,6 +16,7 @@ import {
   parseSheet,
   query,
   validate,
+  validateSheetPlace,
   transientFailure,
   retryAt,
   readWorkbook as workbook,
@@ -302,7 +302,7 @@ export const batchSheetJob = createServerFn({ method: "POST" })
                 )) as GooglePlace;
                 if (place.id !== selected.place.id)
                   throw new Error("Place ID incoerente: revisão necessária.");
-                row.geo = validatePlace(row.entity, place);
+                row.geo = validateSheetPlace(row.entity, place, !selected.ambiguous);
                 row.precision = "Identidade por estabelecimento (Places; sem ROOFTOP)";
                 row.status = row.geo.confidence;
                 row.notes = row.geo.reasons;

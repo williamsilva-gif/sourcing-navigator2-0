@@ -179,6 +179,31 @@ export function validate(row: Row, result: GoogleResult) {
   geo.confidence = geo.reasons.length ? "review" : "high";
   return geo;
 }
+// Sheet-only exception: never relax legacy radius or unnamed-unit validation.
+export function validateSheetPlace(entity: Entity, place: GooglePlace, unique = false): Geo {
+  const geo = validatePlace(entity, place, !unique);
+  if (entity.kind !== "hotel") return geo;
+  const validPostal = (value: string) => /^(?:\d{8}|\d{5}-\d{3})$/.test(value.trim());
+  const originalPostal = entity.cep.trim();
+  const derivedPostal = geo.derivedPostalCode ?? "";
+  if (!validPostal(derivedPostal)) geo.reasons.push("CEP Google ausente/inválido");
+  if (originalPostal && !validPostal(originalPostal))
+    geo.reasons.push("CEP original malformado");
+  if (
+    !originalPostal &&
+    unique &&
+    validPostal(derivedPostal) &&
+    originalNumber(entity) &&
+    geo.reasons.every((reason) => reason === "CEP incoerente/ausente")
+  ) {
+    geo.reasons = [];
+  }
+  geo.reasons = [...new Set(geo.reasons)];
+  geo.confidence = geo.reasons.length ? "review" : "high";
+  if (geo.confidence === "high") geo.confirmation = "establishment";
+  else delete geo.confirmation;
+  return geo;
+}
 export function counts(rows: Row[]) {
   return {
     total: rows.length,
