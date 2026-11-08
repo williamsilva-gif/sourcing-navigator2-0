@@ -8,6 +8,8 @@ import {
   catalogGeo,
   assessCatalog,
   selectivePattern,
+  postal,
+  addressParts,
   type CatalogHotel,
 } from "./catalog";
 import {
@@ -29,6 +31,9 @@ import {
   type Mapping,
   type GoogleResult,
   validGeo,
+  norm,
+  municipal,
+  similarName,
 } from "./core";
 const scope = z.object({ tenantId: z.string().uuid() });
 const jobScope = scope.extend({ jobId: z.string().uuid() });
@@ -75,27 +80,32 @@ export const proximityGetFn = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => jobScope.parse(d))
   .handler(async ({ data, context }) => get(context.supabase, data.tenantId, data.jobId));
 const catalogProjection = "id,code,name,address,postal_code,city,state,latitude,longitude";
-async function catalogRows(s: SupabaseClient<Database>, e: Entity) {
-  const city = municipalityForQuery(e);
-  const tokens = e.name
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .split(/[^a-z0-9]+/i)
-    .filter((t) => t.length >= 3 && !/^(hotel|hoteis|pousada|inn|the)$/i.test(t));
-  const token = tokens.sort((a, b) => b.length - a.length)[0];
-  if (!city || !token) return { rows: [] as CatalogHotel[], truncated: false };
-  const r = await s
-    .from("hotels")
-    .select(catalogProjection)
-    .ilike("city", selectivePattern(city))
-    .ilike("name", `%${selectivePattern(token)}%`)
-    .order("id")
-    .limit(21);
-  if (r.error) throw new Error(r.error.message);
-  return {
-    rows: (r.data ?? []).slice(0, 20) as CatalogHotel[],
-    truncated: (r.data?.length ?? 0) > 20,
-  };
+// Batched catalog read: one selective city query (paged) serves every hotel of that city.
+async function catalogCity(s: SupabaseClient<Database>, city: string) {
+  const out: CatalogHotel[] = [];
+  for (let from = 0; from < 20000; from += 1000) {
+    const r = await s
+      .from("hotels")
+      .select(catalogProjection)
+      .ilike("city", selectivePattern(city))
+      .order("id")
+      .range(from, from + 999);
+    if (r.error) throw new Error(r.error.message);
+    out.push(...((r.data ?? []) as CatalogHotel[]));
+    if ((r.data?.length ?? 0) < 1000) break;
+  }
+  return out;
+}
+export function catalogCandidates(e: Entity, rows: CatalogHotel[]) {
+  const cep = postal(e.cep);
+  const own = addressParts(e.address, originalNumber(e));
+  const hits = rows.filter((h) => {
+    if (norm(h.city) !== municipal(e)) return false;
+    if (similarName(e.name, h.name)) return true;
+    const other = addressParts(h.address ?? "");
+    return cep.length === 8 && cep === postal(h.postal_code ?? "") && !!own.number && own.number === other.number;
+  });
+  return { rows: hits.slice(0, 20), truncated: hits.length > 20 };
 }
 export const proximityCatalogFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -117,27 +127,36 @@ export const proximityCatalogFn = createServerFn({ method: "POST" })
     if (!claimed.data?.length) return { busy: true, processed: 0, remaining: 1 };
     const entities = job.entities as unknown as Entity[];
     let processed = 0;
+    const started = Date.now();
     try {
-      for (const e of entities
-        .filter((e) => e.kind === "hotel" && !e.catalog && !validGeo(e))
-        .slice(0, 10)) {
-        const result = await catalogRows(context.supabase, e);
-        e.catalog = catalogAudit(e, result.rows, result.truncated);
-        e.catalog.actorId = context.userId;
-        const selected = e.catalog.candidates.find((c) => c.hotel.id === e.catalog?.selectedId);
-        if (selected) {
-          const geo = catalogGeo(selected);
+      const pending = entities.filter((e) => e.kind === "hotel" && !e.catalog && !validGeo(e));
+      const groups = new Map<string, Entity[]>();
+      for (const e of pending) {
+        const k = norm(municipalityForQuery(e) || "");
+        groups.set(k, [...(groups.get(k) ?? []), e]);
+      }
+      for (const [, group] of groups) {
+        if (Date.now() - started > 25000) break;
+        const city = municipalityForQuery(group[0]);
+        const rows = city ? await catalogCity(context.supabase, city) : [];
+        for (const e of group) {
+          const result = catalogCandidates(e, rows);
+          e.catalog = catalogAudit(e, result.rows, result.truncated);
+          e.catalog.actorId = context.userId;
+          const selected = e.catalog.candidates.find((c) => c.hotel.id === e.catalog?.selectedId);
+          const geo = selected && catalogGeo(selected);
           if (geo) {
             e.geo = geo;
             e.attempted = true;
           }
+          processed++;
         }
-        processed++;
         const saved = await context.supabase
           .from("proximity_jobs")
           .update({
             entities: json(entities),
             checkpoint: entities.filter((v) => v.attempted).length,
+            lease_until: new Date(Date.now() + 90000).toISOString(),
             updated_at: new Date().toISOString(),
           })
           .eq("id", job.id)
