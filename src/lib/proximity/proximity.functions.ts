@@ -8,6 +8,7 @@ import {
   catalogGeo,
   assessCatalog,
   selectivePattern,
+  catalogCandidates,
   postal,
   addressParts,
   type CatalogHotel,
@@ -95,17 +96,6 @@ async function catalogCity(s: SupabaseClient<Database>, city: string) {
     if ((r.data?.length ?? 0) < 1000) break;
   }
   return out;
-}
-export function catalogCandidates(e: Entity, rows: CatalogHotel[]) {
-  const cep = postal(e.cep);
-  const own = addressParts(e.address, originalNumber(e));
-  const hits = rows.filter((h) => {
-    if (norm(h.city) !== municipal(e)) return false;
-    if (similarName(e.name, h.name)) return true;
-    const other = addressParts(h.address ?? "");
-    return cep.length === 8 && cep === postal(h.postal_code ?? "") && !!own.number && own.number === other.number;
-  });
-  return { rows: hits.slice(0, 20), truncated: hits.length > 20 };
 }
 export const proximityCatalogFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
