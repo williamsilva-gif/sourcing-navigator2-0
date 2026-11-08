@@ -13,6 +13,7 @@ import {
   Hotel,
   Settings,
   BookOpen,
+  MapPin,
 } from "lucide-react";
 import { useAppConfigStore, useEnabledModules, type ModuleKey, TA_WORKSPACE_ID, useActiveClientId } from "@/lib/appConfigStore";
 import { useAuth, getPrimaryRole } from "@/hooks/useAuth";
@@ -100,6 +101,14 @@ export function Sidebar() {
               </li>
             );
           })}
+          {isTa && (
+            <li>
+              <Link to="/raio-proximidade" className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${pathname === "/raio-proximidade" ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"}`}>
+                <MapPin className="h-4 w-4 shrink-0" />
+                <span>Raio & Proximidade</span>
+              </Link>
+            </li>
+          )}
           {isTa && (
             <li>
               <Link to="/tax-impact-check" className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${pathname === "/tax-impact-check" ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"}`}>
