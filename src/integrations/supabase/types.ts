@@ -2127,6 +2127,86 @@ export type Database = {
           },
         ]
       }
+      sheet_geolocation_jobs: {
+        Row: {
+          checkpoint: number
+          client_tenant_id: string
+          created_at: string
+          created_by: string
+          file_hash: string | null
+          filename: string
+          header_row: number | null
+          id: string
+          kind: string
+          last_error: string | null
+          lease_token: string | null
+          lease_until: string | null
+          mapping: Json
+          next_batch_at: string | null
+          request_budget: number
+          requests_reserved: number
+          rows: Json
+          sheet: string | null
+          status: string
+          storage_path: string
+          updated_at: string
+        }
+        Insert: {
+          checkpoint?: number
+          client_tenant_id: string
+          created_at?: string
+          created_by: string
+          file_hash?: string | null
+          filename: string
+          header_row?: number | null
+          id?: string
+          kind?: string
+          last_error?: string | null
+          lease_token?: string | null
+          lease_until?: string | null
+          mapping?: Json
+          next_batch_at?: string | null
+          request_budget?: number
+          requests_reserved?: number
+          rows?: Json
+          sheet?: string | null
+          status?: string
+          storage_path: string
+          updated_at?: string
+        }
+        Update: {
+          checkpoint?: number
+          client_tenant_id?: string
+          created_at?: string
+          created_by?: string
+          file_hash?: string | null
+          filename?: string
+          header_row?: number | null
+          id?: string
+          kind?: string
+          last_error?: string | null
+          lease_token?: string | null
+          lease_until?: string | null
+          mapping?: Json
+          next_batch_at?: string | null
+          request_budget?: number
+          requests_reserved?: number
+          rows?: Json
+          sheet?: string | null
+          status?: string
+          storage_path?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sheet_geolocation_jobs_client_tenant_id_fkey"
+            columns: ["client_tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       strategy_caps: {
         Row: {
           approved_cap: number | null
@@ -3016,6 +3096,38 @@ export type Database = {
       reset_all_user_overrides_for_tenant: {
         Args: { _actor: string; _tenant_id: string }
         Returns: number
+      }
+      sheet_geo_claim: {
+        Args: { _job_id: string; _tenant_id: string; _token: string }
+        Returns: {
+          checkpoint: number
+          client_tenant_id: string
+          created_at: string
+          created_by: string
+          file_hash: string | null
+          filename: string
+          header_row: number | null
+          id: string
+          kind: string
+          last_error: string | null
+          lease_token: string | null
+          lease_until: string | null
+          mapping: Json
+          next_batch_at: string | null
+          request_budget: number
+          requests_reserved: number
+          rows: Json
+          sheet: string | null
+          status: string
+          storage_path: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "sheet_geolocation_jobs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       tax_impact_access: { Args: { _tenant_id: string }; Returns: boolean }
       visible_tenant_ids: { Args: { _user_id: string }; Returns: string[] }

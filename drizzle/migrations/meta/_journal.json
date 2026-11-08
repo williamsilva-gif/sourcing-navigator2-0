@@ -64,6 +64,13 @@
       "when": 1794115813763,
       "tag": "0008_proximity_isolated_jobs",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1794151563522,
+      "tag": "0009_sheet_geolocation_jobs",
+      "breakpoints": true
     }
   ]
 }
