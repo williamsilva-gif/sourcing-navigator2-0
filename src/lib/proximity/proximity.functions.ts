@@ -4,7 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Database, Json } from "@/integrations/supabase/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
-  addressKey,
+  stateCode,
   lookupKey,
   originalNumber,
   selectPlace,
@@ -296,7 +296,7 @@ export const proximityBatchFn = createServerFn({ method: "POST" })
       const pending = entities.filter(
         (e) => inScope(e, entities) && !e.attempted && (!e.nextRetry || e.nextRetry <= Date.now()),
       );
-      const keys = [...new Set(pending.map(lookupKey))].slice(0, 5);
+      const keys = [...new Set(pending.map(lookupKey))].slice(0, 2);
       for (const key of keys) {
         const live = await context.supabase
           .from("proximity_jobs")
@@ -311,7 +311,7 @@ export const proximityBatchFn = createServerFn({ method: "POST" })
         let failure = "";
         let retry = false;
         try {
-          if (!geo && (!e.city || !/^[a-z]{2}$/i.test(e.uf) || !e.name)) {
+          if (!geo && (!e.city || !/^[a-z]{2}$/i.test(stateCode(e.uf)) || !e.name)) {
             failure = "Nome ou município/UF incompleto: revisão TA necessária";
           } else if (!geo && (!originalNumber(e) || !e.address)) {
             const found = await establishment(e, () => calls++);
