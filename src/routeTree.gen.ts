@@ -9,117 +9,54 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as WikiRouteImport } from './routes/wiki'
-import { Route as TermsRouteImport } from './routes/terms'
-import { Route as SignupRouteImport } from './routes/signup'
-import { Route as SetPasswordRouteImport } from './routes/set-password'
-import { Route as SelecaoRouteImport } from './routes/selecao'
-import { Route as RfpRouteImport } from './routes/rfp'
-import { Route as PrivacyRouteImport } from './routes/privacy'
-import { Route as NegociacaoRouteImport } from './routes/negociacao'
-import { Route as MonitoramentoRouteImport } from './routes/monitoramento'
-import { Route as MonetizacaoRouteImport } from './routes/monetizacao'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as ImplementacaoRouteImport } from './routes/implementacao'
-import { Route as HoteisRouteImport } from './routes/hoteis'
-import { Route as EstrategiaRouteImport } from './routes/estrategia'
-import { Route as DiagnosticoRouteImport } from './routes/diagnostico'
-import { Route as AnaliseRouteImport } from './routes/analise'
-import { Route as AdminRouteImport } from './routes/admin'
-import { Route as TaxAuthenticatedRouteImport } from './routes/_taxAuthenticated'
-import { Route as ProximityAuthenticatedRouteImport } from './routes/_proximityAuthenticated'
-import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
+import { Route as ProximityAuthenticatedRouteImport } from './routes/_proximityAuthenticated'
+import { Route as TaxAuthenticatedRouteImport } from './routes/_taxAuthenticated'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AnaliseRouteImport } from './routes/analise'
+import { Route as DiagnosticoRouteImport } from './routes/diagnostico'
+import { Route as EstrategiaRouteImport } from './routes/estrategia'
+import { Route as HoteisRouteImport } from './routes/hoteis'
+import { Route as ImplementacaoRouteImport } from './routes/implementacao'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as MonetizacaoRouteImport } from './routes/monetizacao'
+import { Route as MonitoramentoRouteImport } from './routes/monitoramento'
+import { Route as NegociacaoRouteImport } from './routes/negociacao'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as RfpRouteImport } from './routes/rfp'
+import { Route as SelecaoRouteImport } from './routes/selecao'
+import { Route as SetPasswordRouteImport } from './routes/set-password'
+import { Route as SignupRouteImport } from './routes/signup'
+import { Route as TermsRouteImport } from './routes/terms'
+import { Route as WikiRouteImport } from './routes/wiki'
+import { Route as ProximityAuthenticatedRaioProximidadeRouteImport } from './routes/_proximityAuthenticated.raio-proximidade'
+import { Route as TaxAuthenticatedTaxImpactCheckRouteImport } from './routes/_taxAuthenticated.tax-impact-check'
+import { Route as AccountPrivacyRouteImport } from './routes/account.privacy'
+import { Route as RTokenRouteImport } from './routes/r.$token'
 import { Route as WikiIndexRouteImport } from './routes/wiki.index'
 import { Route as WikiSlugRouteImport } from './routes/wiki.$slug'
-import { Route as RTokenRouteImport } from './routes/r.$token'
-import { Route as AccountPrivacyRouteImport } from './routes/account.privacy'
-import { Route as TaxAuthenticatedTaxImpactCheckRouteImport } from './routes/_taxAuthenticated.tax-impact-check'
-import { Route as ProximityAuthenticatedRaioProximidadeRouteImport } from './routes/_proximityAuthenticated.raio-proximidade'
-import { Route as ApiPublicHealthRouteImport } from './routes/api/public/health'
-import { Route as ApiPublicBackupRouteImport } from './routes/api/public/backup'
 import { Route as AuthenticatedTaClientsRouteImport } from './routes/_authenticated/ta.clients'
-import { Route as ApiPublicRateLoadingResultRouteImport } from './routes/api/public/rate-loading/result'
+import { Route as ApiPublicBackupRouteImport } from './routes/api/public/backup'
+import { Route as ApiPublicHealthRouteImport } from './routes/api/public/health'
 import { Route as ApiPublicRateLoadingClaimRouteImport } from './routes/api/public/rate-loading/claim'
+import { Route as ApiPublicRateLoadingResultRouteImport } from './routes/api/public/rate-loading/result'
 
-const WikiRoute = WikiRouteImport.update({
-  id: '/wiki',
-  path: '/wiki',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const TermsRoute = TermsRouteImport.update({
-  id: '/terms',
-  path: '/terms',
+const AuthenticatedRoute = AuthenticatedRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SignupRoute = SignupRouteImport.update({
-  id: '/signup',
-  path: '/signup',
+const ProximityAuthenticatedRoute = ProximityAuthenticatedRouteImport.update({
+  id: '/_proximityAuthenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SetPasswordRoute = SetPasswordRouteImport.update({
-  id: '/set-password',
-  path: '/set-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SelecaoRoute = SelecaoRouteImport.update({
-  id: '/selecao',
-  path: '/selecao',
-  getParentRoute: () => rootRouteImport,
-} as any).lazy(() => import('./routes/selecao.lazy').then((d) => d.Route))
-const RfpRoute = RfpRouteImport.update({
-  id: '/rfp',
-  path: '/rfp',
-  getParentRoute: () => rootRouteImport,
-} as any).lazy(() => import('./routes/rfp.lazy').then((d) => d.Route))
-const PrivacyRoute = PrivacyRouteImport.update({
-  id: '/privacy',
-  path: '/privacy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const NegociacaoRoute = NegociacaoRouteImport.update({
-  id: '/negociacao',
-  path: '/negociacao',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MonitoramentoRoute = MonitoramentoRouteImport.update({
-  id: '/monitoramento',
-  path: '/monitoramento',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MonetizacaoRoute = MonetizacaoRouteImport.update({
-  id: '/monetizacao',
-  path: '/monetizacao',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ImplementacaoRoute = ImplementacaoRouteImport.update({
-  id: '/implementacao',
-  path: '/implementacao',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const HoteisRoute = HoteisRouteImport.update({
-  id: '/hoteis',
-  path: '/hoteis',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const EstrategiaRoute = EstrategiaRouteImport.update({
-  id: '/estrategia',
-  path: '/estrategia',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DiagnosticoRoute = DiagnosticoRouteImport.update({
-  id: '/diagnostico',
-  path: '/diagnostico',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AnaliseRoute = AnaliseRouteImport.update({
-  id: '/analise',
-  path: '/analise',
+const TaxAuthenticatedRoute = TaxAuthenticatedRouteImport.update({
+  id: '/_taxAuthenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -127,21 +64,106 @@ const AdminRoute = AdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
-const TaxAuthenticatedRoute = TaxAuthenticatedRouteImport.update({
-  id: '/_taxAuthenticated',
+const AnaliseRoute = AnaliseRouteImport.update({
+  id: '/analise',
+  path: '/analise',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ProximityAuthenticatedRoute = ProximityAuthenticatedRouteImport.update({
-  id: '/_proximityAuthenticated',
+const DiagnosticoRoute = DiagnosticoRouteImport.update({
+  id: '/diagnostico',
+  path: '/diagnostico',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedRoute = AuthenticatedRouteImport.update({
-  id: '/_authenticated',
+const EstrategiaRoute = EstrategiaRouteImport.update({
+  id: '/estrategia',
+  path: '/estrategia',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const HoteisRoute = HoteisRouteImport.update({
+  id: '/hoteis',
+  path: '/hoteis',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ImplementacaoRoute = ImplementacaoRouteImport.update({
+  id: '/implementacao',
+  path: '/implementacao',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MonetizacaoRoute = MonetizacaoRouteImport.update({
+  id: '/monetizacao',
+  path: '/monetizacao',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MonitoramentoRoute = MonitoramentoRouteImport.update({
+  id: '/monitoramento',
+  path: '/monitoramento',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NegociacaoRoute = NegociacaoRouteImport.update({
+  id: '/negociacao',
+  path: '/negociacao',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RfpRoute = RfpRouteImport.update({
+  id: '/rfp',
+  path: '/rfp',
+  getParentRoute: () => rootRouteImport,
+} as any).lazy(() => import('./routes/rfp.lazy').then((d) => d.Route))
+const SelecaoRoute = SelecaoRouteImport.update({
+  id: '/selecao',
+  path: '/selecao',
+  getParentRoute: () => rootRouteImport,
+} as any).lazy(() => import('./routes/selecao.lazy').then((d) => d.Route))
+const SetPasswordRoute = SetPasswordRouteImport.update({
+  id: '/set-password',
+  path: '/set-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WikiRoute = WikiRouteImport.update({
+  id: '/wiki',
+  path: '/wiki',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProximityAuthenticatedRaioProximidadeRoute =
+  ProximityAuthenticatedRaioProximidadeRouteImport.update({
+    id: '/raio-proximidade',
+    path: '/raio-proximidade',
+    getParentRoute: () => ProximityAuthenticatedRoute,
+  } as any)
+const TaxAuthenticatedTaxImpactCheckRoute =
+  TaxAuthenticatedTaxImpactCheckRouteImport.update({
+    id: '/tax-impact-check',
+    path: '/tax-impact-check',
+    getParentRoute: () => TaxAuthenticatedRoute,
+  } as any)
+const AccountPrivacyRoute = AccountPrivacyRouteImport.update({
+  id: '/account/privacy',
+  path: '/account/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RTokenRoute = RTokenRouteImport.update({
+  id: '/r/$token',
+  path: '/r/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const WikiIndexRoute = WikiIndexRouteImport.update({
@@ -154,53 +176,31 @@ const WikiSlugRoute = WikiSlugRouteImport.update({
   path: '/$slug',
   getParentRoute: () => WikiRoute,
 } as any)
-const RTokenRoute = RTokenRouteImport.update({
-  id: '/r/$token',
-  path: '/r/$token',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AccountPrivacyRoute = AccountPrivacyRouteImport.update({
-  id: '/account/privacy',
-  path: '/account/privacy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TaxAuthenticatedTaxImpactCheckRoute =
-  TaxAuthenticatedTaxImpactCheckRouteImport.update({
-    id: '/tax-impact-check',
-    path: '/tax-impact-check',
-    getParentRoute: () => TaxAuthenticatedRoute,
-  } as any)
-const ProximityAuthenticatedRaioProximidadeRoute =
-  ProximityAuthenticatedRaioProximidadeRouteImport.update({
-    id: '/raio-proximidade',
-    path: '/raio-proximidade',
-    getParentRoute: () => ProximityAuthenticatedRoute,
-  } as any)
-const ApiPublicHealthRoute = ApiPublicHealthRouteImport.update({
-  id: '/api/public/health',
-  path: '/api/public/health',
-  getParentRoute: () => rootRouteImport,
+const AuthenticatedTaClientsRoute = AuthenticatedTaClientsRouteImport.update({
+  id: '/ta/clients',
+  path: '/ta/clients',
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
 const ApiPublicBackupRoute = ApiPublicBackupRouteImport.update({
   id: '/api/public/backup',
   path: '/api/public/backup',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedTaClientsRoute = AuthenticatedTaClientsRouteImport.update({
-  id: '/ta/clients',
-  path: '/ta/clients',
-  getParentRoute: () => AuthenticatedRoute,
+const ApiPublicHealthRoute = ApiPublicHealthRouteImport.update({
+  id: '/api/public/health',
+  path: '/api/public/health',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicRateLoadingResultRoute =
-  ApiPublicRateLoadingResultRouteImport.update({
-    id: '/api/public/rate-loading/result',
-    path: '/api/public/rate-loading/result',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const ApiPublicRateLoadingClaimRoute =
   ApiPublicRateLoadingClaimRouteImport.update({
     id: '/api/public/rate-loading/claim',
     path: '/api/public/rate-loading/claim',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicRateLoadingResultRoute =
+  ApiPublicRateLoadingResultRouteImport.update({
+    id: '/api/public/rate-loading/result',
+    path: '/api/public/rate-loading/result',
     getParentRoute: () => rootRouteImport,
   } as any)
 
@@ -430,137 +430,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/wiki': {
-      id: '/wiki'
-      path: '/wiki'
-      fullPath: '/wiki'
-      preLoaderRoute: typeof WikiRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/terms': {
-      id: '/terms'
-      path: '/terms'
-      fullPath: '/terms'
-      preLoaderRoute: typeof TermsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/signup': {
-      id: '/signup'
-      path: '/signup'
-      fullPath: '/signup'
-      preLoaderRoute: typeof SignupRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/set-password': {
-      id: '/set-password'
-      path: '/set-password'
-      fullPath: '/set-password'
-      preLoaderRoute: typeof SetPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/selecao': {
-      id: '/selecao'
-      path: '/selecao'
-      fullPath: '/selecao'
-      preLoaderRoute: typeof SelecaoRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/rfp': {
-      id: '/rfp'
-      path: '/rfp'
-      fullPath: '/rfp'
-      preLoaderRoute: typeof RfpRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/privacy': {
-      id: '/privacy'
-      path: '/privacy'
-      fullPath: '/privacy'
-      preLoaderRoute: typeof PrivacyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/negociacao': {
-      id: '/negociacao'
-      path: '/negociacao'
-      fullPath: '/negociacao'
-      preLoaderRoute: typeof NegociacaoRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/monitoramento': {
-      id: '/monitoramento'
-      path: '/monitoramento'
-      fullPath: '/monitoramento'
-      preLoaderRoute: typeof MonitoramentoRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/monetizacao': {
-      id: '/monetizacao'
-      path: '/monetizacao'
-      fullPath: '/monetizacao'
-      preLoaderRoute: typeof MonetizacaoRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/implementacao': {
-      id: '/implementacao'
-      path: '/implementacao'
-      fullPath: '/implementacao'
-      preLoaderRoute: typeof ImplementacaoRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/hoteis': {
-      id: '/hoteis'
-      path: '/hoteis'
-      fullPath: '/hoteis'
-      preLoaderRoute: typeof HoteisRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/estrategia': {
-      id: '/estrategia'
-      path: '/estrategia'
-      fullPath: '/estrategia'
-      preLoaderRoute: typeof EstrategiaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/diagnostico': {
-      id: '/diagnostico'
-      path: '/diagnostico'
-      fullPath: '/diagnostico'
-      preLoaderRoute: typeof DiagnosticoRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/analise': {
-      id: '/analise'
-      path: '/analise'
-      fullPath: '/analise'
-      preLoaderRoute: typeof AnaliseRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin': {
-      id: '/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AdminRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_taxAuthenticated': {
-      id: '/_taxAuthenticated'
-      path: ''
+    '/': {
+      id: '/'
+      path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof TaxAuthenticatedRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_proximityAuthenticated': {
-      id: '/_proximityAuthenticated'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof ProximityAuthenticatedRouteImport
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -570,11 +444,165 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
+    '/_proximityAuthenticated': {
+      id: '/_proximityAuthenticated'
+      path: ''
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+      preLoaderRoute: typeof ProximityAuthenticatedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_taxAuthenticated': {
+      id: '/_taxAuthenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof TaxAuthenticatedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/analise': {
+      id: '/analise'
+      path: '/analise'
+      fullPath: '/analise'
+      preLoaderRoute: typeof AnaliseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/diagnostico': {
+      id: '/diagnostico'
+      path: '/diagnostico'
+      fullPath: '/diagnostico'
+      preLoaderRoute: typeof DiagnosticoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/estrategia': {
+      id: '/estrategia'
+      path: '/estrategia'
+      fullPath: '/estrategia'
+      preLoaderRoute: typeof EstrategiaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/hoteis': {
+      id: '/hoteis'
+      path: '/hoteis'
+      fullPath: '/hoteis'
+      preLoaderRoute: typeof HoteisRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/implementacao': {
+      id: '/implementacao'
+      path: '/implementacao'
+      fullPath: '/implementacao'
+      preLoaderRoute: typeof ImplementacaoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/monetizacao': {
+      id: '/monetizacao'
+      path: '/monetizacao'
+      fullPath: '/monetizacao'
+      preLoaderRoute: typeof MonetizacaoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/monitoramento': {
+      id: '/monitoramento'
+      path: '/monitoramento'
+      fullPath: '/monitoramento'
+      preLoaderRoute: typeof MonitoramentoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/negociacao': {
+      id: '/negociacao'
+      path: '/negociacao'
+      fullPath: '/negociacao'
+      preLoaderRoute: typeof NegociacaoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/rfp': {
+      id: '/rfp'
+      path: '/rfp'
+      fullPath: '/rfp'
+      preLoaderRoute: typeof RfpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/selecao': {
+      id: '/selecao'
+      path: '/selecao'
+      fullPath: '/selecao'
+      preLoaderRoute: typeof SelecaoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/set-password': {
+      id: '/set-password'
+      path: '/set-password'
+      fullPath: '/set-password'
+      preLoaderRoute: typeof SetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/wiki': {
+      id: '/wiki'
+      path: '/wiki'
+      fullPath: '/wiki'
+      preLoaderRoute: typeof WikiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_proximityAuthenticated/raio-proximidade': {
+      id: '/_proximityAuthenticated/raio-proximidade'
+      path: '/raio-proximidade'
+      fullPath: '/raio-proximidade'
+      preLoaderRoute: typeof ProximityAuthenticatedRaioProximidadeRouteImport
+      parentRoute: typeof ProximityAuthenticatedRoute
+    }
+    '/_taxAuthenticated/tax-impact-check': {
+      id: '/_taxAuthenticated/tax-impact-check'
+      path: '/tax-impact-check'
+      fullPath: '/tax-impact-check'
+      preLoaderRoute: typeof TaxAuthenticatedTaxImpactCheckRouteImport
+      parentRoute: typeof TaxAuthenticatedRoute
+    }
+    '/account/privacy': {
+      id: '/account/privacy'
+      path: '/account/privacy'
+      fullPath: '/account/privacy'
+      preLoaderRoute: typeof AccountPrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/r/$token': {
+      id: '/r/$token'
+      path: '/r/$token'
+      fullPath: '/r/$token'
+      preLoaderRoute: typeof RTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/wiki/': {
@@ -591,40 +619,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WikiSlugRouteImport
       parentRoute: typeof WikiRoute
     }
-    '/r/$token': {
-      id: '/r/$token'
-      path: '/r/$token'
-      fullPath: '/r/$token'
-      preLoaderRoute: typeof RTokenRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/account/privacy': {
-      id: '/account/privacy'
-      path: '/account/privacy'
-      fullPath: '/account/privacy'
-      preLoaderRoute: typeof AccountPrivacyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_taxAuthenticated/tax-impact-check': {
-      id: '/_taxAuthenticated/tax-impact-check'
-      path: '/tax-impact-check'
-      fullPath: '/tax-impact-check'
-      preLoaderRoute: typeof TaxAuthenticatedTaxImpactCheckRouteImport
-      parentRoute: typeof TaxAuthenticatedRoute
-    }
-    '/_proximityAuthenticated/raio-proximidade': {
-      id: '/_proximityAuthenticated/raio-proximidade'
-      path: '/raio-proximidade'
-      fullPath: '/raio-proximidade'
-      preLoaderRoute: typeof ProximityAuthenticatedRaioProximidadeRouteImport
-      parentRoute: typeof ProximityAuthenticatedRoute
-    }
-    '/api/public/health': {
-      id: '/api/public/health'
-      path: '/api/public/health'
-      fullPath: '/api/public/health'
-      preLoaderRoute: typeof ApiPublicHealthRouteImport
-      parentRoute: typeof rootRouteImport
+    '/_authenticated/ta/clients': {
+      id: '/_authenticated/ta/clients'
+      path: '/ta/clients'
+      fullPath: '/ta/clients'
+      preLoaderRoute: typeof AuthenticatedTaClientsRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
     '/api/public/backup': {
       id: '/api/public/backup'
@@ -633,18 +633,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicBackupRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/ta/clients': {
-      id: '/_authenticated/ta/clients'
-      path: '/ta/clients'
-      fullPath: '/ta/clients'
-      preLoaderRoute: typeof AuthenticatedTaClientsRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/api/public/rate-loading/result': {
-      id: '/api/public/rate-loading/result'
-      path: '/api/public/rate-loading/result'
-      fullPath: '/api/public/rate-loading/result'
-      preLoaderRoute: typeof ApiPublicRateLoadingResultRouteImport
+    '/api/public/health': {
+      id: '/api/public/health'
+      path: '/api/public/health'
+      fullPath: '/api/public/health'
+      preLoaderRoute: typeof ApiPublicHealthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/rate-loading/claim': {
@@ -652,6 +645,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/rate-loading/claim'
       fullPath: '/api/public/rate-loading/claim'
       preLoaderRoute: typeof ApiPublicRateLoadingClaimRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/rate-loading/result': {
+      id: '/api/public/rate-loading/result'
+      path: '/api/public/rate-loading/result'
+      fullPath: '/api/public/rate-loading/result'
+      preLoaderRoute: typeof ApiPublicRateLoadingResultRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
