@@ -122,7 +122,7 @@ describe("catalog-first physical matching", () => {
     e.address = "Av. Henri Teste, São Paulo";
     expect(geographicCheck(e, hotel()).invalid).toBe(false);
     e.address = "Av. Henri Teste";
-    expect(geographicCheck(e, hotel()).reason).toBeTruthy();
+    expect(assessCatalog(e, hotel()).reasons).toContain("Município incoerente");
   });
   it("selective patterns support diacritics without arbitrary filter operators", () => {
     expect(selectivePattern("Belém")).toBe("B_l_m");
