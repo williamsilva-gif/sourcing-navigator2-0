@@ -1221,6 +1221,68 @@ export type Database = {
           },
         ]
       }
+      proximity_jobs: {
+        Row: {
+          checkpoint: number
+          client_tenant_id: string
+          created_at: string
+          created_by: string
+          entities: Json
+          id: string
+          imports: Json
+          last_error: string | null
+          lease_token: string | null
+          lease_until: string | null
+          name: string
+          next_batch_at: string | null
+          pairs: Json
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          checkpoint?: number
+          client_tenant_id: string
+          created_at?: string
+          created_by: string
+          entities?: Json
+          id?: string
+          imports?: Json
+          last_error?: string | null
+          lease_token?: string | null
+          lease_until?: string | null
+          name: string
+          next_batch_at?: string | null
+          pairs?: Json
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          checkpoint?: number
+          client_tenant_id?: string
+          created_at?: string
+          created_by?: string
+          entities?: Json
+          id?: string
+          imports?: Json
+          last_error?: string | null
+          lease_token?: string | null
+          lease_until?: string | null
+          name?: string
+          next_batch_at?: string | null
+          pairs?: Json
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proximity_jobs_client_tenant_id_fkey"
+            columns: ["client_tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rate_limit_buckets: {
         Row: {
           bucket_key: string
@@ -2910,6 +2972,33 @@ export type Database = {
         Returns: boolean
       }
       is_ta_master: { Args: { _user_id: string }; Returns: boolean }
+      proximity_access: { Args: { _tenant_id: string }; Returns: boolean }
+      proximity_claim: {
+        Args: { _job_id: string; _tenant_id: string; _token: string }
+        Returns: {
+          checkpoint: number
+          client_tenant_id: string
+          created_at: string
+          created_by: string
+          entities: Json
+          id: string
+          imports: Json
+          last_error: string | null
+          lease_token: string | null
+          lease_until: string | null
+          name: string
+          next_batch_at: string | null
+          pairs: Json
+          status: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "proximity_jobs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       reserve_feature_quota: {
         Args: {
           _campaign_id: string

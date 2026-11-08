@@ -1,0 +1,14 @@
+CREATE FUNCTION public.proximity_access(_tenant_id uuid) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$ SELECT auth.uid() IS NOT NULL AND public.is_ta_master(auth.uid()) AND public.can_see_tenant(auth.uid(),_tenant_id) AND EXISTS(SELECT 1 FROM public.tenants WHERE id=_tenant_id) $$;
+REVOKE ALL ON FUNCTION public.proximity_access(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.proximity_access(uuid) TO authenticated;
+CREATE TABLE public.proximity_jobs(id uuid PRIMARY KEY DEFAULT gen_random_uuid(), client_tenant_id uuid NOT NULL REFERENCES public.tenants(id), name text NOT NULL, created_by uuid NOT NULL, status text NOT NULL DEFAULT 'paused', entities jsonb NOT NULL DEFAULT '[]', pairs jsonb NOT NULL DEFAULT '[]', imports jsonb NOT NULL DEFAULT '[]', checkpoint integer NOT NULL DEFAULT 0, lease_token uuid, lease_until timestamptz, next_batch_at timestamptz, last_error text, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), UNIQUE(id,client_tenant_id));
+GRANT SELECT,INSERT,UPDATE,DELETE ON public.proximity_jobs TO authenticated;
+GRANT ALL ON public.proximity_jobs TO service_role;
+ALTER TABLE public.proximity_jobs ENABLE ROW LEVEL SECURITY;
+CREATE POLICY proximity_job_scope ON public.proximity_jobs FOR ALL TO authenticated USING(public.proximity_access(client_tenant_id)) WITH CHECK(public.proximity_access(client_tenant_id));
+CREATE INDEX proximity_job_tenant ON public.proximity_jobs(client_tenant_id,created_at DESC);
+CREATE FUNCTION public.proximity_claim(_job_id uuid,_tenant_id uuid,_token uuid) RETURNS SETOF public.proximity_jobs LANGUAGE sql SECURITY INVOKER SET search_path=public AS $$ UPDATE public.proximity_jobs SET lease_token=_token,lease_until=now()+interval '90 seconds',updated_at=now() WHERE id=_job_id AND client_tenant_id=_tenant_id AND status='running' AND (lease_until IS NULL OR lease_until<now()) AND (next_batch_at IS NULL OR next_batch_at<=now()) RETURNING * $$;
+REVOKE ALL ON FUNCTION public.proximity_claim(uuid,uuid,uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.proximity_claim(uuid,uuid,uuid) TO authenticated;
+CREATE POLICY proximity_original_read ON storage.objects FOR SELECT TO authenticated USING(bucket_id='proximity-originals' AND EXISTS(SELECT 1 FROM public.proximity_jobs j WHERE j.client_tenant_id::text=(storage.foldername(storage.objects.name))[1] AND j.id::text=(storage.foldername(storage.objects.name))[2] AND public.proximity_access(j.client_tenant_id)));
+CREATE POLICY proximity_original_insert ON storage.objects FOR INSERT TO authenticated WITH CHECK(bucket_id='proximity-originals' AND lower(storage.extension(storage.objects.name)) IN ('xlsx','csv') AND EXISTS(SELECT 1 FROM public.proximity_jobs j WHERE j.client_tenant_id::text=(storage.foldername(storage.objects.name))[1] AND j.id::text=(storage.foldername(storage.objects.name))[2] AND public.proximity_access(j.client_tenant_id)));

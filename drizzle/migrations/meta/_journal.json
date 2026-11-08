@@ -57,6 +57,13 @@
       "when": 1793254777514,
       "tag": "0007_tax_impact_source_cache_integrity",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1794115813763,
+      "tag": "0008_proximity_isolated_jobs",
+      "breakpoints": true
     }
   ]
 }
