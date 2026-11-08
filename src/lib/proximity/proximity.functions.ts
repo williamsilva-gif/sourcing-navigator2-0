@@ -216,9 +216,17 @@ async function google(path: string, init?: RequestInit) {
   if (!r.ok) {
     const body = await r.text();
     if (r.status === 403) {
-      if (body.includes("API_KEY_HTTP_REFERRER_BLOCKED")) throw new Error("Google 403: chave servidor restrita por site. No Google Cloud, use restrição por IP ou None somente para a chave servidor.");
-      if (body.includes("API_KEY_SERVICE_BLOCKED")) throw new Error("Google 403: habilite a API solicitada e inclua-a nas APIs permitidas da chave servidor.");
-      throw new Error("Google negou acesso (403): verifique restrições e APIs habilitadas da chave servidor.");
+      if (body.includes("API_KEY_HTTP_REFERRER_BLOCKED"))
+        throw new Error(
+          "Google 403: chave servidor restrita por site. No Google Cloud, use restrição por IP ou None somente para a chave servidor.",
+        );
+      if (body.includes("API_KEY_SERVICE_BLOCKED"))
+        throw new Error(
+          "Google 403: habilite a API solicitada e inclua-a nas APIs permitidas da chave servidor.",
+        );
+      throw new Error(
+        "Google negou acesso (403): verifique restrições e APIs habilitadas da chave servidor.",
+      );
     }
     throw new Error(`Google HTTP ${r.status}: ${body.slice(0, 300).replaceAll(key, "[REDACTED]")}`);
   }
@@ -226,19 +234,45 @@ async function google(path: string, init?: RequestInit) {
 }
 const placeMask = "id,displayName,formattedAddress,location,types,addressComponents,businessStatus";
 async function placeDetails(id: string): Promise<GooglePlace> {
-  return google(`/places/v1/places/${encodeURIComponent(id)}?languageCode=pt-BR`, { headers: { "X-Goog-FieldMask": placeMask } });
+  return google(`/places/v1/places/${encodeURIComponent(id)}?languageCode=pt-BR`, {
+    headers: { "X-Goog-FieldMask": placeMask },
+  });
 }
 async function establishment(e: Entity, count: () => void) {
   count();
-  const result = await google("/places/v1/places:searchText", {
-    method: "POST", headers: { "Content-Type": "application/json", "X-Goog-FieldMask": `places.${placeMask.split(",").join(",places.")},nextPageToken` },
-    body: JSON.stringify({ textQuery: [e.name, municipalityForQuery(e), e.uf, e.kind === "hotel" ? "hotel" : e.address, "Brasil"].filter(Boolean).join(", "), languageCode: "pt-BR", regionCode: "BR", pageSize: 5, ...(e.kind === "hotel" ? { includedType: "lodging", strictTypeFiltering: true } : {}) }),
-  }) as { places?: GooglePlace[]; nextPageToken?: string };
+  const result = (await google("/places/v1/places:searchText", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Goog-FieldMask": `places.${placeMask.split(",").join(",places.")},nextPageToken`,
+    },
+    body: JSON.stringify({
+      textQuery: [
+        e.name,
+        municipalityForQuery(e),
+        e.uf,
+        e.kind === "hotel" ? "hotel" : e.address,
+        "Brasil",
+      ]
+        .filter(Boolean)
+        .join(", "),
+      languageCode: "pt-BR",
+      regionCode: "BR",
+      pageSize: 5,
+      ...(e.kind === "hotel" ? { includedType: "lodging", strictTypeFiltering: true } : {}),
+    }),
+  })) as { places?: GooglePlace[]; nextPageToken?: string };
   const selected = selectPlace(e, result.places ?? [], !!result.nextPageToken);
-  if (!selected.place) return { failure: selected.ambiguous ? "Estabelecimento ambíguo: revisão TA necessária" : "Estabelecimento não localizado: revisão TA necessária" };
+  if (!selected.place)
+    return {
+      failure: selected.ambiguous
+        ? "Estabelecimento ambíguo: revisão TA necessária"
+        : "Estabelecimento não localizado: revisão TA necessária",
+    };
   count();
   const details = await placeDetails(selected.place.id ?? "");
-  if (details.id !== selected.place.id) return { failure: "Place ID incoerente: revisão TA necessária" };
+  if (details.id !== selected.place.id)
+    return { failure: "Place ID incoerente: revisão TA necessária" };
   return { geo: validatePlace(e, details, selected.ambiguous) };
 }
 export const proximityBatchFn = createServerFn({ method: "POST" })
@@ -277,45 +311,50 @@ export const proximityBatchFn = createServerFn({ method: "POST" })
         let failure = "";
         let retry = false;
         try {
-        if (!geo && (!e.city || !/^[a-z]{2}$/i.test(e.uf) || !e.name)) {
-          failure = "Nome ou município/UF incompleto: revisão TA necessária";
-        } else if (!geo && (!originalNumber(e) || !e.address)) {
-          const found = await establishment(e, () => calls++);
-          geo = found.geo; failure = found.failure ?? "";
-        } else if (!geo) {
-          calls++;
-          const city = municipalityForQuery(e);
-          const query = [e.address, e.number, city, e.uf, e.cep, "Brasil"]
-            .filter(Boolean)
-            .join(", ");
-          const response = (await google(
-            `/maps/api/geocode/json?address=${encodeURIComponent(query)}&language=pt-BR&region=br`,
-          )) as { status: string; results?: GoogleResult[] };
-          if (response.status === "OK" && response.results?.length) {
-            const valid = response.results.map((r) => validateGeocode(e, r));
-            const high = valid.filter((g) => g.confidence === "high");
-            if (high.length === 1 && valid.length === 1) geo = high[0];
-            else if (valid.length === 1) {
-              geo = valid[0];
-              const found = await establishment(e, () => calls++);
-              if (found.geo) geo = found.geo;
-              else failure = found.failure ?? "";
-            } else failure = "Geocoding ambíguo: revisão TA necessária";
-          }
-          else if (["OVER_QUERY_LIMIT", "UNKNOWN_ERROR"].includes(response.status)) {
-            failure = `Google ${response.status}`;
-            retry = true;
-          } else if (response.status === "REQUEST_DENIED")
-            throw new Error("Google REQUEST_DENIED: chave servidor/API Geocoding não autorizada.");
-          else if (response.status === "ZERO_RESULTS") {
+          if (!geo && (!e.city || !/^[a-z]{2}$/i.test(e.uf) || !e.name)) {
+            failure = "Nome ou município/UF incompleto: revisão TA necessária";
+          } else if (!geo && (!originalNumber(e) || !e.address)) {
             const found = await establishment(e, () => calls++);
-            geo = found.geo; failure = found.failure ?? "";
-          } else failure = `Google ${response.status}: não localizado`;
-        }
+            geo = found.geo;
+            failure = found.failure ?? "";
+          } else if (!geo) {
+            calls++;
+            const city = municipalityForQuery(e);
+            const query = [e.address, e.number, city, e.uf, e.cep, "Brasil"]
+              .filter(Boolean)
+              .join(", ");
+            const response = (await google(
+              `/maps/api/geocode/json?address=${encodeURIComponent(query)}&language=pt-BR&region=br`,
+            )) as { status: string; results?: GoogleResult[] };
+            if (response.status === "OK" && response.results?.length) {
+              const valid = response.results.map((r) => validateGeocode(e, r));
+              const high = valid.filter((g) => g.confidence === "high");
+              if (high.length === 1 && valid.length === 1) geo = high[0];
+              else if (valid.length === 1) {
+                geo = valid[0];
+                const found = await establishment(e, () => calls++);
+                if (found.geo) geo = found.geo;
+                else failure = found.failure ?? "";
+              } else failure = "Geocoding ambíguo: revisão TA necessária";
+            } else if (["OVER_QUERY_LIMIT", "UNKNOWN_ERROR"].includes(response.status)) {
+              failure = `Google ${response.status}`;
+              retry = true;
+            } else if (response.status === "REQUEST_DENIED")
+              throw new Error(
+                "Google REQUEST_DENIED: chave servidor/API Geocoding não autorizada.",
+              );
+            else if (response.status === "ZERO_RESULTS") {
+              const found = await establishment(e, () => calls++);
+              geo = found.geo;
+              failure = found.failure ?? "";
+            } else failure = `Google ${response.status}: não localizado`;
+          }
         } catch (cause) {
           const message = cause instanceof Error ? cause.message : "Falha Google";
-          if (/429|HTTP 5\d\d|timeout|timed out|fetch failed|network/i.test(message)) { retry = true; failure = "Falha temporária Google/rede: nova tentativa agendada"; }
-          else throw cause;
+          if (/429|HTTP 5\d\d|timeout|timed out|fetch failed|network/i.test(message)) {
+            retry = true;
+            failure = "Falha temporária Google/rede: nova tentativa agendada";
+          } else throw cause;
         }
         entities
           .filter((v) => lookupKey(v) === key)

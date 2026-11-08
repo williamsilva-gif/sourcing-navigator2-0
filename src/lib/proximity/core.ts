@@ -155,8 +155,7 @@ export function parse(
       issues: [],
     };
     if (!e.name) e.issues.push("Nome ausente");
-    if (!e.address || !originalNumber(e))
-      e.issues.push("Endereço físico ou número ausente");
+    if (!e.address || !originalNumber(e)) e.issues.push("Endereço físico ou número ausente");
     if (!e.city || !/^([A-Z]{2})$/i.test(e.uf)) e.issues.push("Cidade/UF ausente ou inválida");
     if (e.cep.replace(/\D/g, "").length !== 8) e.issues.push("CEP inválido/ausente");
     if (kind !== "hotel" && !/^(ESC-[\w-]+|L[\w-]+|801)$/i.test(e.code))
@@ -189,10 +188,14 @@ export function targetCities(entities: Entity[]) {
     values.add(e.rn);
     totals.set(cityKey(e), values);
   });
-  return new Set(hotels.filter((e) => {
-    const values = totals.get(cityKey(e));
-    return !hasRn || (values?.size === 1 && [...values][0] >= 100);
-  }).map(cityKey));
+  return new Set(
+    hotels
+      .filter((e) => {
+        const values = totals.get(cityKey(e));
+        return !hasRn || (values?.size === 1 && [...values][0] >= 100);
+      })
+      .map(cityKey),
+  );
 }
 export function inScope(e: Entity, entities: Entity[]) {
   return e.active && e.eligible && targetCities(entities).has(cityKey(e));
@@ -274,27 +277,49 @@ export type GooglePlace = {
   addressComponents?: Array<{ longText: string; shortText: string; types: string[] }>;
 };
 export function similarName(a: string, b: string) {
-  const tokens = (v: string) => v.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase().split(/[^a-z0-9]+/).filter((x) => x && !["hotel", "hoteis", "pousada", "inn", "de", "do", "da", "the"].includes(x));
-  const x = new Set(tokens(a)), y = new Set(tokens(b));
+  const tokens = (v: string) =>
+    v
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .filter(
+        (x) => x && !["hotel", "hoteis", "pousada", "inn", "de", "do", "da", "the"].includes(x),
+      );
+  const x = new Set(tokens(a)),
+    y = new Set(tokens(b));
   if (!x.size || !y.size) return false;
   const common = [...x].filter((t) => y.has(t)).length;
   return common / Math.max(x.size, y.size) >= 0.8;
 }
 export function validatePlace(e: Entity, p: GooglePlace, ambiguous = false): Geo {
-  const components = p.addressComponents?.map((c) => ({ long_name: c.longText, short_name: c.shortText, types: c.types }));
+  const components = p.addressComponents?.map((c) => ({
+    long_name: c.longText,
+    short_name: c.shortText,
+    types: c.types,
+  }));
   const geo = validateGeocode(e, {
-    place_id: p.id, formatted_address: p.formattedAddress,
-    geometry: { location: { lat: p.location?.latitude ?? NaN, lng: p.location?.longitude ?? NaN }, location_type: "ROOFTOP" },
+    place_id: p.id,
+    formatted_address: p.formattedAddress,
+    geometry: {
+      location: { lat: p.location?.latitude ?? NaN, lng: p.location?.longitude ?? NaN },
+      location_type: "ROOFTOP",
+    },
     address_components: components,
   });
   // Places does not expose geocoding precision: confirmation rests on unique property identity and detailed physical address.
   geo.source = "Google Places Text Search / Place Details";
-  geo.reasons = geo.reasons.filter((r) => r !== "Número original ausente: confirmar estabelecimento");
-  if (!p.id || !p.formattedAddress) geo.reasons.push("Propriedade sem identidade/endereço detalhado");
-  if (!similarName(e.name, p.displayName?.text ?? "")) geo.reasons.push("Nome do estabelecimento incoerente");
-  if (e.kind === "hotel" && !p.types?.includes("lodging")) geo.reasons.push("Categoria lodging não confirmada");
-  if (e.kind !== "hotel" && (!originalNumber(e) || !e.address || !e.code)) geo.reasons.push("Identidade física da unidade requer revisão TA");
+  geo.reasons = geo.reasons.filter(
+    (r) => r !== "Número original ausente: confirmar estabelecimento",
+  );
+  if (!p.id || !p.formattedAddress)
+    geo.reasons.push("Propriedade sem identidade/endereço detalhado");
+  if (!similarName(e.name, p.displayName?.text ?? ""))
+    geo.reasons.push("Nome do estabelecimento incoerente");
+  if (e.kind === "hotel" && !p.types?.includes("lodging"))
+    geo.reasons.push("Categoria lodging não confirmada");
+  if (e.kind !== "hotel" && (!originalNumber(e) || !e.address || !e.code))
+    geo.reasons.push("Identidade física da unidade requer revisão TA");
   if (p.businessStatus !== "OPERATIONAL") geo.reasons.push("Estabelecimento ativo não confirmado");
   if (ambiguous) geo.reasons.push("Nome/estabelecimento ambíguo: seleção humana necessária");
   geo.derivedNumber = components?.find((c) => c.types.includes("street_number"))?.long_name;
@@ -307,11 +332,14 @@ export function selectPlace(e: Entity, places: GooglePlace[], truncated = false)
   const unique = [...new Map(places.filter((p) => p.id).map((p) => [p.id, p])).values()];
   const plausible = unique.filter((p) => similarName(e.name, p.displayName?.text ?? ""));
   const robust = plausible.filter((p) => validatePlace(e, p).confidence === "high");
-  if (!truncated && robust.length === 1 && plausible.length === 1) return { place: robust[0], ambiguous: false };
+  if (!truncated && robust.length === 1 && plausible.length === 1)
+    return { place: robust[0], ambiguous: false };
   if (plausible.length === 1 && !truncated) return { place: plausible[0], ambiguous: false };
   return { place: undefined, ambiguous: plausible.length > 1 || truncated };
 }
-export function retryDelay(attempts: number) { return Math.min(60000, 2 ** attempts * 1000); }
+export function retryDelay(attempts: number) {
+  return Math.min(60000, 2 ** attempts * 1000);
+}
 export function compare(entities: Entity[], allowCross = false): Pair[] {
   const pairs: Pair[] = [];
   for (const h of entities.filter(

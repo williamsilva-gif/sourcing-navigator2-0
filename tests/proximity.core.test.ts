@@ -297,32 +297,50 @@ describe("Raio & Proximidade isolated conservative rules", () => {
   });
 });
 const placeFixture = (): GooglePlace => ({
-  id: "synthetic-property-id", displayName: { text: "Hotel Alfa" }, formattedAddress: "Rua Teste, 10, Cidade Teste SP", businessStatus: "OPERATIONAL", types: ["lodging"], location: { latitude: -23, longitude: -46 },
-  addressComponents: [...(googleResult().address_components ?? []), { long_name: "Rua Teste", short_name: "Rua Teste", types: ["route"] }].map((c) => ({ longText: c.long_name, shortText: c.short_name, types: c.types })),
+  id: "synthetic-property-id",
+  displayName: { text: "Hotel Alfa" },
+  formattedAddress: "Rua Teste, 10, Cidade Teste SP",
+  businessStatus: "OPERATIONAL",
+  types: ["lodging"],
+  location: { latitude: -23, longitude: -46 },
+  addressComponents: [
+    ...(googleResult().address_components ?? []),
+    { long_name: "Rua Teste", short_name: "Rua Teste", types: ["route"] },
+  ].map((c) => ({ longText: c.long_name, shortText: c.short_name, types: c.types })),
 });
 describe("establishment fallback and city totals", () => {
   it("never sums repeated city RNs: two 60 RN rows remain below 100", () => {
-    const e = fixture(); e[0].rn = 60; e[1].rn = 60;
+    const e = fixture();
+    e[0].rn = 60;
+    e[1].rn = 60;
     expect(targetCities(e).size).toBe(0);
   });
   it("repeated city total exactly 100 enters once", () => {
     expect(targetCities(fixture()).size).toBe(1);
   });
   it("conflicting city totals require review", () => {
-    const e = fixture(); e[1].rn = 99;
+    const e = fixture();
+    e[1].rn = 99;
     expect(targetCities(e).size).toBe(0);
   });
   it("unique detailed lodging confirms missing original number without modifying originals", () => {
-    const e = fixture()[0]; e.number = ""; e.issues = ["Endereço físico ou número ausente"];
+    const e = fixture()[0];
+    e.number = "";
+    e.issues = ["Endereço físico ou número ausente"];
     const original = structuredClone(e);
-    const p = placeFixture(); const selection = selectPlace(e, [p]);
+    const p = placeFixture();
+    const selection = selectPlace(e, [p]);
     const geo = validatePlace(e, p);
     expect(selection.place?.id).toBe(p.id);
-    expect(geo.confidence).toBe("high"); expect(geo.confirmation).toBe("establishment"); expect(geo.derivedNumber).toBe("10");
-    expect(e).toEqual(original); expect(e.number).toBe("");
+    expect(geo.confidence).toBe("high");
+    expect(geo.confirmation).toBe("establishment");
+    expect(geo.derivedNumber).toBe("10");
+    expect(e).toEqual(original);
+    expect(e.number).toBe("");
   });
   it("never selects first match with two plausible properties or truncated results", () => {
-    const e = fixture()[0]; e.number = "";
+    const e = fixture()[0];
+    e.number = "";
     const p = placeFixture();
     expect(selectPlace(e, [p, { ...p, id: "second-property" }]).ambiguous).toBe(true);
     expect(selectPlace(e, [p, { ...p, id: "second-property" }]).place).toBeUndefined();
@@ -330,37 +348,55 @@ describe("establishment fallback and city totals", () => {
   });
   it("wrong name or non-lodging never confirms hotel", () => {
     const e = fixture()[0];
-    expect(validatePlace(e, { ...placeFixture(), displayName: { text: "Hotel Beta" } }).confidence).toBe("review");
-    expect(validatePlace(e, { ...placeFixture(), types: ["restaurant"] }).confidence).toBe("review");
+    expect(
+      validatePlace(e, { ...placeFixture(), displayName: { text: "Hotel Beta" } }).confidence,
+    ).toBe("review");
+    expect(validatePlace(e, { ...placeFixture(), types: ["restaurant"] }).confidence).toBe(
+      "review",
+    );
   });
   it("invalid/mismatched CEP is review, preserving original and derived CEP separately", () => {
-    const e = fixture()[0]; e.cep = "00000";
+    const e = fixture()[0];
+    e.cep = "00000";
     const geo = validatePlace(e, placeFixture());
-    expect(geo.confidence).toBe("review"); expect(geo.derivedPostalCode).toBe("01234-567"); expect(e.cep).toBe("00000");
+    expect(geo.confidence).toBe("review");
+    expect(geo.derivedPostalCode).toBe("01234-567");
+    expect(e.cep).toBe("00000");
   });
   it("wrong municipality, missing physical street or number stay review", () => {
-    const e = fixture()[0]; e.number = "";
+    const e = fixture()[0];
+    e.number = "";
     const p = placeFixture();
     p.addressComponents = p.addressComponents?.filter((c) => !c.types.includes("street_number"));
     expect(validatePlace(e, p).confidence).toBe("review");
-    const other = placeFixture(); other.addressComponents = other.addressComponents?.map((c) => c.types.includes("locality") ? { ...c, longText: "Brasília" } : c);
+    const other = placeFixture();
+    other.addressComponents = other.addressComponents?.map((c) =>
+      c.types.includes("locality") ? { ...c, longText: "Brasília" } : c,
+    );
     expect(validatePlace(e, other).confidence).toBe("review");
   });
   it("number in street name is not a property number", () => {
-    const e = fixture()[0]; e.number = ""; e.address = "Rua 25 de Março";
+    const e = fixture()[0];
+    e.number = "";
+    e.address = "Rua 25 de Março";
     expect(originalNumber(e)).toBe("");
-    e.address = "Rua 25 de Março, 10"; expect(originalNumber(e)).toBe("10");
+    e.address = "Rua 25 de Março, 10";
+    expect(originalNumber(e)).toBe("10");
   });
   it("unidentified units without number need human review", () => {
-    const e = fixture()[2]; e.number = "";
+    const e = fixture()[2];
+    e.number = "";
     const p = { ...placeFixture(), displayName: { text: e.name } };
     expect(validatePlace(e, p).confidence).toBe("review");
   });
   it("does not share establishment confirmation between differently named properties", () => {
-    const e = fixture()[0]; const other = { ...e, name: "Hotel Beta" };
+    const e = fixture()[0];
+    const other = { ...e, name: "Hotel Beta" };
     expect(lookupKey(other)).not.toBe(lookupKey(e));
   });
   it("transient retry uses persisted exponential delay", () => {
-    expect(retryDelay(1)).toBe(2000); expect(retryDelay(2)).toBe(4000); expect(retryDelay(3)).toBe(8000);
+    expect(retryDelay(1)).toBe(2000);
+    expect(retryDelay(2)).toBe(4000);
+    expect(retryDelay(3)).toBe(8000);
   });
 });
