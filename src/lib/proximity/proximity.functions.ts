@@ -461,16 +461,13 @@ export const proximityBatchFn = createServerFn({ method: "POST" })
       const pending = entities.filter(
         (e) => inScope(e, entities) && !e.attempted && (!e.nextRetry || e.nextRetry <= Date.now()),
       );
-      const keys = [...new Set(pending.map(lookupKey))].slice(0, 2);
-      for (const key of keys) {
-        const live = await context.supabase
-          .from("proximity_jobs")
-          .select("status")
-          .eq("id", job.id)
-          .single();
-        if (live.data?.status !== "running") break;
+      // Units first: hotels can still be recovered from the catalog, units cannot; pairs need units.
+      pending.sort((a, b) => Number(a.kind === "hotel") - Number(b.kind === "hotel"));
+      const keys = [...new Set(pending.map(lookupKey))].slice(0, 12);
+      const started = Date.now();
+      const run = async (key: string) => {
         const e = pending.find((v) => lookupKey(v) === key);
-        if (!e) continue;
+        if (!e) return;
         const prior = entities.find((v) => lookupKey(v) === key && v.attempted && v.geo);
         let geo = prior?.geo;
         let failure = "";
@@ -531,7 +528,17 @@ export const proximityBatchFn = createServerFn({ method: "POST" })
             v.lastAttemptError = failure || undefined;
             if (failure && !v.issues.includes(failure)) v.issues.push(failure);
           });
-        // Per-address durable checkpoint; lease owner only.
+      };
+      for (let i = 0; i < keys.length; i += 4) {
+        if (Date.now() - started > 20000) break;
+        const live = await context.supabase
+          .from("proximity_jobs")
+          .select("status")
+          .eq("id", job.id)
+          .single();
+        if (live.data?.status !== "running") break;
+        // Bounded concurrency (4) per group; durable checkpoint after each group, lease owner only.
+        await Promise.all(keys.slice(i, i + 4).map(run));
         const saved = await context.supabase
           .from("proximity_jobs")
           .update({
