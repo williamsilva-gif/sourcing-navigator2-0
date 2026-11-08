@@ -8,6 +8,7 @@ import {
   enrich,
   counts,
   cacheKey,
+  retryAt,
 } from "../src/lib/sheetGeolocation/core";
 import type { GoogleResult } from "../src/lib/proximity/core";
 const headers = [
@@ -60,6 +61,12 @@ const result = (): GoogleResult => ({
   ],
 });
 describe("Independent spreadsheet geolocation", () => {
+  it("backs off 429/5xx and stops after three attempts without retrying authorization failures", () => {
+    expect(retryAt("Google HTTP 429", 1, 1000)).toBe(3000);
+    expect(retryAt("Google HTTP 503", 2, 1000)).toBe(5000);
+    expect(retryAt("Google HTTP 503", 3, 1000)).toBeUndefined();
+    expect(retryAt("Google 403", 1, 1000)).toBeUndefined();
+  });
   it("accepts unnamed offices and retains every row including blank rows", () => {
     const rows = parse();
     expect(rows).toHaveLength(3);

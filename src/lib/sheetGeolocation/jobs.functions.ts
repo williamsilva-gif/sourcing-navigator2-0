@@ -8,12 +8,11 @@ import {
   workbook,
   selectPlace,
   validatePlace,
-  retryDelay,
   stateCode,
   type GoogleResult,
   type GooglePlace,
 } from "../proximity/core";
-import { cacheKey, counts, parseSheet, query, validate, type Row, type Mapping } from "./core";
+import { cacheKey, counts, parseSheet, query, validate, transientFailure, retryAt, type Row, type Mapping } from "./core";
 const scope = z.object({ tenantId: z.string().uuid() });
 const jobScope = scope.extend({ jobId: z.string().uuid() });
 const json = (v: unknown): Json => JSON.parse(JSON.stringify(v));
@@ -310,11 +309,10 @@ export const batchSheetJob = createServerFn({ method: "POST" })
           row.nextRetry = undefined;
         } catch (cause) {
           const message = cause instanceof Error ? cause.message : "Falha Google";
-          const transient =
-            /429|HTTP 5\d\d|timeout|timed out|fetch failed|network|transiente/i.test(message);
+          const transient = transientFailure(message);
           if (transient && row.attempts < 3) {
             row.status = "pending";
-            row.nextRetry = Date.now() + retryDelay(row.attempts);
+            row.nextRetry = retryAt(message, row.attempts, Date.now());
             row.notes = ["Falha temporária; nova tentativa agendada"];
           } else if (transient) {
             row.status = "error";

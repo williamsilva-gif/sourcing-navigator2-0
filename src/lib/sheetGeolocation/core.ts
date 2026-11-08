@@ -144,6 +144,12 @@ export function query(row: Row) {
 export function cacheKey(row: Row) {
   return [row.entity.kind, norm(row.entity.name), norm(query(row))].join("|");
 }
+export function transientFailure(message: string) {
+  return /429|HTTP 5\d\d|timeout|timed out|fetch failed|network|transiente/i.test(message);
+}
+export function retryAt(message: string, attempts: number, now: number) {
+  return transientFailure(message) && attempts < 3 ? now + Math.min(60000, 2 ** attempts * 1000) : undefined;
+}
 export function validate(row: Row, result: GoogleResult) {
   const geo = validateGeocode(row.entity, result);
   const route = result.address_components?.find((c) => c.types.includes("route"))?.long_name;
