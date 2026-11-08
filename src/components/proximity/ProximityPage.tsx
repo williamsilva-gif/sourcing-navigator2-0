@@ -19,6 +19,8 @@ import { GoogleMapsTest } from "@/components/proximity/GoogleMapsTest";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { SheetGeolocation } from "@/components/sheetGeolocation/SheetGeolocation";
 import { supabase } from "@/integrations/supabase/client";
 import {
   workbook,
@@ -56,6 +58,22 @@ const proximityTenantsQuery = queryOptions({
 const selectClass =
   "h-9 min-w-0 rounded-md border border-input bg-background px-2 text-sm text-foreground";
 export function ProximityPage() {
+  const { data: tenants } = useSuspenseQuery(proximityTenantsQuery);
+  const [tab, setTab] = useState("radius");
+  return (
+    <AppShell>
+      <Tabs value={tab} onValueChange={setTab} className="space-y-6">
+        <TabsList className="h-auto max-w-full flex-wrap justify-start">
+          <TabsTrigger value="radius">Raio & Proximidade</TabsTrigger>
+          <TabsTrigger value="sheets">Geolocalização de Planilhas</TabsTrigger>
+        </TabsList>
+        <TabsContent value="radius"><RadiusAnalysis /></TabsContent>
+        <TabsContent value="sheets"><SheetGeolocation tenants={tenants} /></TabsContent>
+      </Tabs>
+    </AppShell>
+  );
+}
+function RadiusAnalysis() {
   const { data: tenants } = useSuspenseQuery(proximityTenantsQuery);
   const [tenantId, setTenant] = useState(
     tenants.find((t) => /travel academy/i.test(t.name))?.id ?? tenants[0]?.id ?? "",
@@ -419,7 +437,6 @@ export function ProximityPage() {
   const review = entities.find((e) => e.id === reviewId);
   const catalogEntity = entities.find((e) => e.id === catalogReview);
   return (
-    <AppShell>
       <div className="space-y-6 text-foreground">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -1089,6 +1106,5 @@ export function ProximityPage() {
           </div>
         )}
       </div>
-    </AppShell>
   );
 }
