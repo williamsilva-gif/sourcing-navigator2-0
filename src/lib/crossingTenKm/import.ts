@@ -23,7 +23,7 @@ export function importHeaders(book: XLSX.WorkBook, sheet: string, header: number
   if (!ws?.["!ref"]) return [];
   const range = XLSX.utils.decode_range(ws["!ref"]);
   return Array.from({ length: range.e.c + 1 }, (_, c) =>
-    XLSX.utils.format_cell(ws[XLSX.utils.encode_cell({ r: header - 1, c })] ?? { t: "s", v: "" }),
+    XLSX.utils.format_cell({ ...(ws[XLSX.utils.encode_cell({ r: header - 1, c })] ?? { t: "s", v: "" }) }),
   );
 }
 export function suggestImport(headers: string[]): ImportMapping {
@@ -82,7 +82,7 @@ export function parseImport(
       const c = mapping[k];
       return c === undefined
         ? ""
-        : XLSX.utils.format_cell(ws[XLSX.utils.encode_cell({ r, c })] ?? { t: "s", v: "" }).trim();
+        : XLSX.utils.format_cell({ ...(ws[XLSX.utils.encode_cell({ r, c })] ?? { t: "s", v: "" }) }).trim();
     };
     if (
       !Array.from(
