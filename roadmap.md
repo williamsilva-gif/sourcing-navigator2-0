@@ -1,4 +1,5 @@
 # Raio & Proximidade
+- [ ] Updated 631-office primary source: mapped temporary full XLSX/CSV import (optional hotels), replace not merge historical sources; count/coordinate/identifier validation and UI/export QA without writes or Google.
 - [x] Cruzamento 10 km: isolated read-only completed sheet sources, optional temporary supplements, all pairs/global nearest and four-sheet Excel; authenticated 393×666 QA yielded 17,045 pairs (388/603 apt), reload/download/synthetic supplement verified; 247 tests and scoped lint/build passed. Full lint has preexisting issues; no Google, legacy writes or publishing.
 - [x] New-file blank-coordinate reprocessing: scored Google candidates, bounded office/store POI/postal fallback, lossless CSV enrichment; 235 tests, scoped lint/build OK, authenticated synthetic import/export/reload checked. No Google calls, historical writes or publication; full lint has preexisting issues.
 - [x] Sheet batch row-error isolation, bounded retries, atomic completion/reload normalization and one-click final export; authenticated 393-row job normalized without Google calls, rows/counters/original preserved and historical partial job unchanged.
