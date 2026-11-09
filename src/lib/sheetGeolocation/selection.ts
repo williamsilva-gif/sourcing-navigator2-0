@@ -158,13 +158,16 @@ export function selectPoi(
 ): Selection | undefined {
   const name = norm(poiName(row));
   if (!name) return;
-  const matches = places.filter(
-    (p) =>
-      (norm(p.displayName?.text ?? "") === name || norm(p.displayName?.text ?? "").startsWith(name)) &&
-      p.id &&
-      p.formattedAddress &&
-      !p.businessStatus?.startsWith("CLOSED"),
-  ).sort((a, b) => (a.id ?? "").localeCompare(b.id ?? ""));
+  const matches = places
+    .filter(
+      (p) =>
+        (norm(p.displayName?.text ?? "") === name ||
+          norm(p.displayName?.text ?? "").startsWith(name)) &&
+        p.id &&
+        p.formattedAddress &&
+        !p.businessStatus?.startsWith("CLOSED"),
+    )
+    .sort((a, b) => (a.id ?? "").localeCompare(b.id ?? ""));
   for (const place of matches) {
     const components = place.addressComponents?.map((c) => ({
       long_name: c.longText,
