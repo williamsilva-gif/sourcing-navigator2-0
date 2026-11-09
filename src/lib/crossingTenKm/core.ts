@@ -73,7 +73,15 @@ export function points(rows: Row[], kind: Point["kind"], filename: string): Poin
     lng: r.geo?.lng,
     status: r.status,
     precision: r.precision || r.geo?.confidence || r.status,
-    source: [filename, `aba ${r.entity.source?.sheet ?? ""}, linha ${r.entity.source?.row ?? i + 1}`, r.geo?.source, r.geo?.placeId ? `Place ID ${r.geo.placeId}` : "", r.geo?.checkedAt].filter(Boolean).join(" · "),
+    source: [
+      filename,
+      `aba ${r.entity.source?.sheet ?? ""}, linha ${r.entity.source?.row ?? i + 1}`,
+      r.geo?.source,
+      r.geo?.placeId ? `Place ID ${r.geo.placeId}` : "",
+      r.geo?.checkedAt,
+    ]
+      .filter(Boolean)
+      .join(" · "),
     url: "",
     notes: [...r.notes, ...(r.geo?.reasons ?? [])].join("; "),
   }));
