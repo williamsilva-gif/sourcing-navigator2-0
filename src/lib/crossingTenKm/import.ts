@@ -31,10 +31,11 @@ export function importHeaders(book: XLSX.WorkBook, sheet: string, header: number
 export function suggestImport(headers: string[]): ImportMapping {
   const aliases: Record<keyof typeof importFields, string[]> = {
     code: ["codigo", "codigoesc", "cnpj", "cod", "code"],
-    name: ["nome", "hotel", "nomefantasia"],
+    name: ["nomedohotel", "hotelnome", "nome", "hotel", "nomefantasia"],
     city: ["cidade", "municipio"],
     uf: ["uf", "estado"],
-    address: ["endereco", "logradouro", "enderecocompleto"],
+    // "logradouro" first: when both Endereço and Logradouro exist, the street column wins.
+    address: ["logradouro", "endereco", "enderecooriginal", "enderecocompleto"],
     number: ["numero", "num"],
     lat: ["latitude", "lat"],
     lng: ["longitude", "lng", "long"],
@@ -52,8 +53,11 @@ export function suggestImport(headers: string[]): ImportMapping {
       .replace(/[^a-z0-9]/g, "");
   return Object.fromEntries(
     Object.entries(aliases).flatMap(([k, a]) => {
-      const c = headers.findIndex((h) => a.includes(normalize(h)));
-      return c < 0 ? [] : [[k, c]];
+      // Alias priority order beats header order (e.g. Logradouro over Endereço).
+      const c = a
+        .map((alias) => headers.findIndex((h) => normalize(h) === alias))
+        .find((i) => i >= 0);
+      return c === undefined ? [] : [[k, c]];
     }),
   );
 }
