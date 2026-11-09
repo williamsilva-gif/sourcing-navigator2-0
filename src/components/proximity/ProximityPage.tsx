@@ -17,6 +17,7 @@ import {
   Route as RouteIcon,
 } from "lucide-react";
 import { GoogleMapsTest } from "@/components/proximity/GoogleMapsTest";
+import { IsolatedRouteTest } from "@/components/proximity/IsolatedRouteTest";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -71,6 +72,7 @@ export function ProximityPage() {
           <TabsTrigger value="crossing">Cruzamento 10 km</TabsTrigger>
         </TabsList>
         <TabsContent value="radius">
+          <IsolatedRouteTest />
           <RadiusAnalysis />
         </TabsContent>
         <TabsContent value="sheets">
