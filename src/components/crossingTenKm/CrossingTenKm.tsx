@@ -34,7 +34,9 @@ export function CrossingTenKm({ tenants }: { tenants: { id: string; name: string
   const [hotelId, setHotel] = useState(""),
     [officeId, setOffice] = useState("");
   const [officeMode, setOfficeMode] = useState("upload");
-  const [uploaded, setUploaded] = useState<Partial<Record<"hotel" | "office", { points: Point[]; filename: string }>>>({});
+  const [uploaded, setUploaded] = useState<
+    Partial<Record<"hotel" | "office", { points: Point[]; filename: string }>>
+  >({});
   const [extras, setExtras] = useState<{ hotel: Supplement[]; office: Supplement[] }>({
     hotel: [],
     office: [],
@@ -92,20 +94,15 @@ export function CrossingTenKm({ tenants }: { tenants: { id: string; name: string
       const readPoints = async (kind: "hotel" | "office", id: string) => {
         const local = uploaded[kind];
         if (local && (kind === "hotel" || officeMode === "upload")) return local.points;
-        if (kind === "office" && officeMode === "upload") throw new Error("Importe e confirme os 631 escritórios atualizados.");
+        if (kind === "office" && officeMode === "upload")
+          throw new Error("Importe e confirme os 631 escritórios atualizados.");
         const data = await read({ data: { tenantId, jobId: id } });
         if (!data.job || data.job.kind !== kind) throw new Error("Selecione fontes concluídas.");
         return points(data.job.rows as unknown as Row[], kind, data.job.filename);
       };
       const [h, o] = await Promise.all([readPoints("hotel", hid), readPoints("office", oid)]);
-      const hs = supplement(
-        h,
-        extras.hotel,
-      );
-      const os = supplement(
-        o,
-        extras.office,
-      );
+      const hs = supplement(h, extras.hotel);
+      const os = supplement(o, extras.office);
       setResult(calculate(hs.points, os.points, [...hs.audit, ...os.audit]));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Não foi possível calcular.");
@@ -182,29 +179,39 @@ export function CrossingTenKm({ tenants }: { tenants: { id: string; name: string
         </label>
         <label className="space-y-2 text-sm">
           Fonte principal de escritórios
-          <select aria-label="Modo fonte escritórios" className={selectClass} value={officeMode} onChange={e => { setOfficeMode(e.target.value); clear(); }}>
-            <option value="upload">Nova planilha · 631 escritórios</option>
-            <option value="historical">Arquivo histórico concluído</option>
-          </select>
-          {officeMode === "historical" && <>
-          Escritórios históricos · {ojob?.checkpoint ?? 0}
           <select
-            aria-label="Fonte escritórios"
+            aria-label="Modo fonte escritórios"
             className={selectClass}
-            value={oid}
+            value={officeMode}
             onChange={(e) => {
-              setOffice(e.target.value);
+              setOfficeMode(e.target.value);
               clear();
             }}
           >
-            <option value="">Selecione arquivo concluído</option>
-            {offices.map((j) => (
-              <option key={j.id} value={j.id}>
-                {j.filename} · {j.checkpoint}
-              </option>
-            ))}
+            <option value="upload">Nova planilha · 631 escritórios</option>
+            <option value="historical">Arquivo histórico concluído</option>
           </select>
-          </>}
+          {officeMode === "historical" && (
+            <>
+              Escritórios históricos · {ojob?.checkpoint ?? 0}
+              <select
+                aria-label="Fonte escritórios"
+                className={selectClass}
+                value={oid}
+                onChange={(e) => {
+                  setOffice(e.target.value);
+                  clear();
+                }}
+              >
+                <option value="">Selecione arquivo concluído</option>
+                {offices.map((j) => (
+                  <option key={j.id} value={j.id}>
+                    {j.filename} · {j.checkpoint}
+                  </option>
+                ))}
+              </select>
+            </>
+          )}
         </label>
       </div>
       {jobs.isLoading && <p role="status">Carregando arquivos concluídos…</p>}
@@ -214,10 +221,51 @@ export function CrossingTenKm({ tenants }: { tenants: { id: string; name: string
         </p>
       )}
       <div className="grid gap-4 lg:grid-cols-2">
-        {officeMode === "upload" && <CoordinateImport kind="office" onConfirm={(rows, filename) => { setUploaded(v => ({ ...v, office: { points: rows, filename } })); setExtras(v => ({ ...v, office: [] })); setFiles(v => ({ ...v, office: "" })); clear(); }} />}
-        <CoordinateImport kind="hotel" onConfirm={(rows, filename) => { setUploaded(v => ({ ...v, hotel: { points: rows, filename } })); setExtras(v => ({ ...v, hotel: [] })); setFiles(v => ({ ...v, hotel: "" })); clear(); }} />
+        {officeMode === "upload" && (
+          <CoordinateImport
+            kind="office"
+            onConfirm={(rows, filename) => {
+              setUploaded((v) => ({ ...v, office: { points: rows, filename } }));
+              setExtras((v) => ({ ...v, office: [] }));
+              setFiles((v) => ({ ...v, office: "" }));
+              clear();
+            }}
+          />
+        )}
+        <CoordinateImport
+          kind="hotel"
+          onConfirm={(rows, filename) => {
+            setUploaded((v) => ({ ...v, hotel: { points: rows, filename } }));
+            setExtras((v) => ({ ...v, hotel: [] }));
+            setFiles((v) => ({ ...v, hotel: "" }));
+            clear();
+          }}
+        />
       </div>
-      {(["office", "hotel"] as const).map(kind => uploaded[kind] && (kind === "hotel" || officeMode === "upload") && <div key={kind} className="flex flex-wrap items-center gap-2 text-sm"><span className="break-all">Fonte ativa: {uploaded[kind]?.filename} · {uploaded[kind]?.points.length} {kind === "office" ? "escritórios" : "hotéis"} · somente neste navegador</span><Button variant="ghost" size="icon" aria-label={`Remover fonte importada ${kind}`} title="Remover fonte importada" onClick={() => { setUploaded(v => ({ ...v, [kind]: undefined })); clear(); }}><X className="h-4 w-4" /></Button></div>)}
+      {(["office", "hotel"] as const).map(
+        (kind) =>
+          uploaded[kind] &&
+          (kind === "hotel" || officeMode === "upload") && (
+            <div key={kind} className="flex flex-wrap items-center gap-2 text-sm">
+              <span className="break-all">
+                Fonte ativa: {uploaded[kind]?.filename} · {uploaded[kind]?.points.length}{" "}
+                {kind === "office" ? "escritórios" : "hotéis"} · somente neste navegador
+              </span>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label={`Remover fonte importada ${kind}`}
+                title="Remover fonte importada"
+                onClick={() => {
+                  setUploaded((v) => ({ ...v, [kind]: undefined }));
+                  clear();
+                }}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          ),
+      )}
       <div className="grid gap-4 border-y border-border py-4 md:grid-cols-2">
         {(["office", "hotel"] as const).map((kind) => (
           <div key={kind} className="min-w-0 space-y-2">
@@ -265,7 +313,14 @@ export function CrossingTenKm({ tenants }: { tenants: { id: string; name: string
         inválidas são descartadas com auditoria.
       </p>
       <div className="flex flex-wrap gap-3">
-        <Button onClick={() => void run()} disabled={busy || (!uploaded.hotel && (!hid || jobs.isFetching)) || (officeMode === "upload" ? !uploaded.office : (!oid || jobs.isFetching))}>
+        <Button
+          onClick={() => void run()}
+          disabled={
+            busy ||
+            (!uploaded.hotel && (!hid || jobs.isFetching)) ||
+            (officeMode === "upload" ? !uploaded.office : !oid || jobs.isFetching)
+          }
+        >
           <Play className="mr-2 h-4 w-4" />
           {busy ? "Calculando…" : "Calcular proximidade 10 km"}
         </Button>
