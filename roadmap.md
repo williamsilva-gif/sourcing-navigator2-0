@@ -1,4 +1,5 @@
 # Raio & Proximidade
+- [ ] Cruzamento 10 km: isolated read-only completed sheet sources, optional lossless coordinate supplements, all pairs/global nearest, audited four-sheet Excel and authenticated QA; no Google or legacy writes.
 - [x] New-file blank-coordinate reprocessing: scored Google candidates, bounded office/store POI/postal fallback, lossless CSV enrichment; 235 tests, scoped lint/build OK, authenticated synthetic import/export/reload checked. No Google calls, historical writes or publication; full lint has preexisting issues.
 - [x] Sheet batch row-error isolation, bounded retries, atomic completion/reload normalization and one-click final export; authenticated 393-row job normalized without Google calls, rows/counters/original preserved and historical partial job unchanged.
 - [x] Sheet-only missing hotel CEP exception: strict unique Places validation; 90 tests, lint/build OK and authenticated preview/read-only Hilton QA. Historical review retained because full Places/search evidence is not saved; zero new Google calls or legacy changes.
