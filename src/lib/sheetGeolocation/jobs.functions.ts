@@ -5,6 +5,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Database, Json } from "@/integrations/supabase/types";
 import { google } from "../proximity/google.server";
 import { resolveUnit } from "./resolve";
+import { selectGeocode } from "./selection";
 import { selectPlace, stateCode, type GoogleResult, type GooglePlace } from "../proximity/core";
 import {
   cacheKey,
@@ -320,7 +321,23 @@ export const batchSheetJob = createServerFn({ method: "POST" })
               const results = response.results ?? [];
               if (!Array.isArray(results))
                 throw new Error("Resposta Google malformada: resultados inválidos.");
-              if (results.length === 1) {
+              if (row.localizationVersion === 2) {
+                const selected = selectGeocode(row, results);
+                row.geo = selected?.geo;
+                row.precision = selected?.precision;
+                row.status = selected?.geo.confidence ?? "review";
+                row.notes = selected?.geo.reasons ?? ["Nenhum candidato Google compatível"];
+                // Preserve the stricter hotel postal/identity rules, including blank original CEP.
+                if (row.geo && row.notes.some(note => note.includes("CEP original"))) {
+                  row.geo.confidence = "review";
+                  row.status = "review";
+                }
+                if (row.geo && !row.entity.cep.trim()) {
+                  row.geo.confidence = "review";
+                  row.status = "review";
+                  row.notes.push("CEP original vazio: confirmar identidade hoteleira Places");
+                }
+              } else if (results.length === 1) {
                 row.geo = validate(row, results[0]);
                 row.precision = results[0].geometry.location_type;
                 row.status = row.geo.confidence;
