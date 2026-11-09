@@ -1,4 +1,5 @@
 # Architecture rules
+- The fixed-pair Routes diagnostic uses a TA-master authenticated POST, bounded two-call transport and transient UI results only; it never accesses or mutates jobs or catalog, keeping tests independent of active processing.
 - Ten-kilometer crossing uses isolated pure calculation/export and TA tenant-scoped read-only sheet-job endpoints, with mapped browser-only full-source imports replacing (never merging) jobs and temporary supplements; never import geocoding batches or legacy radius state, so calculation cannot incur Google costs or mutate originals.
 - Independent spreadsheet geolocation owns tenant-scoped TA jobs, private immutable originals and per-row checkpoints; shared server-only Google transport preserves existing callers while explicit-start batches never write radius jobs or hotel catalog.
 - Sheet-specific Places validation wraps the legacy validator; exceptions never change radius validation or promote historical rows without complete retained provider evidence.
