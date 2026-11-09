@@ -360,4 +360,49 @@ describe("Cruzamento 10 km isolado", () => {
     expect(r.officeSummary.every((o) => o.count === 393)).toBe(true);
     expect(performance.now() - start).toBeLessThan(10000);
   });
+  it("auto-mapeia 'Nome do hotel' e prefere Logradouro a Endereço", () => {
+    const headers = [
+      "CNPJ",
+      "Nome do hotel",
+      "Endereço",
+      "Logradouro",
+      "Número",
+      "Cidade",
+      "Estado",
+      "Latitude",
+      "Longitude",
+      "Status geocodificação",
+    ];
+    const bytes = file([
+      headers,
+      ["02.223.966/0090-99", "Hilton Garden Inn", "Av. Prudente de Morais, 520", "Av. Prudente de Morais", "520", "Belo Horizonte", "MG", -19.9, -43.9, "high"],
+    ]);
+    const book = loadImport(bytes),
+      sheet = book.SheetNames[0];
+    const mapping = suggestImport(importHeaders(book, sheet, 1));
+    expect(headers[mapping.name!]).toBe("Nome do hotel");
+    expect(headers[mapping.address!]).toBe("Logradouro");
+    const imported = parseImport(book, sheet, 1, mapping, "hotel", "hoteis.xlsx");
+    expect(imported.points[0].name).toBe("Hilton Garden Inn");
+    expect(imported.points[0].address).toBe("Av. Prudente de Morais");
+    expect(imported.points[0].code).toBe("02.223.966/0090-99");
+  });
+  it("coordenadas numericamente malformatadas vão para auditoria sem escala automática", () => {
+    const headers = ["Código", "Cidade", "UF", "Latitude", "Longitude", "Endereço original"];
+    const bytes = file([
+      headers,
+      ["ESC-1291", "São Paulo", "SP", -239328, -463262, "Rua A"],
+      ["ESC-1736", "Rio de Janeiro", "RJ", -155759, -560720, "Rua B"],
+      ["ESC-0001", "São Paulo", "SP", -23.55, -46.63, "Rua C"],
+    ]);
+    const book = loadImport(bytes),
+      sheet = book.SheetNames[0];
+    const mapping = suggestImport(importHeaders(book, sheet, 1));
+    expect(headers[mapping.address!]).toBe("Endereço original");
+    const imported = parseImport(book, sheet, 1, mapping, "office", "esc.xlsx");
+    expect(imported.count).toBe(3);
+    expect(imported.invalid).toBe(2);
+    expect(coords(imported.points[0])).toBeNull();
+    expect(coords(imported.points[2])).not.toBeNull();
+  });
 });
