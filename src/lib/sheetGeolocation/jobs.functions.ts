@@ -328,7 +328,7 @@ export const batchSheetJob = createServerFn({ method: "POST" })
                 row.status = selected?.geo.confidence ?? "review";
                 row.notes = selected?.geo.reasons ?? ["Nenhum candidato Google compatível"];
                 // Preserve the stricter hotel postal/identity rules, including blank original CEP.
-                if (row.geo && row.notes.some(note => note.includes("CEP original"))) {
+                if (row.geo && row.notes.some((note) => note.includes("CEP original"))) {
                   row.geo.confidence = "review";
                   row.status = "review";
                 }
