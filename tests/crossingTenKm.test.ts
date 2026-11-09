@@ -10,6 +10,7 @@ import {
   type Point,
 } from "../src/lib/crossingTenKm/core";
 import { parseSupplement, exportWorkbook } from "../src/lib/crossingTenKm/files";
+import { loadImport, importHeaders, suggestImport, parseImport } from "../src/lib/crossingTenKm/import";
 const p = (
   kind: Point["kind"],
   id: string,
@@ -41,6 +42,38 @@ function file(rows: unknown[][]) {
   return new Uint8Array(XLSX.write(b, { type: "array", bookType: "xlsx" }));
 }
 describe("Cruzamento 10 km isolado", () => {
+  it("importa exatamente 631 escritórios sem unir 666 históricos e exporta 393 hotéis", () => {
+    const headers=["Código","Cidade","UF","Latitude","Longitude","Endereço","Tipo de localização"];
+    const bytes=file([headers,...Array.from({length:631},(_,i)=>[`ESC-${String(i).padStart(4,"0")}`,"Barueri","SP",-23,-46,"Rua A","aproximada"])]);
+    const book=loadImport(bytes), sheet=book.SheetNames[0];
+    const imported=parseImport(book,sheet,1,suggestImport(importHeaders(book,sheet,1)),"office","novo.xlsx");
+    expect(imported.canConfirm).toBe(true);
+    expect(imported.count).toBe(631);
+    expect(imported.points[0].code).toBe("ESC-0000");
+    expect(imported.points[0].precision).toBe("aproximada");
+    const result=calculate(Array.from({length:393},(_,i)=>p("hotel",`h${i}`)),imported.points);
+    expect(result.pairs).toHaveLength(393*631);
+    const exported=exportWorkbook(result);
+    expect(XLSX.utils.sheet_to_json(exported.Sheets["Escritorios resumo"])).toHaveLength(631);
+    expect(XLSX.utils.sheet_to_json(exported.Sheets["Hoteis resumo"])).toHaveLength(393);
+  });
+  it("não confirma escritórios com total diferente de 631", () => {
+    const b=loadImport(file([["Código","Cidade","UF","Latitude","Longitude"],["ESC-0001","SP","SP",-23,-46]]));
+    const r=parseImport(b,b.SheetNames[0],1,suggestImport(importHeaders(b,b.SheetNames[0],1)),"office","teste.xlsx");
+    expect(r.expected).toBe(631);expect(r.countValid).toBe(false);expect(r.canConfirm).toBe(false);
+  });
+  it("preserva CNPJ e código CSV, permite mapear segunda linha e não altera workbook", () => {
+    const b=loadImport(new TextEncoder().encode("Título;;;;;\nCNPJ;Cidade;UF;Latitude;Longitude;Endereço\n00123456000109;São Paulo;SP;-23,5;-46,5;Rua A"));
+    const before=JSON.stringify(b);
+    const r=parseImport(b,b.SheetNames[0],2,suggestImport(importHeaders(b,b.SheetNames[0],2)),"hotel","teste.csv");
+    expect(r.canConfirm).toBe(true);expect(r.points[0].code).toBe("00123456000109");
+    expect(coords(r.points[0])).toEqual({lat:-23.5,lng:-46.5});expect(JSON.stringify(b)).toBe(before);
+  });
+  it("audita inválidos mantendo linhas e bloqueia códigos duplicados/vazios", () => {
+    const b=loadImport(file([["Código","Cidade","UF","Latitude","Longitude"],["ESC-1","SP","SP",16,16],["ESC-1","SP","SP","",""],["","SP","SP",-23,-46]]));
+    const r=parseImport(b,b.SheetNames[0],1,suggestImport(importHeaders(b,b.SheetNames[0],1)),"office","teste.xlsx");
+    expect(r.invalid).toBe(2);expect(r.missingCodes).toBe(1);expect(r.duplicates).toHaveLength(1);expect(r.canConfirm).toBe(false);expect(r.points).toHaveLength(3);
+  });
   it("inclui dois hotéis por escritório sem escolher apenas nearest", () => {
     const r = calculate([p("hotel", "h1"), p("hotel", "h2", -23.01)], [p("office", "ESC-1")]);
     expect(r.pairs).toHaveLength(2);
