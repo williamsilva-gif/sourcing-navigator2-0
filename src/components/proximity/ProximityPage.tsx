@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { SheetGeolocation } from "@/components/sheetGeolocation/SheetGeolocation";
+import { CrossingTenKm } from "@/components/crossingTenKm/CrossingTenKm";
 import { supabase } from "@/integrations/supabase/client";
 import {
   workbook,
@@ -66,12 +67,16 @@ export function ProximityPage() {
         <TabsList className="h-auto max-w-full flex-wrap justify-start">
           <TabsTrigger value="radius">Raio & Proximidade</TabsTrigger>
           <TabsTrigger value="sheets">Geolocalização de Planilhas</TabsTrigger>
+          <TabsTrigger value="crossing">Cruzamento 10 km</TabsTrigger>
         </TabsList>
         <TabsContent value="radius">
           <RadiusAnalysis />
         </TabsContent>
         <TabsContent value="sheets">
           <SheetGeolocation tenants={tenants} />
+        </TabsContent>
+        <TabsContent value="crossing">
+          <CrossingTenKm tenants={tenants} />
         </TabsContent>
       </Tabs>
     </AppShell>
