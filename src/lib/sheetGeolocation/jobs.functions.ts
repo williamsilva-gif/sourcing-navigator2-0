@@ -298,6 +298,7 @@ export const batchSheetJob = createServerFn({ method: "POST" })
             row.attempts++;
             if (row.localizationVersion === 2 && row.entity.kind !== "hotel") {
               const selected = await resolveUnit(row, request);
+              if (selected) selected.geo.checkedAt = new Date().toISOString();
               row.geo = selected?.geo;
               row.precision = selected?.precision;
               row.status = selected?.geo.confidence ?? "error";
@@ -323,6 +324,7 @@ export const batchSheetJob = createServerFn({ method: "POST" })
                 throw new Error("Resposta Google malformada: resultados inválidos.");
               if (row.localizationVersion === 2) {
                 const selected = selectGeocode(row, results);
+                if (selected) selected.geo.checkedAt = new Date().toISOString();
                 row.geo = selected?.geo;
                 row.precision = selected?.precision;
                 row.status = selected?.geo.confidence ?? "review";

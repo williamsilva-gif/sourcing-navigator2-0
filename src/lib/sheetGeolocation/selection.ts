@@ -81,6 +81,7 @@ function candidate(row: Row, result: GoogleResult, reference = false): Selection
     numberMatch &&
     precision === "ROOFTOP" &&
     !result.partial_match &&
+    !!result.formatted_address &&
     !!result.place_id;
   const reasons: string[] = [];
   if (!exact) reasons.push("Localização APROXIMADA — não serve para distância definitiva");
@@ -107,7 +108,7 @@ function candidate(row: Row, result: GoogleResult, reference = false): Selection
       derivedNumber: number,
       derivedPostalCode: postal,
       reasons,
-      checkedAt: new Date().toISOString(),
+      checkedAt: "",
     },
   };
 }
@@ -159,11 +160,11 @@ export function selectPoi(
   if (!name) return;
   const matches = places.filter(
     (p) =>
-      norm(p.displayName?.text ?? "") === name &&
+      (norm(p.displayName?.text ?? "") === name || norm(p.displayName?.text ?? "").startsWith(name)) &&
       p.id &&
       p.formattedAddress &&
       !p.businessStatus?.startsWith("CLOSED"),
-  );
+  ).sort((a, b) => (a.id ?? "").localeCompare(b.id ?? ""));
   for (const place of matches) {
     const components = place.addressComponents?.map((c) => ({
       long_name: c.longText,

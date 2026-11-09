@@ -138,7 +138,7 @@ export function parseSheet(
     const notes: string[] = [];
     if (!entity.address || !entity.city || !/^[a-z]{2}$/.test(stateCode(entity.uf)))
       notes.push("Logradouro/cidade/UF incompleto: revisão necessária");
-    if (!originalNumber(entity)) notes.push("Número original ausente; não será inventado");
+    if (!originalNumber(entity)) notes.push("Coluna Número vazia; número explícito no endereço será usado só na consulta, nunca inventado");
     if (kind === "hotel" && !entity.cep.trim())
       notes.push("CEP original vazio: será conferido por identidade e endereço no Google Places");
     else if (!/^\d{8}$/.test(entity.cep.replace(/\D/g, "")))
