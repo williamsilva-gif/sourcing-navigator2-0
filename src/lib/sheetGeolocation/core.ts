@@ -53,8 +53,17 @@ export const extraHeaders = [
 export function readWorkbook(bytes: Uint8Array) {
   if (bytes.length > 10 * 1024 * 1024) throw new Error("Limite 10 MB.");
   // CSV input remains text (including leading zeros); XLSX retains original cell values/formats/formulas.
-  return XLSX.read(bytes, {
-    type: "array",
+  const zipped = bytes[0] === 0x50 && bytes[1] === 0x4b;
+  let input: Uint8Array | string = bytes;
+  if (!zipped) {
+    try {
+      input = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+    } catch {
+      input = new TextDecoder("windows-1252").decode(bytes);
+    }
+  }
+  return XLSX.read(input, {
+    type: zipped ? "array" : "string",
     raw: true,
     cellText: true,
     cellNF: true,
