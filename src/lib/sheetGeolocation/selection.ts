@@ -14,7 +14,7 @@ function cityMatches(row: Row, city: string) {
   return actual === expected || (stateCode(row.entity.uf) === "df" && ["brasilia", "distritofederal", "df"].includes(expected) && ["brasilia", "distritofederal"].includes(actual));
 }
 export type Selection = { geo: Geo; precision: string; score: number; exact: boolean };
-function candidate(row: Row, result: GoogleResult): Selection | undefined {
+function candidate(row: Row, result: GoogleResult, reference = false): Selection | undefined {
   const location = result?.geometry?.location;
   if (!location || !Number.isFinite(location.lat) || !Number.isFinite(location.lng) || Math.abs(location.lat) > 90 || Math.abs(location.lng) > 180 || (location.lat === 0 && location.lng === 0)) return;
   const components = Array.isArray(result.address_components) ? result.address_components : [];
@@ -32,7 +32,7 @@ function candidate(row: Row, result: GoogleResult): Selection | undefined {
   if (route && !streetMatch) return;
   const postal = c("postal_code")?.long_name ?? "";
   const postalMatch = validPostal(postal) && validPostal(row.entity.cep) && norm(postal) === norm(row.entity.cep);
-  if (!streetMatch && !postalMatch) return;
+  if (!reference && !streetMatch && !postalMatch) return;
   const precision = result.geometry.location_type || "UNKNOWN";
   const exact = streetMatch && numberMatch && precision === "ROOFTOP" && !result.partial_match && !!result.place_id;
   const reasons: string[] = [];
@@ -70,8 +70,10 @@ export function selectPoi(row: Row, places: GooglePlace[], truncated = false): S
     const components = place.addressComponents?.map(c => ({ long_name: c.longText, short_name: c.shortText, types: c.types }));
     const result: GoogleResult = { geometry: { location: { lat: place.location?.latitude ?? NaN, lng: place.location?.longitude ?? NaN }, location_type: "POI" }, address_components: components, place_id: place.id, formatted_address: place.formattedAddress };
     // Reuse geographic gates only; the named POI legitimately has no street number.
-    const proxy = { ...row, entity: { ...row.entity, address: components?.find(c => c.types?.includes("route"))?.long_name || "", number: "", cep: components?.find(c => c.types?.includes("postal_code"))?.long_name || "" } };
-    const selected = candidate(proxy, result);
+    const proxy = { ...row, entity: { ...row.entity, address: "", number: "", cep: "" } };
+    // Geographic validation without applying street agreement to the named landmark.
+    const geographicResult = { ...result, address_components: components?.filter(c => !c.types?.includes("route") && !c.types?.includes("street_number")) };
+    const selected = candidate(proxy, geographicResult, true);
     if (!selected) continue;
     selected.precision = "Ponto de interesse Google — localização física, não endereço numerado";
     selected.geo.source = "Google Places Text Search (New)";
@@ -79,4 +81,16 @@ export function selectPoi(row: Row, places: GooglePlace[], truncated = false): S
     selected.geo.reasons = ["POI identificado pelo nome/município/UF; não comprova o endereço da unidade nem distância definitiva", ...(matches.length > 1 || truncated ? ["Múltiplos POIs; confirmar referência"] : [])];
     return selected;
   }
+}
+export function selectPostal(row: Row, results: GoogleResult[]): Selection | undefined {
+  if (!validPostal(row.entity.cep)) return;
+  const matching = results.filter(r => r.address_components?.some(c => Array.isArray(c.types) && c.types.includes("postal_code") && norm(c.long_name) === norm(row.entity.cep)));
+  const options = matching.map(r => candidate({ ...row, entity: { ...row.entity, address: "", number: "" } }, { ...r, address_components: r.address_components?.filter(c => !c.types?.includes("route") && !c.types?.includes("street_number")) }, true)).filter((v): v is Selection => !!v).sort((a,b) => (a.geo.placeId ?? "").localeCompare(b.geo.placeId ?? ""));
+  const best = options[0];
+  if (!best) return;
+  best.precision = "Centroide CEP";
+  best.geo.confidence = "review";
+  best.geo.source = "Google Geocoding — referência postal";
+  best.geo.reasons = ["Centroide CEP — NÃO representa endereço da unidade; bloqueado para distância definitiva"];
+  return best;
 }

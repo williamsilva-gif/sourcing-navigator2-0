@@ -12,6 +12,7 @@ import {
   type Kind,
 } from "../proximity/core";
 import { street } from "../proximity/catalog";
+import { queryAddress } from "./selection";
 
 export const fields = {
   name: "Nome (opcional para escritórios/lojas)",
@@ -26,6 +27,7 @@ export const fields = {
 };
 export type Mapping = Partial<Record<keyof typeof fields, number>>;
 export type Row = {
+  localizationVersion?: 2;
   index: number;
   entity: Entity;
   district: string;
@@ -63,17 +65,17 @@ export function suggest(headers: string[]): Mapping {
   const aliases = {
     name: ["nome", "hotel", "nomefantasia"],
     code: ["codigo", "cod"],
-    address: ["endereco", "enderecocompleto", "logradouro", "rua"],
+    address: ["endereco", "enderecocompleto", "enderecooriginal", "logradouro", "rua"],
     number: ["numero", "num", "n"],
     district: ["bairro"],
     city: ["cidade", "municipio"],
-    cep: ["cep", "cephotel", "cepimovel"],
+    cep: ["ceporiginal", "cep", "cephotel", "cepimovel", "cepusadonalocalizacao"],
     complement: ["complemento"],
     uf: ["uf", "estado", "ufestado"],
   };
   return Object.fromEntries(
     Object.entries(aliases).flatMap(([key, list]) => {
-      const i = headers.findIndex((h) => list.includes(norm(h)));
+      const i = list.map(alias => headers.findIndex(h => norm(h) === alias)).find(index => index >= 0) ?? -1;
       return i < 0 ? [] : [[key, i]];
     }),
   );
@@ -130,6 +132,7 @@ export function parseSheet(
     else if (!/^\d{8}$/.test(entity.cep.replace(/\D/g, "")))
       notes.push("CEP ausente/inválido: revisão necessária");
     rows.push({
+      localizationVersion: 2,
       index,
       entity,
       district: value("district"),
@@ -143,9 +146,10 @@ export function parseSheet(
   return rows;
 }
 export function query(row: Row) {
+  const address = row.localizationVersion === 2 ? queryAddress(row) : { street: row.entity.address, number: row.entity.number };
   return [
-    row.entity.address,
-    row.entity.number,
+    address.street,
+    address.number,
     row.district,
     row.complement,
     row.entity.city,
@@ -249,7 +253,19 @@ export function enrich(book: XLSX.WorkBook, sheet: string, header: number, rows:
   if (!ws?.["!ref"]) throw new Error("Aba inexistente.");
   const range = XLSX.utils.decode_range(ws["!ref"]);
   const col = range.e.c + 1;
-  XLSX.utils.sheet_add_aoa(ws, [extraHeaders], { origin: { r: header - 1, c: col } });
+  const originalHeaders = Array.from({ length: col }, (_, c) => String(ws[XLSX.utils.encode_cell({ r: header - 1, c })]?.v ?? ""));
+  const coordinateCols = ["latitude", "longitude"].map(name => originalHeaders.findIndex(h => norm(h) === name));
+  const headers = extraHeaders.map((h, i) => i < 2 && coordinateCols[i] >= 0 ? `${h} Google` : h);
+  XLSX.utils.sheet_add_aoa(ws, [headers], { origin: { r: header - 1, c: col } });
+  for (const row of rows) {
+    if (row.localizationVersion !== 2 || !row.geo) continue;
+    [row.geo.lat, row.geo.lng].forEach((value, i) => {
+      if (coordinateCols[i] < 0 || !Number.isFinite(value)) return;
+      const address = XLSX.utils.encode_cell({ r: row.index, c: coordinateCols[i] });
+      const cell = ws[address];
+      if (!cell?.f && (cell?.v === undefined || cell.v === null || cell.v === "")) XLSX.utils.sheet_add_aoa(ws, [[value]], { origin: address });
+    });
+  }
   for (const row of rows)
     XLSX.utils.sheet_add_aoa(ws, [resultCells(row)], { origin: { r: row.index, c: col } });
   return book;

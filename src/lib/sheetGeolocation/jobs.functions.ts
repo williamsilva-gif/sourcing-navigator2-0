@@ -4,6 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Database, Json } from "@/integrations/supabase/types";
 import { google } from "../proximity/google.server";
+import { resolveUnit } from "./resolve";
 import { selectPlace, stateCode, type GoogleResult, type GooglePlace } from "../proximity/core";
 import {
   cacheKey,
@@ -294,6 +295,13 @@ export const batchSheetJob = createServerFn({ method: "POST" })
             row.notes = [...row.notes, "Limite de três tentativas por linha atingido"];
           } else {
             row.attempts++;
+            if (row.localizationVersion === 2 && row.entity.kind !== "hotel") {
+              const selected = await resolveUnit(row, request);
+              row.geo = selected?.geo;
+              row.precision = selected?.precision;
+              row.status = selected?.geo.confidence ?? "error";
+              row.notes = selected?.geo.reasons ?? ["Sem localização real Google compatível com município/UF; nenhuma coordenada inventada"];
+            } else {
             const response = (await request(
               `/maps/api/geocode/json?address=${encodeURIComponent(query(row))}&language=pt-BR&region=br`,
             )) as { status: string; results?: GoogleResult[] };
@@ -359,6 +367,7 @@ export const batchSheetJob = createServerFn({ method: "POST" })
                     : "Identidade hoteleira não confirmada",
                 );
               }
+            }
             }
           }
           row.nextRetry = undefined;
