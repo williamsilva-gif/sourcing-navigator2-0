@@ -45,14 +45,12 @@ describe("isolated Routes diagnostic", () => {
     expect(request).not.toHaveBeenCalled();
   });
   it("reports each 403 with sanitized provider evidence and never retries", async () => {
-    const request = vi
-      .fn<typeof fetch>()
-      .mockImplementation(
-        async () =>
-          new Response("API_KEY_SERVICE_BLOCKED secret; project 592548124736 disabled", {
-            status: 403,
-          }),
-      );
+    const request = vi.fn<typeof fetch>().mockImplementation(
+      async () =>
+        new Response("API_KEY_SERVICE_BLOCKED secret; project 592548124736 disabled", {
+          status: 403,
+        }),
+    );
     const results = await runIsolatedRouteTest({
       isMaster: true,
       key: "secret",
