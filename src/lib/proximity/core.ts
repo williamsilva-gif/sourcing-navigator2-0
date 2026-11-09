@@ -50,6 +50,18 @@ export type Pair = {
   cross: boolean;
   roadKm?: number;
   roadSource?: string;
+  roadMeters?: number;
+  roadDurationSec?: number;
+  roadStatus?: "calculado" | "pendente" | "erro";
+  roadError?: string;
+  roadAt?: string;
+  walkKm?: number;
+  walkMeters?: number;
+  walkDurationSec?: number;
+  walkSource?: string;
+  walkStatus?: "calculado" | "pendente" | "erro";
+  walkError?: string;
+  walkAt?: string;
   /** Coordinate of hotel or unit is still under TA review: indicative only, never definitive. */
   reviewGeo?: boolean;
 };

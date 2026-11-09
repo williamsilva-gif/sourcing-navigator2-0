@@ -1,3 +1,4 @@
+import { WALK_WARNING, fmtDuration, routeStatus } from "@/lib/proximity/routes";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useSuspenseQuery, useQuery, useQueryClient, queryOptions } from "@tanstack/react-query";
@@ -376,6 +377,19 @@ function RadiusAnalysis() {
             Raio: p.band,
             "Distância viária km": p.roadKm ?? null,
             "Fonte viária": p.roadSource ?? "NÃO CALCULADA",
+            "Carro metros": p.roadMeters ?? null,
+            "Carro duração min": p.roadDurationSec !== undefined ? p.roadDurationSec / 60 : null,
+            "Carro status": routeStatus(p, "DRIVE"),
+            "Carro data": p.roadAt ?? "",
+            "Carro erro": p.roadError ?? "",
+            "A pé km": p.walkKm ?? null,
+            "A pé metros": p.walkMeters ?? null,
+            "A pé duração min": p.walkDurationSec !== undefined ? p.walkDurationSec / 60 : null,
+            "A pé fonte": p.walkSource ?? "NÃO CALCULADA",
+            "A pé status": routeStatus(p, "WALK"),
+            "A pé data": p.walkAt ?? "",
+            "A pé erro": p.walkError ?? "",
+            "Aviso a pé": p.walkStatus === "calculado" ? WALK_WARNING : "",
             "Mais próximo": p.nearest ? "MELHOR CANDIDATO" : "NÃO",
             Conclusão: p.definitive ? "DEFINITIVO NA CIDADE" : "PROVISÓRIO",
             "Cross municipality": p.cross,
@@ -866,7 +880,8 @@ function RadiusAnalysis() {
             <p className="text-xs text-muted-foreground">
               {filtered.length} registros · {exportedPairs.length} pares ·{" "}
               {pairs.filter((p) => p.roadKm === undefined).length} rotas viárias não calculadas.
-              Limiares ±100 m sinalizam revisão.
+              Limiares ±100 m sinalizam revisão. A linha reta não indica o mais próximo de carro ou
+              a pé. {WALK_WARNING}
             </p>
             <div className="max-h-[640px] overflow-auto rounded-md border border-border">
               <table className="w-full min-w-[850px] text-left text-sm">
@@ -944,9 +959,39 @@ function RadiusAnalysis() {
                                   {p.reviewGeo ? " · coordenada em revisão (indicativa)" : ""}
                                   {p.cross ? " · município excepcional" : ""}
                                   {p.boundary ? " · REVISAR LIMIAR" : ""}
+                                  <br />
+                                  Reta {p.km.toFixed(3)} km · Carro:{" "}
                                   {p.roadKm !== undefined
-                                    ? ` · viária ${p.roadKm.toFixed(2)} km`
-                                    : ""}
+                                    ? `${p.roadKm.toFixed(2)} km ${fmtDuration(p.roadDurationSec)}`
+                                    : routeStatus(p, "DRIVE")}
+                                  {p.roadError ? ` (${p.roadError})` : ""} · A pé:{" "}
+                                  {p.walkKm !== undefined
+                                    ? `${p.walkKm.toFixed(2)} km ${fmtDuration(p.walkDurationSec)} (beta)`
+                                    : routeStatus(p, "WALK")}
+                                  {p.walkError ? ` (${p.walkError})` : ""}
+                                  {view === "hotels" && (
+                                    <button
+                                      type="button"
+                                      className="ml-1 underline"
+                                      disabled={busy || job.status === "running"}
+                                      onClick={() =>
+                                        action(() =>
+                                          routes({
+                                            data: {
+                                              tenantId,
+                                              jobId,
+                                              hotelId: p.hotelId,
+                                              unitId: p.unitId,
+                                              modes: ["DRIVE", "WALK"],
+                                              allowCross: true,
+                                            },
+                                          }),
+                                        )
+                                      }
+                                    >
+                                      rotas deste par
+                                    </button>
+                                  )}
                                 </p>
                               ))
                             : "Sem candidato válido; não conclusivo"}
@@ -980,12 +1025,21 @@ function RadiusAnalysis() {
                           </Button>
                           {e.kind === "hotel" && validGeo(e) && (
                             <Button
-                              title="Distância viária dos top 3 por categoria"
+                              title="Carro e a pé (Google Routes) dos top 3 por linha reta, mesmo município"
                               size="sm"
                               variant="ghost"
                               disabled={busy || job.status === "running"}
                               onClick={() =>
-                                action(() => routes({ data: { tenantId, jobId, hotelId: e.id } }))
+                                action(() =>
+                                  routes({
+                                    data: {
+                                      tenantId,
+                                      jobId,
+                                      hotelId: e.id,
+                                      modes: ["DRIVE", "WALK"],
+                                    },
+                                  }),
+                                )
                               }
                             >
                               <RouteIcon className="h-4 w-4" />
