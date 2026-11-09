@@ -880,7 +880,8 @@ function RadiusAnalysis() {
             <p className="text-xs text-muted-foreground">
               {filtered.length} registros · {exportedPairs.length} pares ·{" "}
               {pairs.filter((p) => p.roadKm === undefined).length} rotas viárias não calculadas.
-              Limiares ±100 m sinalizam revisão. A linha reta não indica o mais próximo de carro ou a pé. {WALK_WARNING}
+              Limiares ±100 m sinalizam revisão. A linha reta não indica o mais próximo de carro ou
+              a pé. {WALK_WARNING}
             </p>
             <div className="max-h-[640px] overflow-auto rounded-md border border-border">
               <table className="w-full min-w-[850px] text-left text-sm">
@@ -1031,7 +1032,12 @@ function RadiusAnalysis() {
                               onClick={() =>
                                 action(() =>
                                   routes({
-                                    data: { tenantId, jobId, hotelId: e.id, modes: ["DRIVE", "WALK"] },
+                                    data: {
+                                      tenantId,
+                                      jobId,
+                                      hotelId: e.id,
+                                      modes: ["DRIVE", "WALK"],
+                                    },
                                   }),
                                 )
                               }

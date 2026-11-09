@@ -1,4 +1,11 @@
-import { applyRoute, needsRoute, parseRoutesBody, routeCandidates, routesRequest, type RouteResult } from "./routes";
+import {
+  applyRoute,
+  needsRoute,
+  parseRoutesBody,
+  routeCandidates,
+  routesRequest,
+  type RouteResult,
+} from "./routes";
 import { google } from "./google.server";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
@@ -601,7 +608,11 @@ export const proximityRoutesFn = createServerFn({ method: "POST" })
       .extend({
         hotelId: z.string().uuid(),
         unitId: z.string().uuid().optional(),
-        modes: z.array(z.enum(["DRIVE", "WALK"])).min(1).max(2).default(["DRIVE"]),
+        modes: z
+          .array(z.enum(["DRIVE", "WALK"]))
+          .min(1)
+          .max(2)
+          .default(["DRIVE"]),
         allowCross: z.boolean().default(false),
       })
       .parse(d),
@@ -651,7 +662,9 @@ export const proximityRoutesFn = createServerFn({ method: "POST" })
         );
         if (res.status === 401 || res.status === 403) {
           const text = (await res.text()).slice(0, 300).replace(/AIza[\w-]+/g, "***");
-          throw new Error(`Google Routes ${res.status}: habilite Routes API/confira a chave. ${text}`);
+          throw new Error(
+            `Google Routes ${res.status}: habilite Routes API/confira a chave. ${text}`,
+          );
         }
         const result: RouteResult = res.ok
           ? parseRoutesBody(await res.json())
