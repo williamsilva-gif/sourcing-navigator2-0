@@ -1,6 +1,6 @@
 import { parseRoutesBody, routesRequest, type TravelMode } from "./routes";
 
-export const TEST_ORIGIN = { lat: -1.4547326, lng: -48.4890030 };
+export const TEST_ORIGIN = { lat: -1.4547326, lng: -48.489003 };
 export const TEST_DESTINATION = { lat: -1.4502282, lng: -48.4884451 };
 export const TEST_MODES: TravelMode[] = ["DRIVE", "WALK"];
 export const ROUTE_FIELD_MASK = "routes.distanceMeters,routes.duration";
@@ -20,7 +20,10 @@ export function sanitizeRouteError(text: string, secrets: string[]) {
   for (const secret of secrets) {
     if (secret) safe = safe.split(secret).join("[oculto]");
   }
-  return safe.replace(/AIza[\w-]+/g, "[oculto]").replace(/Bearer\s+[^\s"<>]+/gi, "Bearer [oculto]").slice(0, 4000);
+  return safe
+    .replace(/AIza[\w-]+/g, "[oculto]")
+    .replace(/Bearer\s+[^\s"<>]+/gi, "Bearer [oculto]")
+    .slice(0, 4000);
 }
 
 /** Fixed pair, at most two calls, no job access, no retries or automatic fallback. */
@@ -36,32 +39,46 @@ export async function runIsolatedRouteTest(options: {
   const results: RouteTestResult[] = [];
   for (const mode of TEST_MODES) {
     const result: RouteTestResult = {
-      mode, source: `Google Routes v2 computeRoutes — ${mode}`,
-      httpStatus: null, at: new Date().toISOString(), meters: null, seconds: null, error: null,
+      mode,
+      source: `Google Routes v2 computeRoutes — ${mode}`,
+      httpStatus: null,
+      at: new Date().toISOString(),
+      meters: null,
+      seconds: null,
+      error: null,
     };
     if (!key || (gateway && !auth)) {
-      result.error = !key ? "GOOGLE_MAPS_API_KEY ausente no servidor." : "Credencial do conector Google ausente.";
+      result.error = !key
+        ? "GOOGLE_MAPS_API_KEY ausente no servidor."
+        : "Credencial do conector Google ausente.";
       results.push(result);
       continue;
     }
     try {
-      const response = await request(gateway
-        ? "https://connector-gateway.lovable.dev/google_maps/routes/directions/v2:computeRoutes"
-        : "https://routes.googleapis.com/directions/v2:computeRoutes", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json", "X-Goog-FieldMask": ROUTE_FIELD_MASK,
-          ...(gateway ? { Authorization: `Bearer ${auth}`, "X-Connection-Api-Key": key } : { "X-Goog-Api-Key": key }),
+      const response = await request(
+        gateway
+          ? "https://connector-gateway.lovable.dev/google_maps/routes/directions/v2:computeRoutes"
+          : "https://routes.googleapis.com/directions/v2:computeRoutes",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Goog-FieldMask": ROUTE_FIELD_MASK,
+            ...(gateway
+              ? { Authorization: `Bearer ${auth}`, "X-Connection-Api-Key": key }
+              : { "X-Goog-Api-Key": key }),
+          },
+          body: JSON.stringify(routesRequest(TEST_ORIGIN, TEST_DESTINATION, mode)),
+          signal: AbortSignal.timeout(15000),
         },
-        body: JSON.stringify(routesRequest(TEST_ORIGIN, TEST_DESTINATION, mode)),
-        signal: AbortSignal.timeout(15000),
-      });
+      );
       result.httpStatus = response.status;
       const text = await response.text();
       if (!response.ok) {
-        const hint = response.status === 403
-          ? " Após ativação, pode haver atraso de propagação; também confira restrições da chave e faturamento. O erro abaixo identifica a recusa do Google."
-          : "";
+        const hint =
+          response.status === 403
+            ? " Após ativação, pode haver atraso de propagação; também confira restrições da chave e faturamento. O erro abaixo identifica a recusa do Google."
+            : "";
         result.error = `HTTP ${response.status}.${hint} ${sanitizeRouteError(text, [key, auth ?? ""])}`;
       } else {
         const parsed = parseRoutesBody(JSON.parse(text));
@@ -71,7 +88,10 @@ export async function runIsolatedRouteTest(options: {
         } else result.error = parsed.error;
       }
     } catch (error) {
-      result.error = sanitizeRouteError(error instanceof Error ? error.message : "Falha de rede ou resposta inválida.", [key, auth ?? ""]);
+      result.error = sanitizeRouteError(
+        error instanceof Error ? error.message : "Falha de rede ou resposta inválida.",
+        [key, auth ?? ""],
+      );
     }
     results.push(result);
   }
