@@ -2,7 +2,7 @@
 
 ## Escopo
 - Nova aba independente em `/raio-proximidade`. Leitura TA/tenant autenticada de `sheet_geolocation_jobs`, via `crossingSources`; SELECT somente, sem normalizar ou escrever snapshots.
-- Fontes explicitamente solicitadas de 393 hotéis e 666 escritórios são preferidas quando disponíveis no cliente. Nos demais clientes, seleciona o mais recente concluído por tipo. Isso evita substituir o conjunto completo por um novo arquivo de retry de 63 escritórios. Ambos os seletores permitem mudar a fonte.
+- A fonte principal padrão de escritórios é agora a **nova planilha de 631 linhas** importada pelo usuário; enquanto não for importada e confirmada, o cálculo fica desabilitado (sem fallback silencioso para 666). A seleção histórica continua disponível explicitamente. Fontes nunca são unidas: as 35 unidades excluídas não retornam. O job solicitado de 393 hotéis continua preferido, com alternativa de importar hotéis já geolocalizados.
 - Cálculo e suplementos ficam temporariamente no navegador: recarregar descarta suplemento/resultado, mas mantém fontes disponíveis e permite recalcular sem chamadas externas.
 - Não altera análise legada, catálogo, RFPs ou jobs de geolocalização. Não importa nenhuma função de batch/geocoding e não chama Google/Routes.
 
@@ -23,3 +23,11 @@
 
 ## Arquivos
 `src/lib/crossingTenKm/{core.ts,files.ts,sources.functions.ts}`, `src/components/crossingTenKm/CrossingTenKm.tsx`, integração aditiva em `ProximityPage.tsx`, `tests/crossingTenKm.test.ts`, `AGENTS.md`, `roadmap.md` e este relatório.
+
+## Atualização aprovada — fonte de 631 escritórios (9 novembro 2026)
+- Aba Cruzamento já estava efetivamente importada e renderizada em `ProximityPage.tsx`, linhas 24/70/78–79; não havia integração pendente.
+- Importação temporária completa via `import.ts` e `CoordinateImport.tsx`: CSV/XLSX, escolha de aba e cabeçalho, aliases e mapeamento manual de código/CNPJ, cidade, UF, coordenadas, endereço/número, nome, precisão, fonte/URL/notas/status. Código/cidade/UF/lat/lng exigem mapeamento; códigos vazios ou duplicados impedem confirmação. Escritórios exigem exatamente 631 linhas não vazias; hotéis mostram referência de 393 sem impor esse total para arquivos alternativos. Coordenadas inválidas mantêm a linha nos resumos, mas não entram no cálculo. Valores originais do workbook não são modificados, inclusive caches de formatação.
+- Nada é enviado ao storage ou persistido; não cria jobs. Recarregar descarta importações/resultado e permanece no modo nova planilha, sem mesclar ou selecionar silenciosamente os 666 antigos. O usuário precisa selecionar novamente o arquivo local.
+- **A planilha real de 631 ainda não foi fornecida.** QA autenticado utilizou CSV sintético de 631 escritórios (todos no mesmo ponto, sem representar unidades reais), mais leitura dos 393 hotéis existentes. UI confirmou 631/393, 631/388 aptos; 32.812 pares são resultado exclusivamente desse teste sintético, não da nova base real.
+- Download pela UI e releitura confirmaram quatro abas: 32.812 pares, 631 escritórios, 393 hotéis e 1.025 linhas de auditoria; `ESC-0000`, precisão aproximada e fontes preservados. Busca, visão nearest, desktop/mobile e reload verificados. Importação/calcular não chamam Google ou funções de escrita.
+- Suíte completa **251 testes / 15 arquivos passou**; lint do módulo e testes passou; compilação automática `build OK`. Lint global continua com 5.203 erros e 13 avisos preexistentes. Sem publicação.
