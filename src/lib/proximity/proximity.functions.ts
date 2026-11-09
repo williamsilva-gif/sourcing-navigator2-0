@@ -1,3 +1,4 @@
+import { applyRoute, needsRoute, parseRoutesBody, routeCandidates, routesRequest, type RouteResult } from "./routes";
 import { google } from "./google.server";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
@@ -595,28 +596,42 @@ export const proximityManualFn = createServerFn({ method: "POST" })
   });
 export const proximityRoutesFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => jobScope.extend({ hotelId: z.string().uuid() }).parse(d))
+  .inputValidator((d: unknown) =>
+    jobScope
+      .extend({
+        hotelId: z.string().uuid(),
+        unitId: z.string().uuid().optional(),
+        modes: z.array(z.enum(["DRIVE", "WALK"])).min(1).max(2).default(["DRIVE"]),
+        allowCross: z.boolean().default(false),
+      })
+      .parse(d),
+  )
   .handler(async ({ data, context }) => {
     const job = await get(context.supabase, data.tenantId, data.jobId);
-    if (job.status === "running") throw new Error("Pause antes de calcular rotas.");
+    if (job.status === "running" || (job.lease_until && Date.parse(job.lease_until) > Date.now()))
+      throw new Error("Pause antes de calcular rotas.");
     const entities = job.entities as unknown as Entity[];
     const pairs = job.pairs as unknown as Pair[];
     const h = entities.find((e) => e.id === data.hotelId);
     if (!h?.geo) throw new Error("Hotel sem coordenadas.");
-    // Routes lives at a different host in direct-key deployments.
     const key = process.env["GOOGLE_MAPS_API_KEY"];
     if (!key) throw new Error("Chave Google ausente.");
-    for (const kind of ["office", "store"])
-      for (const pair of pairs
-        .filter((p) => p.hotelId === h.id && p.kind === kind)
-        .sort((a, b) => a.km - b.km)
-        .slice(0, 3)) {
-        if (pair.roadKm !== undefined) continue;
+    const gateway = process.env["PROXIMITY_GOOGLE_GATEWAY"] === "true";
+    const auth = process.env["LOVABLE_API_KEY"];
+    if (gateway && !auth) throw new Error("Conexão Google ausente.");
+    const candidates = routeCandidates(pairs, h.id, {
+      unitId: data.unitId,
+      allowCross: data.allowCross,
+    });
+    let calls = 0;
+    const errors: string[] = [];
+    for (const pair of candidates)
+      for (const mode of data.modes) {
+        if (!needsRoute(pair, mode)) continue;
         const u = entities.find((e) => e.id === pair.unitId);
         if (!u?.geo) continue;
-        const gateway = process.env["PROXIMITY_GOOGLE_GATEWAY"] === "true";
-        const auth = process.env["LOVABLE_API_KEY"];
-        if (gateway && !auth) throw new Error("Conexão Google ausente.");
+        if (calls >= 12) break; // hard cap: 3 offices + 3 stores x 2 modes
+        calls++;
         const res = await fetch(
           gateway
             ? "https://connector-gateway.lovable.dev/google_maps/routes/directions/v2:computeRoutes"
@@ -625,34 +640,31 @@ export const proximityRoutesFn = createServerFn({ method: "POST" })
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "X-Goog-FieldMask": "routes.distanceMeters",
+              "X-Goog-FieldMask": "routes.distanceMeters,routes.duration",
               ...(gateway
                 ? { Authorization: `Bearer ${auth}`, "X-Connection-Api-Key": key }
                 : { "X-Goog-Api-Key": key }),
             },
-            body: JSON.stringify({
-              origin: { location: { latLng: { latitude: h.geo.lat, longitude: h.geo.lng } } },
-              destination: { location: { latLng: { latitude: u.geo.lat, longitude: u.geo.lng } } },
-              travelMode: "DRIVE",
-            }),
+            body: JSON.stringify(routesRequest(h.geo, u.geo, mode)),
             signal: AbortSignal.timeout(15000),
           },
         );
-        if (!res.ok)
-          throw new Error(
-            `Google Routes ${res.status}: habilite Routes API e confira a chave servidor.`,
-          );
-        const body = (await res.json()) as { routes?: Array<{ distanceMeters?: number }> };
-        if (!body.routes?.length) throw new Error("Rota viária não encontrada.");
-        pair.roadKm = (body.routes[0].distanceMeters ?? 0) / 1000;
-        pair.roadSource = "Google Routes DRIVE";
+        if (res.status === 401 || res.status === 403) {
+          const text = (await res.text()).slice(0, 300).replace(/AIza[\w-]+/g, "***");
+          throw new Error(`Google Routes ${res.status}: habilite Routes API/confira a chave. ${text}`);
+        }
+        const result: RouteResult = res.ok
+          ? parseRoutesBody(await res.json())
+          : { status: "erro", error: `Google Routes ${res.status}` };
+        if (result.status === "erro") errors.push(`${mode}: ${result.error}`);
+        applyRoute(pair, mode, result, new Date().toISOString());
         const saved = await context.supabase
           .from("proximity_jobs")
           .update({ pairs: json(pairs) })
           .eq("id", job.id);
         if (saved.error) throw new Error(saved.error.message);
       }
-    return { ok: true };
+    return { ok: true, calls, errors };
   });
 // Read-only Google diagnostic: same google() path as the batch; returns sanitized fields only, never the key.
 export const proximityGoogleTestFn = createServerFn({ method: "POST" })
