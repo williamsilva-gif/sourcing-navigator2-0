@@ -12,6 +12,7 @@ import {
   type Kind,
 } from "../proximity/core";
 import { street } from "../proximity/catalog";
+import { queryAddress } from "./selection";
 
 export const fields = {
   name: "Nome (opcional para escritórios/lojas)",
@@ -26,6 +27,7 @@ export const fields = {
 };
 export type Mapping = Partial<Record<keyof typeof fields, number>>;
 export type Row = {
+  localizationVersion?: 2;
   index: number;
   entity: Entity;
   district: string;
@@ -51,8 +53,17 @@ export const extraHeaders = [
 export function readWorkbook(bytes: Uint8Array) {
   if (bytes.length > 10 * 1024 * 1024) throw new Error("Limite 10 MB.");
   // CSV input remains text (including leading zeros); XLSX retains original cell values/formats/formulas.
-  return XLSX.read(bytes, {
-    type: "array",
+  const zipped = bytes[0] === 0x50 && bytes[1] === 0x4b;
+  let input: Uint8Array | string = bytes;
+  if (!zipped) {
+    try {
+      input = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+    } catch {
+      input = new TextDecoder("windows-1252").decode(bytes);
+    }
+  }
+  return XLSX.read(input, {
+    type: zipped ? "array" : "string",
     raw: true,
     cellText: true,
     cellNF: true,
@@ -63,17 +74,20 @@ export function suggest(headers: string[]): Mapping {
   const aliases = {
     name: ["nome", "hotel", "nomefantasia"],
     code: ["codigo", "cod"],
-    address: ["endereco", "enderecocompleto", "logradouro", "rua"],
+    address: ["endereco", "enderecocompleto", "enderecooriginal", "logradouro", "rua"],
     number: ["numero", "num", "n"],
     district: ["bairro"],
     city: ["cidade", "municipio"],
-    cep: ["cep", "cephotel", "cepimovel"],
+    cep: ["ceporiginal", "cep", "cephotel", "cepimovel", "cepusadonalocalizacao"],
     complement: ["complemento"],
     uf: ["uf", "estado", "ufestado"],
   };
   return Object.fromEntries(
     Object.entries(aliases).flatMap(([key, list]) => {
-      const i = headers.findIndex((h) => list.includes(norm(h)));
+      const i =
+        list
+          .map((alias) => headers.findIndex((h) => norm(h) === alias))
+          .find((index) => index >= 0) ?? -1;
       return i < 0 ? [] : [[key, i]];
     }),
   );
@@ -124,12 +138,16 @@ export function parseSheet(
     const notes: string[] = [];
     if (!entity.address || !entity.city || !/^[a-z]{2}$/.test(stateCode(entity.uf)))
       notes.push("Logradouro/cidade/UF incompleto: revisão necessária");
-    if (!originalNumber(entity)) notes.push("Número original ausente; não será inventado");
+    if (!originalNumber(entity))
+      notes.push(
+        "Coluna Número vazia; número explícito no endereço será usado só na consulta, nunca inventado",
+      );
     if (kind === "hotel" && !entity.cep.trim())
       notes.push("CEP original vazio: será conferido por identidade e endereço no Google Places");
     else if (!/^\d{8}$/.test(entity.cep.replace(/\D/g, "")))
       notes.push("CEP ausente/inválido: revisão necessária");
     rows.push({
+      localizationVersion: 2,
       index,
       entity,
       district: value("district"),
@@ -143,9 +161,13 @@ export function parseSheet(
   return rows;
 }
 export function query(row: Row) {
+  const address =
+    row.localizationVersion === 2
+      ? queryAddress(row)
+      : { street: row.entity.address, number: row.entity.number };
   return [
-    row.entity.address,
-    row.entity.number,
+    address.street,
+    address.number,
     row.district,
     row.complement,
     row.entity.city,
@@ -249,7 +271,24 @@ export function enrich(book: XLSX.WorkBook, sheet: string, header: number, rows:
   if (!ws?.["!ref"]) throw new Error("Aba inexistente.");
   const range = XLSX.utils.decode_range(ws["!ref"]);
   const col = range.e.c + 1;
-  XLSX.utils.sheet_add_aoa(ws, [extraHeaders], { origin: { r: header - 1, c: col } });
+  const originalHeaders = Array.from({ length: col }, (_, c) =>
+    String(ws[XLSX.utils.encode_cell({ r: header - 1, c })]?.v ?? ""),
+  );
+  const coordinateCols = ["latitude", "longitude"].map((name) =>
+    originalHeaders.findIndex((h) => norm(h) === name),
+  );
+  const headers = extraHeaders.map((h, i) => (i < 2 && coordinateCols[i] >= 0 ? `${h} Google` : h));
+  XLSX.utils.sheet_add_aoa(ws, [headers], { origin: { r: header - 1, c: col } });
+  for (const row of rows) {
+    if (row.localizationVersion !== 2 || !row.geo) continue;
+    [row.geo.lat, row.geo.lng].forEach((value, i) => {
+      if (coordinateCols[i] < 0 || !Number.isFinite(value)) return;
+      const address = XLSX.utils.encode_cell({ r: row.index, c: coordinateCols[i] });
+      const cell = ws[address];
+      if (!cell?.f && (cell?.v === undefined || cell.v === null || cell.v === ""))
+        XLSX.utils.sheet_add_aoa(ws, [[value]], { origin: address });
+    });
+  }
   for (const row of rows)
     XLSX.utils.sheet_add_aoa(ws, [resultCells(row)], { origin: { r: row.index, c: col } });
   return book;

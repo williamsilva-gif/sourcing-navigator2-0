@@ -60,6 +60,10 @@ function high(row: Row) {
 }
 function harness() {
   const rows = parseSheet(fixture(), "Original", 1, suggest(headers), "office", "mock.xlsx");
+  // Original handler regressions exercise historical snapshots without the new import version.
+  rows.forEach((row) => {
+    delete row.localizationVersion;
+  });
   const job = {
     id: "job",
     client_tenant_id: "tenant",
@@ -130,6 +134,42 @@ beforeEach(() => {
   provider.mockReset();
 });
 describe("Sheet batch durable outcomes (no paid provider)", () => {
+  it("new office scoring saves ambiguous coordinates and completes without touching other jobs", async () => {
+    const h = harness();
+    h.job.rows.forEach((row) => {
+      row.localizationVersion = 2;
+    });
+    const response = high(h.job.rows[0]);
+    const second = structuredClone(response.results[0]);
+    second.place_id = "other";
+    second.geometry.location.lat = -23.51;
+    response.results.push(second);
+    provider
+      .mockResolvedValueOnce(response)
+      .mockResolvedValueOnce(high(h.job.rows[1]))
+      .mockResolvedValueOnce(high(h.job.rows[2]));
+    await h.invoke(batchSheetJob);
+    expect(h.job.rows.map((row) => row.status)).toEqual(["review", "high", "high"]);
+    expect(h.job.rows[0].geo?.lat).toBe(-23.5);
+    expect(h.job.status).toBe("processed");
+    expect(h.job.requests_reserved).toBe(3);
+    const before = structuredClone(h.job);
+    await h.invoke(getSheetJob);
+    expect(h.job).toEqual(before);
+    expect(provider).toHaveBeenCalledTimes(3);
+  });
+  it("new fallback reserves each call and pauses at the approved cap without following rows", async () => {
+    const h = harness();
+    h.job.rows[0].localizationVersion = 2;
+    h.job.request_budget = 2;
+    provider.mockResolvedValue({ status: "ZERO_RESULTS", results: [] });
+    await h.invoke(batchSheetJob);
+    expect(provider).toHaveBeenCalledTimes(2);
+    expect(h.job.requests_reserved).toBe(2);
+    expect(h.job.status).toBe("paused");
+    expect(h.job.rows.every((row) => row.status === "pending")).toBe(true);
+    expect(h.job.checkpoint).toBe(0);
+  });
   it("processes high -> malformed error -> high without pausing or losing prior results", async () => {
     const h = harness();
     provider

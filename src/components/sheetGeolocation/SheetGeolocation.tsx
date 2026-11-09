@@ -325,8 +325,9 @@ export function SheetGeolocation({ tenants }: { tenants: { id: string; name: str
           </label>
         </div>
         <p className="text-sm text-warning">
-          Consultas Google são cobradas por uso. Hotéis podem consumir até três consultas por
-          tentativa; o limite interrompe o lote.
+          Consultas Google são cobradas por uso. Hotéis: até três por tentativa; novos
+          escritórios/lojas: até quatro, parando no primeiro candidato válido. O limite deste
+          arquivo sempre prevalece.
         </p>
         {book && (
           <>
@@ -387,6 +388,12 @@ export function SheetGeolocation({ tenants }: { tenants: { id: string; name: str
                 </label>
               ))}
             </div>
+            <p className="text-sm text-muted-foreground">
+              CEP original é sugerido primeiro. Se houver CEP usado na localização, confira ambos no
+              seletor e escolha o correto. Cada arquivo usa uma única categoria; Tipo original fica
+              preservado. Coordenadas Google podem preencher Latitude/Longitude vazias no Excel;
+              valores existentes não são sobrescritos.
+            </p>
             <p className="text-sm">
               {preview.length} linhas preservadas · {preview.filter((r) => r.notes.length).length}{" "}
               linhas com observações
@@ -519,7 +526,8 @@ export function SheetGeolocation({ tenants }: { tenants: { id: string; name: str
             </p>
           )}
           <p className="text-sm text-muted-foreground">
-            Linhas em revisão ou com falha não são coordenadas aprovadas.
+            Candidatos em revisão e centroides podem ter coordenadas, mas não são aprovados para
+            distância definitiva. POI indica a referência física nomeada, não um imóvel numerado.
           </p>
           <p className="text-sm">
             Verificados: {stats.high}/{stats.total} · checkpoint de tentativas: {job.checkpoint}/
