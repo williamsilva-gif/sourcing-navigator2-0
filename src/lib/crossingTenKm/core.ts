@@ -142,7 +142,7 @@ export function supplement(base: Point[], rows: Supplement[]) {
     audit.push({
       code: p.code,
       kind,
-      reason: "Suplemento aplicado apenas aos campos ausentes",
+      reason: `Suplemento aplicado apenas aos campos ausentes: ${[absent(p.lat) ? "Latitude" : "", absent(p.lng) ? "Longitude" : ""].filter(Boolean).join(", ")}`,
       source: r.source,
       precision: r.precision,
       url: r.url,

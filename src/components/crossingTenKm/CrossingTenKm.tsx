@@ -51,8 +51,9 @@ export function CrossingTenKm({ tenants }: { tenants: { id: string; name: string
   });
   const hotels = jobs.data?.jobs.filter((j) => j.kind === "hotel") ?? [],
     offices = jobs.data?.jobs.filter((j) => j.kind === "office") ?? [];
-  const hid = hotelId || hotels[0]?.id || "",
-    oid = officeId || offices[0]?.id || "";
+  // Prefer the explicitly requested full sources; newer retry subsets must not replace 666 offices.
+  const hid = hotelId || hotels.find((j) => j.id === "3e252a30-20af-4584-8dfc-542d54f70644")?.id || hotels[0]?.id || "",
+    oid = officeId || offices.find((j) => j.id === "a7896096-48fb-4569-adf6-bb9e124b4e0d")?.id || offices[0]?.id || "";
   const hjob = hotels.find((j) => j.id === hid),
     ojob = offices.find((j) => j.id === oid);
   const clear = () => {
@@ -62,6 +63,8 @@ export function CrossingTenKm({ tenants }: { tenants: { id: string; name: string
   };
   const upload = async (kind: "hotel" | "office", file: File) => {
     clear();
+    setExtras((v) => ({ ...v, [kind]: [] }));
+    setFiles((v) => ({ ...v, [kind]: "" }));
     try {
       if (!/\.(csv|xlsx)$/i.test(file.name)) throw new Error("Use CSV ou XLSX.");
       const rows = parseSupplement(new Uint8Array(await file.arrayBuffer()), file.name);
@@ -108,7 +111,7 @@ export function CrossingTenKm({ tenants }: { tenants: { id: string; name: string
       : summaries.slice(page * 100, page * 100 + 100);
   const total = view === "offices" ? pairs.length : summaries.length;
   return (
-    <section className="space-y-6 text-foreground">
+    <section className="min-w-0 max-w-full space-y-6 text-foreground">
       <header>
         <h1 className="flex items-center gap-2 text-2xl font-semibold">
           <MapPin className="h-6 w-6 text-primary" />
@@ -312,7 +315,7 @@ export function CrossingTenKm({ tenants }: { tenants: { id: string; name: string
             {total} {view === "offices" ? "pares" : "hotéis"} encontrados · Excel inclui todos os
             registros, inclusive zeros e sem coordenadas.
           </p>
-          <div className="overflow-x-auto border-y border-border">
+        <div className="max-w-full overflow-x-auto border-y border-border">
             <table className="w-full text-left text-sm">
               <thead className="bg-muted text-muted-foreground">
                 <tr>
