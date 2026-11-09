@@ -325,8 +325,9 @@ export function SheetGeolocation({ tenants }: { tenants: { id: string; name: str
           </label>
         </div>
         <p className="text-sm text-warning">
-          Consultas Google são cobradas por uso. Hotéis: até três por tentativa; novos escritórios/lojas:
-          até quatro, parando no primeiro candidato válido. O limite deste arquivo sempre prevalece.
+          Consultas Google são cobradas por uso. Hotéis: até três por tentativa; novos
+          escritórios/lojas: até quatro, parando no primeiro candidato válido. O limite deste
+          arquivo sempre prevalece.
         </p>
         {book && (
           <>

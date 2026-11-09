@@ -75,7 +75,10 @@ export function suggest(headers: string[]): Mapping {
   };
   return Object.fromEntries(
     Object.entries(aliases).flatMap(([key, list]) => {
-      const i = list.map(alias => headers.findIndex(h => norm(h) === alias)).find(index => index >= 0) ?? -1;
+      const i =
+        list
+          .map((alias) => headers.findIndex((h) => norm(h) === alias))
+          .find((index) => index >= 0) ?? -1;
       return i < 0 ? [] : [[key, i]];
     }),
   );
@@ -146,7 +149,10 @@ export function parseSheet(
   return rows;
 }
 export function query(row: Row) {
-  const address = row.localizationVersion === 2 ? queryAddress(row) : { street: row.entity.address, number: row.entity.number };
+  const address =
+    row.localizationVersion === 2
+      ? queryAddress(row)
+      : { street: row.entity.address, number: row.entity.number };
   return [
     address.street,
     address.number,
@@ -253,9 +259,13 @@ export function enrich(book: XLSX.WorkBook, sheet: string, header: number, rows:
   if (!ws?.["!ref"]) throw new Error("Aba inexistente.");
   const range = XLSX.utils.decode_range(ws["!ref"]);
   const col = range.e.c + 1;
-  const originalHeaders = Array.from({ length: col }, (_, c) => String(ws[XLSX.utils.encode_cell({ r: header - 1, c })]?.v ?? ""));
-  const coordinateCols = ["latitude", "longitude"].map(name => originalHeaders.findIndex(h => norm(h) === name));
-  const headers = extraHeaders.map((h, i) => i < 2 && coordinateCols[i] >= 0 ? `${h} Google` : h);
+  const originalHeaders = Array.from({ length: col }, (_, c) =>
+    String(ws[XLSX.utils.encode_cell({ r: header - 1, c })]?.v ?? ""),
+  );
+  const coordinateCols = ["latitude", "longitude"].map((name) =>
+    originalHeaders.findIndex((h) => norm(h) === name),
+  );
+  const headers = extraHeaders.map((h, i) => (i < 2 && coordinateCols[i] >= 0 ? `${h} Google` : h));
   XLSX.utils.sheet_add_aoa(ws, [headers], { origin: { r: header - 1, c: col } });
   for (const row of rows) {
     if (row.localizationVersion !== 2 || !row.geo) continue;
@@ -263,7 +273,8 @@ export function enrich(book: XLSX.WorkBook, sheet: string, header: number, rows:
       if (coordinateCols[i] < 0 || !Number.isFinite(value)) return;
       const address = XLSX.utils.encode_cell({ r: row.index, c: coordinateCols[i] });
       const cell = ws[address];
-      if (!cell?.f && (cell?.v === undefined || cell.v === null || cell.v === "")) XLSX.utils.sheet_add_aoa(ws, [[value]], { origin: address });
+      if (!cell?.f && (cell?.v === undefined || cell.v === null || cell.v === ""))
+        XLSX.utils.sheet_add_aoa(ws, [[value]], { origin: address });
     });
   }
   for (const row of rows)

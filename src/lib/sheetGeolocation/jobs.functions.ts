@@ -300,74 +300,80 @@ export const batchSheetJob = createServerFn({ method: "POST" })
               row.geo = selected?.geo;
               row.precision = selected?.precision;
               row.status = selected?.geo.confidence ?? "error";
-              row.notes = selected?.geo.reasons ?? ["Sem localização real Google compatível com município/UF; nenhuma coordenada inventada"];
-            } else {
-            const response = (await request(
-              `/maps/api/geocode/json?address=${encodeURIComponent(query(row))}&language=pt-BR&region=br`,
-            )) as { status: string; results?: GoogleResult[] };
-            if (!response || typeof response.status !== "string")
-              throw new Error("Resposta Google malformada: status ausente.");
-            if (response.status === "UNKNOWN_ERROR")
-              throw new Error(`Google transiente ${response.status}`);
-            if (
-              ["REQUEST_DENIED", "OVER_QUERY_LIMIT", "OVER_DAILY_LIMIT"].includes(response.status)
-            )
-              throw new SheetJobFatal(
-                `Google ${response.status}: verifique autorização ou quota antes de retomar.`,
-              );
-            const results = response.results ?? [];
-            if (!Array.isArray(results))
-              throw new Error("Resposta Google malformada: resultados inválidos.");
-            if (results.length === 1) {
-              row.geo = validate(row, results[0]);
-              row.precision = results[0].geometry.location_type;
-              row.status = row.geo.confidence;
-              row.notes = row.geo.reasons;
-            } else {
-              row.status = results.length ? "review" : "error";
-              row.notes = [
-                results.length
-                  ? "Múltiplos resultados: revisão necessária"
-                  : `Google ${response.status}: sem resultado`,
+              row.notes = selected?.geo.reasons ?? [
+                "Sem localização real Google compatível com município/UF; nenhuma coordenada inventada",
               ];
-            }
-            if (row.entity.kind === "hotel" && row.entity.name && row.status !== "high") {
-              const search = (await request("/places/v1/places:searchText", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  "X-Goog-FieldMask": `places.${mask.split(",").join(",places.")},nextPageToken`,
-                },
-                body: JSON.stringify({
-                  textQuery: `${row.entity.name}, ${query(row)}`,
-                  includedType: "lodging",
-                  strictTypeFiltering: true,
-                  languageCode: "pt-BR",
-                  regionCode: "BR",
-                  pageSize: 5,
-                }),
-              })) as { places?: GooglePlace[]; nextPageToken?: string };
-              const selected = selectPlace(row.entity, search.places ?? [], !!search.nextPageToken);
-              if (selected.place?.id) {
-                const place = (await request(
-                  `/places/v1/places/${encodeURIComponent(selected.place.id)}?languageCode=pt-BR`,
-                  { headers: { "X-Goog-FieldMask": mask } },
-                )) as GooglePlace;
-                if (place.id !== selected.place.id)
-                  throw new Error("Place ID incoerente: revisão necessária.");
-                row.geo = validateSheetPlace(row.entity, place, !selected.ambiguous);
-                row.precision = "Identidade por estabelecimento (Places; sem ROOFTOP)";
+            } else {
+              const response = (await request(
+                `/maps/api/geocode/json?address=${encodeURIComponent(query(row))}&language=pt-BR&region=br`,
+              )) as { status: string; results?: GoogleResult[] };
+              if (!response || typeof response.status !== "string")
+                throw new Error("Resposta Google malformada: status ausente.");
+              if (response.status === "UNKNOWN_ERROR")
+                throw new Error(`Google transiente ${response.status}`);
+              if (
+                ["REQUEST_DENIED", "OVER_QUERY_LIMIT", "OVER_DAILY_LIMIT"].includes(response.status)
+              )
+                throw new SheetJobFatal(
+                  `Google ${response.status}: verifique autorização ou quota antes de retomar.`,
+                );
+              const results = response.results ?? [];
+              if (!Array.isArray(results))
+                throw new Error("Resposta Google malformada: resultados inválidos.");
+              if (results.length === 1) {
+                row.geo = validate(row, results[0]);
+                row.precision = results[0].geometry.location_type;
                 row.status = row.geo.confidence;
                 row.notes = row.geo.reasons;
               } else {
-                row.status = "review";
-                row.notes.push(
-                  selected.ambiguous
-                    ? "Identidade ambígua; nenhum primeiro resultado aceito"
-                    : "Identidade hoteleira não confirmada",
-                );
+                row.status = results.length ? "review" : "error";
+                row.notes = [
+                  results.length
+                    ? "Múltiplos resultados: revisão necessária"
+                    : `Google ${response.status}: sem resultado`,
+                ];
               }
-            }
+              if (row.entity.kind === "hotel" && row.entity.name && row.status !== "high") {
+                const search = (await request("/places/v1/places:searchText", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    "X-Goog-FieldMask": `places.${mask.split(",").join(",places.")},nextPageToken`,
+                  },
+                  body: JSON.stringify({
+                    textQuery: `${row.entity.name}, ${query(row)}`,
+                    includedType: "lodging",
+                    strictTypeFiltering: true,
+                    languageCode: "pt-BR",
+                    regionCode: "BR",
+                    pageSize: 5,
+                  }),
+                })) as { places?: GooglePlace[]; nextPageToken?: string };
+                const selected = selectPlace(
+                  row.entity,
+                  search.places ?? [],
+                  !!search.nextPageToken,
+                );
+                if (selected.place?.id) {
+                  const place = (await request(
+                    `/places/v1/places/${encodeURIComponent(selected.place.id)}?languageCode=pt-BR`,
+                    { headers: { "X-Goog-FieldMask": mask } },
+                  )) as GooglePlace;
+                  if (place.id !== selected.place.id)
+                    throw new Error("Place ID incoerente: revisão necessária.");
+                  row.geo = validateSheetPlace(row.entity, place, !selected.ambiguous);
+                  row.precision = "Identidade por estabelecimento (Places; sem ROOFTOP)";
+                  row.status = row.geo.confidence;
+                  row.notes = row.geo.reasons;
+                } else {
+                  row.status = "review";
+                  row.notes.push(
+                    selected.ambiguous
+                      ? "Identidade ambígua; nenhum primeiro resultado aceito"
+                      : "Identidade hoteleira não confirmada",
+                  );
+                }
+              }
             }
           }
           row.nextRetry = undefined;
